@@ -21,6 +21,7 @@ The CLI treats an XMind file as a structured workbook, not as a zip archive or s
 - `guides/`: workflows for agents and humans.
 - `examples/`: copyable inputs and representative outputs.
 - `design/`: command taxonomy, naming rules, compatibility policy, and future ideas.
+- `technical/`: Rust implementation architecture, stack choices, quality gates, testing strategy, and roadmap.
 
 ## Reading Order
 
@@ -53,6 +54,21 @@ For agent automation:
 3. `guides/idempotent-workflow.md`
 4. `schemas/*.md`
 5. `examples/*`
+
+For Rust implementation:
+
+1. `technical/README.md`
+2. `technical/architecture.md`
+3. `technical/tech-stack.md`
+4. `technical/crate-layout.md`
+5. `technical/data-model.md`
+6. `technical/command-runtime.md`
+7. `technical/xmind-storage.md`
+8. `technical/patch-engine.md`
+9. `technical/output-and-errors.md`
+10. `technical/quality-gates.md`
+11. `technical/testing-strategy.md`
+12. `technical/implementation-roadmap.md`
 
 ## Product Posture
 

@@ -1,0 +1,42 @@
+# Technical Design
+
+## Source Manifest
+
+- Conversation: XMind CLI product and technical design discussion
+- Scope: Rust implementation planning for an AI-native XMind CLI
+- Last updated: 2026-05-21
+
+## Purpose
+
+This directory translates the product and command reference contracts into an implementable Rust architecture. It defines the technical stack, crate layout, module boundaries, data flow, quality gates, testing strategy, and AI-native feedback requirements.
+
+The implementation should optimize for correctness, deterministic machine output, safe workbook mutation, and fast agent feedback loops before adding broad XMind feature coverage.
+
+## Reading Order
+
+1. `architecture.md`
+2. `tech-stack.md`
+3. `crate-layout.md`
+4. `data-model.md`
+5. `command-runtime.md`
+6. `xmind-storage.md`
+7. `patch-engine.md`
+8. `output-and-errors.md`
+9. `quality-gates.md`
+10. `testing-strategy.md`
+11. `implementation-roadmap.md`
+
+## Engineering Posture
+
+The CLI should be built as a small, rigorously tested Rust application with a reusable library core. The binary should be thin: parse command-line input, call library services, and render output.
+
+Core rules:
+
+- Use strong domain types instead of stringly-typed internals.
+- Parse and validate before mutation.
+- Mutate a workbook model, not raw XMind storage files.
+- Preserve unknown workbook data by default.
+- Emit one stable JSON envelope for agents.
+- Treat every write as transactional: build, validate, then atomically replace.
+- Make every failure actionable with structured error context.
+
