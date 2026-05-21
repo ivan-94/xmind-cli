@@ -1,0 +1,21 @@
+{
+  "_source_manifest": {
+    "conversation": "XMind CLI product design discussion",
+    "scope": "Example find command JSON output",
+    "last_updated": "2026-05-21"
+  },
+  "ok": true,
+  "command": "find",
+  "workbook": "roadmap.xmind",
+  "result": {
+    "matches": [
+      {
+        "id": "topic-payment",
+        "path": "/Roadmap/Q2/支付能力",
+        "title": "支付能力",
+        "sheet": "Roadmap",
+        "children_count": 3
+      }
+    ]
+  }
+}

@@ -1,0 +1,29 @@
+# Source Manifest:
+# - Conversation: XMind CLI product design discussion
+# - Scope: Example multi-operation roadmap refactor patch
+# - Last updated: 2026-05-21
+
+ops:
+  - op: assert_exists
+    node: path:/Roadmap/Q2
+
+  - op: add_tree
+    parent: path:/Roadmap/Q2
+    if_exists: merge
+    match_by: title_path
+    tree:
+      title: 支付能力
+      labels: [MVP]
+      children:
+        - title: 收银台
+        - title: 退款
+        - title: 对账
+
+  - op: move
+    node: path:/Roadmap/Q2/支付能力/对账
+    to: path:/Roadmap/Q3
+    position: last
+
+  - op: delete
+    node: path:/Roadmap/Q2/旧支付方案
+

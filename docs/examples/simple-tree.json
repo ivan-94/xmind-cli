@@ -1,0 +1,29 @@
+{
+  "_source_manifest": {
+    "conversation": "XMind CLI product design discussion",
+    "scope": "Example JSON tree input",
+    "last_updated": "2026-05-21"
+  },
+  "title": "支付能力",
+  "note": "Q2 核心交付范围",
+  "labels": ["MVP"],
+  "markers": ["priority-1"],
+  "children": [
+    {
+      "title": "收银台",
+      "children": [
+        { "title": "支付方式选择" },
+        { "title": "优惠券抵扣" },
+        { "title": "风控校验" }
+      ]
+    },
+    {
+      "title": "退款",
+      "children": [
+        { "title": "原路退回" },
+        { "title": "部分退款" }
+      ]
+    }
+  ]
+}
+

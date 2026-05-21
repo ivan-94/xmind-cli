@@ -1,0 +1,26 @@
+{
+  "_source_manifest": {
+    "conversation": "XMind CLI product design discussion",
+    "scope": "Example tree command JSON output",
+    "last_updated": "2026-05-21"
+  },
+  "ok": true,
+  "command": "tree",
+  "workbook": "roadmap.xmind",
+  "result": {
+    "sheet": "Roadmap",
+    "root": {
+      "id": "topic-root",
+      "path": "/Roadmap",
+      "title": "Roadmap",
+      "children": [
+        {
+          "id": "topic-q2",
+          "path": "/Roadmap/Q2",
+          "title": "Q2",
+          "children_count": 1
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,30 @@
+{
+  "_source_manifest": {
+    "conversation": "XMind CLI product design discussion",
+    "scope": "Example patch command JSON output",
+    "last_updated": "2026-05-21"
+  },
+  "ok": true,
+  "command": "patch",
+  "workbook": "roadmap.xmind",
+  "dry_run": false,
+  "applied": true,
+  "result": {
+    "summary": {
+      "added": 8,
+      "updated": 1,
+      "deleted": 1,
+      "moved": 1
+    },
+    "operations": [
+      { "index": 0, "op": "assert_exists", "status": "passed" },
+      { "index": 1, "op": "add_tree", "status": "applied" },
+      { "index": 2, "op": "move", "status": "applied" },
+      { "index": 3, "op": "delete", "status": "applied" }
+    ],
+    "backup_path": ".xmind-backups/roadmap.20260521-210000.xmind",
+    "validation": {
+      "valid": true
+    }
+  }
+}
