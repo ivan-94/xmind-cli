@@ -37,7 +37,7 @@ All topic operations accept the shared selector grammar:
 
 ```text
 id:topic-abc
-path:/Roadmap/Q2/Auth
+path:/Q2/Auth
 title:"Auth"
 query:title contains "Auth" and marker = "priority-1"
 ```
@@ -52,11 +52,10 @@ Every mutation supports:
 
 ```bash
 --dry-run
---diff
 --json
 ```
 
-Dry run output includes:
+Dry run output always includes a structured diff. There is no separate `--diff` flag for mutating commands; use `xmind diff` when the desired action is only comparison. Dry run output includes:
 
 - resolved targets,
 - planned operations,
@@ -88,8 +87,8 @@ Errors are structured:
     "message": "Selector matched 2 topics.",
     "selector": "title:\"Auth\"",
     "candidates": [
-      { "id": "topic-a", "path": "/Roadmap/Q1/Auth" },
-      { "id": "topic-b", "path": "/Roadmap/Q2/Auth" }
+      { "id": "topic-a", "path": "/Q1/Auth" },
+      { "id": "topic-b", "path": "/Q2/Auth" }
     ]
   }
 }
@@ -100,7 +99,7 @@ Errors are structured:
 For human review, write commands can emit outline diffs:
 
 ```diff
- /Roadmap/Q2
+ /Q2
 +  Payment
 +    Checkout
 +    Refunds
@@ -110,4 +109,3 @@ For human review, write commands can emit outline diffs:
 ## Agent Notes
 
 The CLI should assume agents are careful but not omniscient. It should provide sharp tools with guardrails: explicit selectors, dry-run by default in examples, deterministic JSON, and no hidden mutation of unrelated workbook content.
-

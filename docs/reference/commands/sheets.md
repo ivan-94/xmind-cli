@@ -20,6 +20,7 @@ xmind sheets <workbook.xmind> [--json]
 
 - `--json`: emit sheet objects.
 - `--fields id,title,index,topic_count`: choose fields.
+- `--format compact-json`: compact the `result` payload when used with `--json`.
 
 ## Output
 
@@ -27,6 +28,9 @@ xmind sheets <workbook.xmind> [--json]
 {
   "ok": true,
   "command": "sheets",
+  "workbook": "roadmap.xmind",
+  "dry_run": false,
+  "applied": false,
   "result": {
     "sheets": [
       { "id": "sheet-1", "index": 0, "title": "Roadmap", "topic_count": 42 }
@@ -44,3 +48,4 @@ xmind sheets <workbook.xmind> [--json]
 
 Use `--sheet-id` or `--sheet` from this output in later topic commands when multiple sheets exist.
 
+Legal `--fields` values are documented in `../fields.md`.

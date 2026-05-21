@@ -35,16 +35,13 @@ xmind patch <workbook.xmind> --ops <ops.yaml|ops.json> --apply --backup
 - `replace_tree`
 - `merge_tree`
 - `delete`
-- `delete_tree`
 - `move`
-- `move_tree`
 - `copy`
-- `clone_tree`
 - `ensure_path`
 - `sort_children`
 - `set_tree_metadata`
 
-Detailed operation semantics are defined in `../patch-operations.md`.
+Accepted aliases: `delete_tree`, `move_tree`, and `clone_tree`. Agents should generate canonical names only. Detailed operation semantics are defined in `../patch-operations.md`.
 
 ## Output
 
@@ -52,6 +49,9 @@ Detailed operation semantics are defined in `../patch-operations.md`.
 {
   "ok": true,
   "command": "patch",
+  "workbook": "roadmap.xmind",
+  "dry_run": false,
+  "applied": true,
   "result": {
     "summary": {
       "added": 8,
@@ -73,9 +73,12 @@ Detailed operation semantics are defined in `../patch-operations.md`.
 - `not_found`
 - `ambiguous_selector`
 - `patch_conflict`
+- `root_operation_not_allowed`
 - `validation_failed`
 - `write_failed`
 
 ## Notes for Agents
 
 This is the primary interface for nontrivial automated edits. Generate a patch, run dry-run, inspect JSON, then apply with backup.
+
+Patch operations follow the root topic rules in `../mutation-semantics.md`. In particular, `delete_tree`, `move_tree`, and `replace_tree` reject root targets.

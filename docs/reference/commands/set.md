@@ -41,10 +41,13 @@ xmind set <workbook.xmind> --node <selector> (--dry-run | --apply) [field option
 {
   "ok": true,
   "command": "set",
+  "workbook": "roadmap.xmind",
+  "dry_run": false,
+  "applied": true,
   "result": {
     "updated": {
       "id": "topic-123",
-      "path": "/Roadmap/Q2/Payments",
+      "path": "/Q2/Payments",
       "changed_fields": ["title", "note"]
     }
   }
@@ -57,7 +60,22 @@ xmind set <workbook.xmind> --node <selector> (--dry-run | --apply) [field option
 - `ambiguous_selector`
 - `invalid_usage`
 - `unsupported_asset_type`
+- `root_operation_not_allowed`
 - `write_failed`
+
+## Root Behavior
+
+`set --node root` and `set --node path:/` may update root fields only when that field is editable in `compatibility-matrix.md`. Unsupported root edits fail with `root_operation_not_allowed`.
+
+## Clear Syntax
+
+`--clear` accepts one field per flag and may be repeated:
+
+```bash
+xmind set roadmap.xmind --node "id:topic-123" --clear labels --clear markers --apply
+```
+
+Comma-separated values are invalid. Use repeated flags to avoid shell parsing ambiguity.
 
 ## Notes for Agents
 

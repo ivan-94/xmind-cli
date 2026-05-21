@@ -54,7 +54,7 @@ xmind tree roadmap.xmind --sheet "Roadmap" --depth 3 --json
 
 ```bash
 xmind add-tree roadmap.xmind \
-  --parent "path:/Roadmap/Q2" \
+  --parent "path:/Q2" \
   --input payment.yaml \
   --dry-run \
   --json

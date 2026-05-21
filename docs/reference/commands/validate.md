@@ -37,6 +37,9 @@ xmind validate <workbook.xmind> [--json]
 {
   "ok": true,
   "command": "validate",
+  "workbook": "roadmap.xmind",
+  "dry_run": false,
+  "applied": false,
   "result": {
     "valid": true,
     "warnings": [],

@@ -10,13 +10,15 @@
 
 ```text
 --json
---format text|compact-json|markdown|outline
+--format <format>
 --fields <comma-separated-fields>
 --quiet
 --no-color
 ```
 
-`--json` is the primary automation contract and means the whole command result uses the standard JSON envelope. `--format` controls command-specific payload formats, not the command envelope. `--quiet` suppresses nonessential human output.
+`--json` is the primary automation contract and means the whole command result uses the standard JSON envelope. `--format` controls command-specific payload formats, not the command envelope. Legal `--format` values are command-specific and documented on each command page.
+
+`--quiet` suppresses nonessential human progress text. It must not suppress JSON stdout, structured errors, or requested export payloads. `--no-color` disables ANSI color in human-readable output and has no effect on JSON output.
 
 ## Sheet Options
 
@@ -61,6 +63,15 @@ Every workbook-mutating command requires exactly one of `--dry-run` or `--apply`
 --create-missing-path
 --position first|last|index:N|before:<selector>|after:<selector>
 ```
+
+`before:<selector>` and `after:<selector>` are passed as one shell argument. Quote the whole value when it contains shell-sensitive characters:
+
+```bash
+--position 'before:path:/Q2/Old payment'
+--position 'after:title:"Payment"'
+```
+
+Agents should prefer `id:` or `path:` selectors in position values.
 
 ## Limits
 

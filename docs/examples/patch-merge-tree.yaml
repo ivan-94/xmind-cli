@@ -5,7 +5,7 @@
 
 ops:
   - op: merge_tree
-    target: path:/Roadmap/Q2/支付能力
+    target: path:/Q2/支付能力
     match_by: title_path
     if_exists: merge
     tree:

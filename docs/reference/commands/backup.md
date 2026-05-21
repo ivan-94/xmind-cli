@@ -28,6 +28,9 @@ xmind backup <workbook.xmind> [--backup-dir <dir>] [--json]
 {
   "ok": true,
   "command": "backup",
+  "workbook": "roadmap.xmind",
+  "dry_run": false,
+  "applied": false,
   "result": {
     "backup_path": ".xmind-backups/roadmap.20260521-205900.xmind"
   }

@@ -15,15 +15,15 @@ xmind tree roadmap.xmind --sheet "Roadmap" --depth 4
 ## Add a Topic
 
 ```bash
-xmind add roadmap.xmind --parent "path:/Roadmap/Q2" --title "Payment" --dry-run
-xmind add roadmap.xmind --parent "path:/Roadmap/Q2" --title "Payment" --apply --backup
+xmind add roadmap.xmind --parent "path:/Q2" --title "Payment" --dry-run
+xmind add roadmap.xmind --parent "path:/Q2" --title "Payment" --apply --backup
 ```
 
 ## Rename a Topic
 
 ```bash
 xmind find roadmap.xmind --title "Payment"
-xmind set roadmap.xmind --node "path:/Roadmap/Q2/Payment" --title "Payments" --apply --backup
+xmind set roadmap.xmind --node "path:/Q2/Payment" --title "Payments" --apply --backup
 ```
 
 ## Export for Review

@@ -9,6 +9,7 @@
 ## Shape
 
 ```yaml
+id: string?
 title: string
 note: string?
 labels: string[]?
@@ -22,6 +23,7 @@ children: TopicTree[]?
 
 | Field | Required | Type | Notes |
 | --- | --- | --- | --- |
+| `id` | no | string | Existing topic id for id-based merge inputs; ignored for normal creates |
 | `title` | yes | string | Must not be empty |
 | `note` | no | string | Plain text or Markdown-like text |
 | `labels` | no | string[] | Free-form labels |

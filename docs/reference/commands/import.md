@@ -14,7 +14,7 @@ Create a new workbook or update an existing workbook from Markdown, YAML, or JSO
 
 ```bash
 xmind import --input outline.md --output roadmap.xmind (--dry-run | --apply)
-xmind import --input tree.yaml --into roadmap.xmind --parent "path:/Roadmap/Q2" (--dry-run | --apply)
+xmind import --input tree.yaml --into roadmap.xmind --parent "path:/Q2" (--dry-run | --apply)
 ```
 
 ## Options
@@ -23,6 +23,7 @@ xmind import --input tree.yaml --into roadmap.xmind --parent "path:/Roadmap/Q2" 
 - `--format markdown|yaml|json|auto`: input format.
 - `--markdown-mode heading|list|hybrid|auto`: Markdown parsing mode.
 - `--output <file>`: create output workbook.
+- `--overwrite`: replace existing `--output` workbook.
 - `--into <workbook.xmind>`: import into existing workbook.
 - `--parent <selector>`: parent when importing into existing workbook.
 - `--if-exists error|skip|merge|replace|rename`: duplicate handling.
@@ -35,6 +36,9 @@ xmind import --input tree.yaml --into roadmap.xmind --parent "path:/Roadmap/Q2" 
 {
   "ok": true,
   "command": "import",
+  "workbook": "roadmap.xmind",
+  "dry_run": false,
+  "applied": true,
   "result": {
     "output": "roadmap.xmind",
     "summary": {
@@ -50,6 +54,14 @@ xmind import --input tree.yaml --into roadmap.xmind --parent "path:/Roadmap/Q2" 
 - `not_found`
 - `ambiguous_selector`
 - `write_failed`
+
+## Output and Overwrite Behavior
+
+`--output` creates a new workbook and fails if the target exists unless `--overwrite` is present. `--into` mutates an existing workbook and follows the normal `--dry-run | --apply` and `--backup` rules.
+
+## Dry Run Behavior
+
+`import --output ... --dry-run` does not create a file. It parses the input, builds the would-be workbook in memory, validates it when requested, and returns a summary plus root tree preview. The diff is reported as a creation diff from an empty workbook.
 
 ## Notes for Agents
 

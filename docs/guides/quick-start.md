@@ -18,14 +18,14 @@ xmind sheets roadmap.xmind --json
 ```bash
 xmind tree roadmap.xmind --sheet "Roadmap" --depth 2
 xmind find roadmap.xmind --title "Payment" --json
-xmind get roadmap.xmind --node "path:/Roadmap/Q2/Payment" --json
+xmind get roadmap.xmind --node "path:/Q2/Payment" --json
 ```
 
 ## Edit Safely
 
 ```bash
-xmind add roadmap.xmind --parent "path:/Roadmap/Q2" --title "Payment" --dry-run
-xmind add roadmap.xmind --parent "path:/Roadmap/Q2" --title "Payment" --apply --backup --validate-after
+xmind add roadmap.xmind --parent "path:/Q2" --title "Payment" --dry-run
+xmind add roadmap.xmind --parent "path:/Q2" --title "Payment" --apply --backup --validate-after
 ```
 
 ## Batch Edit

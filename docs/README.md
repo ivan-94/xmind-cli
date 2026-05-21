@@ -15,8 +15,8 @@ The CLI treats an XMind file as a structured workbook, not as a zip archive or s
 ## Documentation Map
 
 - `product/`: product vision, principles, scope, and agent-first design goals.
-- `concepts/`: domain concepts shared by all commands, including selectors, paths, tree input, Markdown outline mapping, asset handling, compatibility, patch semantics, and safety rules.
-- `reference/`: command reference, mutation semantics, patch operations, global options, output contracts, errors, and exit codes.
+- `concepts/`: domain concepts shared by all commands, including selectors, query grammar, paths, tree input, Markdown outline mapping, asset handling, compatibility, patch semantics, and safety rules.
+- `reference/`: command reference, legal fields, mutation semantics, patch operations, global options, output contracts, errors, and exit codes.
 - `schemas/`: documented schemas for tree input, patch operations, selectors, command output, and errors.
 - `guides/`: workflows for agents and humans.
 - `examples/`: copyable inputs and representative outputs.
@@ -37,12 +37,14 @@ For implementing or using commands:
 1. `reference/cli-overview.md`
 2. `reference/global-options.md`
 3. `concepts/selectors.md`
-4. `concepts/tree-input.md`
-5. `concepts/markdown-outline.md`
-6. `concepts/compatibility-matrix.md`
-7. `reference/mutation-semantics.md`
-8. `reference/patch-operations.md`
-9. `reference/commands/*.md`
+4. `concepts/query-selectors.md`
+5. `reference/fields.md`
+6. `concepts/tree-input.md`
+7. `concepts/markdown-outline.md`
+8. `concepts/compatibility-matrix.md`
+9. `reference/mutation-semantics.md`
+10. `reference/patch-operations.md`
+11. `reference/commands/*.md`
 
 For agent automation:
 

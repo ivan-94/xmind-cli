@@ -23,6 +23,7 @@ xmind export <workbook.xmind> --format json|markdown|outline|text|assets [option
 - `--node <selector>`: selected subtree.
 - `--depth <n>`: limit descendants.
 - `--output <file>`: write to file.
+- `--overwrite`: replace existing output file or asset directory.
 - `--include-notes`: include notes.
 - `--include-metadata`: include labels, markers, hyperlinks.
 - `--include-assets`: include topic image references in structured exports.
@@ -30,6 +31,10 @@ xmind export <workbook.xmind> --format json|markdown|outline|text|assets [option
 ## Output
 
 If `--output` is omitted, export writes to stdout.
+
+If `--output` exists, export fails with `write_failed` unless `--overwrite` is present.
+
+With `--json`, exported content is wrapped in the standard envelope. For text payloads, `result.content` contains the payload string. For `--output`, `result.output` contains the written path and `content` is omitted.
 
 ## Errors
 

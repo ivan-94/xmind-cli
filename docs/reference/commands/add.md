@@ -38,10 +38,13 @@ xmind add <workbook.xmind> --parent <selector> --title <title> (--dry-run | --ap
 {
   "ok": true,
   "command": "add",
+  "workbook": "roadmap.xmind",
+  "dry_run": false,
+  "applied": true,
   "result": {
     "created": {
       "id": "topic-new",
-      "path": "/Roadmap/Q2/Payment"
+      "path": "/Q2/Payment"
     }
   }
 }

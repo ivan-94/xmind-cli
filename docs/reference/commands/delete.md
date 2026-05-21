@@ -30,10 +30,13 @@ xmind delete <workbook.xmind> --node <selector> (--dry-run | --apply) [options]
 {
   "ok": true,
   "command": "delete",
+  "workbook": "roadmap.xmind",
+  "dry_run": false,
+  "applied": true,
   "result": {
     "deleted": [
-      "/Roadmap/Q2/Old payment",
-      "/Roadmap/Q2/Old payment/Risk"
+      "/Q2/Old payment",
+      "/Q2/Old payment/Risk"
     ]
   }
 }
@@ -47,8 +50,13 @@ Dry run must list all paths that would be deleted or promoted.
 
 - `not_found`
 - `ambiguous_selector`
+- `root_operation_not_allowed`
 - `validation_failed`
 - `write_failed`
+
+## Root Behavior
+
+Deleting `root` or `path:/` is not allowed. Use `--children-only` to clear descendants while keeping the sheet root.
 
 ## Notes for Agents
 

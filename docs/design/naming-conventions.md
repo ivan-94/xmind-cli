@@ -51,7 +51,7 @@ Selector prefixes use lowercase words followed by `:`:
 
 ```text
 id:topic-123
-path:/Root/A
+path:/A
 title:"A"
 query:title contains "A"
 ```

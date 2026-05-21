@@ -33,7 +33,7 @@ xmind import --input roadmap.md --output roadmap.xmind --apply --validate-after
 ## Insert Markdown Under an Existing Node
 
 ```bash
-xmind add-tree roadmap.xmind --parent "path:/Roadmap/Q2" --from-markdown payment.md --dry-run
+xmind add-tree roadmap.xmind --parent "path:/Q2" --from-markdown payment.md --dry-run
 ```
 
 ## Rules

@@ -32,11 +32,14 @@ xmind copy <workbook.xmind> --node <selector> --to <selector> (--dry-run | --app
 {
   "ok": true,
   "command": "copy",
+  "workbook": "roadmap.xmind",
+  "dry_run": false,
+  "applied": true,
   "result": {
     "copied_root": {
       "source_id": "topic-123",
       "new_id": "topic-456",
-      "path": "/Roadmap/Q3/Payment copy"
+      "path": "/Q3/Payment copy"
     }
   }
 }
@@ -46,9 +49,12 @@ xmind copy <workbook.xmind> --node <selector> --to <selector> (--dry-run | --app
 
 - `not_found`
 - `ambiguous_selector`
+- `root_operation_not_allowed`
 - `patch_conflict`
 - `write_failed`
 
 ## Notes for Agents
 
-Copied topics should receive new ids by default to avoid identity conflicts.
+Copied topics should receive new ids by default to avoid identity conflicts. Copying `root` or `path:/` is not allowed in the first product contract; export/import should be used for whole-sheet transfer.
+
+The equivalent patch operation is `op: copy` with `preserve_ids: false` by default.

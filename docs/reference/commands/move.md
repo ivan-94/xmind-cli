@@ -30,11 +30,14 @@ xmind move <workbook.xmind> --node <selector> --to <selector> (--dry-run | --app
 {
   "ok": true,
   "command": "move",
+  "workbook": "roadmap.xmind",
+  "dry_run": false,
+  "applied": true,
   "result": {
     "moved": {
       "id": "topic-123",
-      "from_path": "/Roadmap/Q2/Payment",
-      "to_path": "/Roadmap/Q3/Payment"
+      "from_path": "/Q2/Payment",
+      "to_path": "/Q3/Payment"
     }
   }
 }
@@ -44,9 +47,10 @@ xmind move <workbook.xmind> --node <selector> --to <selector> (--dry-run | --app
 
 - `not_found`
 - `ambiguous_selector`
+- `root_operation_not_allowed`
 - `patch_conflict`
 - `write_failed`
 
 ## Notes for Agents
 
-The command must reject moves that would make a topic a descendant of itself.
+The command must reject moves that would make a topic a descendant of itself. Moving `root` or `path:/` is not allowed.

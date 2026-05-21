@@ -18,11 +18,13 @@ xmind find <workbook.xmind> [--sheet <title>] [--title <text>] [--query <expr>] 
 
 ## Options
 
-- `--title <text>`: exact or default title search.
-- `--contains <text>`: title or note contains text.
+- `--title <text>`: exact title match.
+- `--title-contains <text>`: substring title match.
+- `--contains <text>`: case-sensitive substring search across title and note.
 - `--query <expr>`: query selector expression.
 - `--limit <n>`: maximum matches.
 - `--fields <fields>`: choose result fields.
+- `--format compact-json`: compact the `result` payload when used with `--json`.
 - `--json`: emit structured matches.
 
 ## Output
@@ -31,11 +33,14 @@ xmind find <workbook.xmind> [--sheet <title>] [--title <text>] [--query <expr>] 
 {
   "ok": true,
   "command": "find",
+  "workbook": "roadmap.xmind",
+  "dry_run": false,
+  "applied": false,
   "result": {
     "matches": [
       {
         "id": "topic-123",
-        "path": "/Roadmap/Q2/Payment",
+        "path": "/Q2/Payment",
         "title": "Payment",
         "sheet": "Roadmap",
         "children_count": 3
@@ -53,5 +58,6 @@ xmind find <workbook.xmind> [--sheet <title>] [--title <text>] [--query <expr>] 
 
 ## Notes for Agents
 
-`find` can return multiple matches. Do not feed `title:` selectors into write commands until you know they are unique.
+`find` can return multiple matches. `--title` is exact and case-sensitive unless a future option says otherwise. Use `--title-contains` for substring search. Do not feed `title:` selectors into write commands until you know they are unique.
 
+Legal `--fields` values are documented in `../fields.md`.

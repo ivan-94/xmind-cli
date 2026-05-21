@@ -65,9 +65,9 @@ Errors should include these fields when applicable:
 | `patch_conflict` | Recompute patch against current tree |
 | `validation_failed` | Do not retry blindly; inspect diagnostics |
 | `unsupported_asset_type` | Convert or remove the asset |
+| `root_operation_not_allowed` | Target a child topic or use an allowed root field edit |
 | `write_failed` | Check filesystem path and permissions |
 
 ## Stream Rule
 
 When `--json` is used, the structured error envelope should be emitted to stdout. Human diagnostics may go to stderr only if they do not replace the JSON envelope.
-

@@ -36,10 +36,13 @@ xmind add-tree <workbook.xmind> --parent <selector> --from-markdown <outline.md>
 {
   "ok": true,
   "command": "add-tree",
+  "workbook": "roadmap.xmind",
+  "dry_run": false,
+  "applied": true,
   "result": {
     "created_root": {
       "id": "topic-payment",
-      "path": "/Roadmap/Q2/支付能力"
+      "path": "/Q2/支付能力"
     },
     "summary": {
       "added": 6,

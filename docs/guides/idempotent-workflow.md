@@ -15,10 +15,10 @@ Agents may retry after tool failures, context compaction, or interrupted executi
 ```yaml
 ops:
   - op: ensure_path
-    path: /Roadmap/Q2
+    path: /Q2
 
   - op: merge_tree
-    target: path:/Roadmap/Q2/Payment
+    target: path:/Q2/Payment
     match_by: title_path
     tree:
       title: Payment

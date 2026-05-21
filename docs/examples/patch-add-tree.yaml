@@ -5,7 +5,7 @@
 
 ops:
   - op: add_tree
-    parent: path:/Roadmap/Q2
+    parent: path:/Q2
     position: last
     if_exists: error
     tree:

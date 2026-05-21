@@ -30,6 +30,9 @@ xmind restore <backup.xmind> --output <workbook.xmind> (--dry-run | --apply) [--
 {
   "ok": true,
   "command": "restore",
+  "workbook": "roadmap.xmind",
+  "dry_run": false,
+  "applied": true,
   "result": {
     "restored_from": ".xmind-backups/roadmap.xmind",
     "output": "roadmap.xmind"

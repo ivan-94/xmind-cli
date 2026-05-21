@@ -17,6 +17,13 @@ xmind diff <before.xmind> <after.xmind> [--json]
 xmind diff <workbook.xmind> --ops <ops.yaml> [--json]
 ```
 
+Exactly one diff mode is required:
+
+- two workbook positional arguments, or
+- one workbook positional argument plus `--ops`.
+
+`xmind diff <workbook.xmind>` without `--ops` is invalid and fails with `invalid_usage`.
+
 ## Options
 
 - `--ops <file>`: show diff that patch would produce.
@@ -30,6 +37,9 @@ xmind diff <workbook.xmind> --ops <ops.yaml> [--json]
 {
   "ok": true,
   "command": "diff",
+  "workbook": "roadmap.xmind",
+  "dry_run": false,
+  "applied": false,
   "result": {
     "summary": {
       "added": 2,
@@ -47,6 +57,7 @@ xmind diff <workbook.xmind> --ops <ops.yaml> [--json]
 - `file_not_found`
 - `parse_failed`
 - `invalid_patch`
+- `invalid_usage`
 
 ## Notes for Agents
 

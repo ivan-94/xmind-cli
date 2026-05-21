@@ -1,12 +1,9 @@
 {
-  "_source_manifest": {
-    "conversation": "XMind CLI product design discussion",
-    "scope": "Example ambiguous selector error output",
-    "last_updated": "2026-05-21"
-  },
   "ok": false,
   "command": "set",
   "workbook": "roadmap.xmind",
+  "dry_run": false,
+  "applied": false,
   "error": {
     "code": "ambiguous_selector",
     "message": "Selector matched multiple topics.",
@@ -16,13 +13,13 @@
     "candidates": [
       {
         "id": "topic-a",
-        "path": "/Roadmap/Q2/支付能力",
+        "path": "/Q2/支付能力",
         "title": "支付能力",
         "sheet": "Roadmap"
       },
       {
         "id": "topic-b",
-        "path": "/Roadmap/Q3/支付能力",
+        "path": "/Q3/支付能力",
         "title": "支付能力",
         "sheet": "Roadmap"
       }

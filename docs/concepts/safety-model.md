@@ -43,7 +43,7 @@ Default behavior is equivalent to:
 
 ### Destructive Operations Are Explicit
 
-`delete`, `delete_tree`, and `replace_tree` should produce clear diffs in dry-run mode. Interactive confirmation is not required for agents, but `--dry-run` examples should be prominent.
+`delete` and `replace_tree` should produce clear diffs in dry-run mode. Interactive confirmation is not required for agents, but `--dry-run` examples should be prominent.
 
 ### Validation Can Be Required
 

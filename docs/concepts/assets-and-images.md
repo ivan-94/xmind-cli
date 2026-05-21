@@ -111,7 +111,7 @@ Workbook asset:
   "byte_size": 18231,
   "checksum": "sha256:...",
   "used_by": [
-    { "topic_id": "topic-123", "path": "/Roadmap/Q2/Architecture" }
+    { "topic_id": "topic-123", "path": "/Q2/Architecture" }
   ]
 }
 ```

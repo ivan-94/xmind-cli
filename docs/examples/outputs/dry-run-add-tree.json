@@ -1,9 +1,4 @@
 {
-  "_source_manifest": {
-    "conversation": "XMind CLI product design discussion",
-    "scope": "Example add-tree dry-run JSON output",
-    "last_updated": "2026-05-21"
-  },
   "ok": true,
   "command": "add-tree",
   "workbook": "roadmap.xmind",
@@ -20,12 +15,12 @@
     "changes": [
       {
         "op": "add_tree",
-        "parent": "/Roadmap/Q2",
-        "new_root": "/Roadmap/Q2/支付能力",
+        "parent": "/Q2",
+        "new_root": "/Q2/支付能力",
         "added_paths": [
-          "/Roadmap/Q2/支付能力",
-          "/Roadmap/Q2/支付能力/收银台",
-          "/Roadmap/Q2/支付能力/退款"
+          "/Q2/支付能力",
+          "/Q2/支付能力/收银台",
+          "/Q2/支付能力/退款"
         ]
       }
     ]

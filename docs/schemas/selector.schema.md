@@ -21,7 +21,7 @@ query:<expression>
 ```text
 root
 id:topic-123
-path:/Roadmap/Q2/Payment
+path:/Q2/Payment
 title:"Payment"
 query:title contains "Payment" and marker = "priority-1"
 ```
@@ -33,11 +33,13 @@ Resolved topics should include:
 ```json
 {
   "id": "topic-123",
-  "path": "/Roadmap/Q2/Payment",
+  "path": "/Q2/Payment",
   "title": "Payment",
   "sheet": "Roadmap"
 }
 ```
+
+Paths are canonical values relative to the selected sheet root. The root path is `/`.
 
 ## Error Behavior
 
@@ -45,3 +47,4 @@ Resolved topics should include:
 - Multiple matches where one is required: `ambiguous_selector`
 - Malformed selector: `invalid_usage`
 
+The query expression grammar is documented in `concepts/query-selectors.md`.

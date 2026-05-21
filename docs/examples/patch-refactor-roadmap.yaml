@@ -5,10 +5,10 @@
 
 ops:
   - op: assert_exists
-    node: path:/Roadmap/Q2
+    node: path:/Q2
 
   - op: add_tree
-    parent: path:/Roadmap/Q2
+    parent: path:/Q2
     if_exists: merge
     match_by: title_path
     tree:
@@ -20,10 +20,10 @@ ops:
         - title: 对账
 
   - op: move
-    node: path:/Roadmap/Q2/支付能力/对账
-    to: path:/Roadmap/Q3
+    node: path:/Q2/支付能力/对账
+    to: path:/Q3
     position: last
 
   - op: delete
-    node: path:/Roadmap/Q2/旧支付方案
+    node: path:/Q2/旧支付方案
 

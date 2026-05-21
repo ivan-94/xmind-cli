@@ -1,9 +1,4 @@
 {
-  "_source_manifest": {
-    "conversation": "XMind CLI product design discussion",
-    "scope": "Example JSON tree input",
-    "last_updated": "2026-05-21"
-  },
   "title": "支付能力",
   "note": "Q2 核心交付范围",
   "labels": ["MVP"],

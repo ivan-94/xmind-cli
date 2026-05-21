@@ -12,6 +12,9 @@
 {
   "ok": false,
   "command": "get",
+  "workbook": "roadmap.xmind",
+  "dry_run": false,
+  "applied": false,
   "error": {
     "code": "ambiguous_selector",
     "message": "Selector matched multiple topics.",
@@ -21,7 +24,7 @@
     "candidates": [
       {
         "id": "topic-a",
-        "path": "/Roadmap/Q1/Payment",
+        "path": "/Q1/Payment",
         "title": "Payment"
       }
     ]
@@ -46,6 +49,7 @@
 | `validation_failed` | Workbook validation failed |
 | `write_failed` | Output file could not be written |
 | `unsupported_asset_type` | Asset type is not supported for the requested operation |
+| `root_operation_not_allowed` | Requested operation cannot be applied to the selected sheet root |
 
 ## Error Design
 

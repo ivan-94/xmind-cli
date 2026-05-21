@@ -1,9 +1,4 @@
 {
-  "_source_manifest": {
-    "conversation": "XMind CLI product design discussion",
-    "scope": "Example patch command JSON output",
-    "last_updated": "2026-05-21"
-  },
   "ok": true,
   "command": "patch",
   "workbook": "roadmap.xmind",

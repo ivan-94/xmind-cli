@@ -13,7 +13,7 @@ Use `add-tree` for one subtree and `patch` for multiple coordinated changes.
 ## Add One Subtree
 
 ```bash
-xmind add-tree roadmap.xmind --parent "path:/Roadmap/Q2" --input payment.yaml --dry-run
+xmind add-tree roadmap.xmind --parent "path:/Q2" --input payment.yaml --dry-run
 ```
 
 ## Apply Multiple Operations
@@ -21,7 +21,7 @@ xmind add-tree roadmap.xmind --parent "path:/Roadmap/Q2" --input payment.yaml --
 ```yaml
 ops:
   - op: add_tree
-    parent: path:/Roadmap/Q2
+    parent: path:/Q2
     tree:
       title: Payment
       children:
@@ -29,8 +29,9 @@ ops:
         - title: Refunds
 
   - op: set
-    node: path:/Roadmap/Q2/Payment/Refunds
-    note: Domestic orders only
+    node: path:/Q2/Payment/Refunds
+    fields:
+      note: Domestic orders only
 ```
 
 ```bash
@@ -40,4 +41,3 @@ xmind patch roadmap.xmind --ops ops.yaml --dry-run --json
 ## Review
 
 Batch commands should show a summary and tree diff before applying.
-

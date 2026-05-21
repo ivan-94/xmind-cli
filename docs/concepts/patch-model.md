@@ -15,7 +15,7 @@ Patch files describe a sequence of operations to apply to a workbook. They are t
 ```yaml
 ops:
   - op: add_tree
-    parent: path:/Roadmap/Q2
+    parent: path:/Q2
     position: last
     if_exists: merge
     match_by: title_path
@@ -30,9 +30,11 @@ ops:
 
 - Read-like validation: `assert_exists`, `assert_not_exists`
 - Single topic mutation: `add`, `set`, `delete`, `move`, `copy`
-- Tree mutation: `add_tree`, `replace_tree`, `merge_tree`, `delete_tree`, `move_tree`, `clone_tree`
+- Tree mutation: `add_tree`, `replace_tree`, `merge_tree`
 - Structure helpers: `ensure_path`, `sort_children`
 - Metadata helpers: `set_tree_metadata`
+
+Canonical patch operation names are documented in `../reference/patch-operations.md`. `delete_tree`, `move_tree`, and `clone_tree` are accepted aliases, but agents should generate `delete`, `move`, and `copy`.
 
 ## Ordering
 
@@ -65,4 +67,3 @@ Agents should use `merge` plus `title_path` when they need retryable tree update
 ## Dry Run
 
 `xmind patch --dry-run` must return the same resolution and diff that `--apply` would use, without writing the file.
-

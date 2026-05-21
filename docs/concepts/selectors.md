@@ -23,7 +23,7 @@ Best for scripts after a discovery step.
 ### Path Selector
 
 ```text
-path:/Roadmap/Q2/Payment
+path:/Q2/Payment
 ```
 
 Best for human-agent collaboration.
@@ -44,6 +44,8 @@ query:title contains "pay" and marker = "priority-1"
 
 Best for metadata searches and audits.
 
+The full query grammar is documented in `query-selectors.md`.
+
 ### Root Selector
 
 ```text
@@ -52,6 +54,8 @@ path:/
 ```
 
 Targets the selected sheet root.
+
+Path selectors are relative to the selected sheet root. They do not include the sheet title or root topic title.
 
 ## Resolution Rules
 
@@ -68,7 +72,7 @@ Paths use `/` as a delimiter. Literal slashes in titles should be escaped as `\/
 Example:
 
 ```text
-path:/Roadmap/API\/SDK/Auth
+path:/API\/SDK/Auth
 ```
 
 ## Candidate Shape
@@ -78,7 +82,7 @@ Ambiguous selector errors return candidates:
 ```json
 {
   "id": "topic-123",
-  "path": "/Roadmap/Q2/Payment",
+  "path": "/Q2/Payment",
   "title": "Payment",
   "sheet": "Roadmap"
 }
@@ -92,4 +96,3 @@ Agents should prefer this order:
 2. Use `path:` when generated from prior `tree` or `find` output.
 3. Use `title:` only for discovery.
 4. Use `query:` for audits and bulk selection.
-

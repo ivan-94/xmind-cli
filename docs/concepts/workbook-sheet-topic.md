@@ -33,7 +33,7 @@ If a workbook has multiple sheets and a selector could match multiple sheets, th
 Topic commands use selectors:
 
 ```bash
-xmind get roadmap.xmind --node "path:/Roadmap/Q2/Payment"
+xmind get roadmap.xmind --node "path:/Q2/Payment"
 xmind set roadmap.xmind --node "id:topic-123" --title "Payments"
 ```
 
@@ -44,10 +44,9 @@ Every sheet has a root topic. The root topic can be addressed by:
 ```text
 root
 path:/
-path:/<root title>
 ```
 
-`path:/` is canonical when the caller wants the sheet root regardless of title.
+`path:/` is the only canonical path selector for the selected sheet root. Canonical paths do not include the root topic title. The root title is returned as topic data, not as a path segment.
 
 ## Ordering
 

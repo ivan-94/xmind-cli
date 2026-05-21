@@ -22,6 +22,7 @@ xmind get <workbook.xmind> --node <selector> [--depth <n>] [--json]
 - `--depth <n>`: include descendants up to depth.
 - `--fields <fields>`: choose topic fields.
 - `--include-assets`: include topic image and asset references.
+- `--format compact-json`: compact the `result` payload when used with `--json`.
 - `--json`: emit structured topic.
 
 ## Output
@@ -30,10 +31,13 @@ xmind get <workbook.xmind> --node <selector> [--depth <n>] [--json]
 {
   "ok": true,
   "command": "get",
+  "workbook": "roadmap.xmind",
+  "dry_run": false,
+  "applied": false,
   "result": {
     "topic": {
       "id": "topic-123",
-      "path": "/Roadmap/Q2/Payment",
+      "path": "/Q2/Payment",
       "title": "Payment",
       "note": "",
       "labels": [],
@@ -52,4 +56,6 @@ xmind get <workbook.xmind> --node <selector> [--depth <n>] [--json]
 
 ## Notes for Agents
 
-Use `get` after `find` when you need full details for one candidate.
+Use `get` after `find` when you need full details for one candidate. `get` returns `result.topic`; `tree` returns `result.root`. Both use the same topic field names, but `tree` is optimized for hierarchy and `get` is optimized for one topic's detailed fields.
+
+Legal `--fields` values are documented in `../fields.md`.

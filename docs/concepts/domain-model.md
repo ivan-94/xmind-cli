@@ -71,13 +71,13 @@ Important topic fields:
 
 ## Topic Path
 
-A path is a slash-delimited address from a sheet root:
+A path is a slash-delimited address relative to the selected sheet root. It does not include the sheet title or root topic title:
 
 ```text
-/Roadmap/Q2/Payment/Refunds
+/Q2/Payment/Refunds
 ```
 
-Paths are human-friendly and useful for agents, but ids remain the most stable selector if a topic is renamed.
+The selected sheet root is always `/`. Paths are human-friendly and useful for agents, but ids remain the most stable selector if a topic is renamed.
 
 ## Relationships, Summaries, and Boundaries
 

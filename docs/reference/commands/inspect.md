@@ -28,6 +28,7 @@ Use first when an agent receives an unknown XMind file.
 
 - `--json`: emit structured output.
 - `--fields`: limit fields.
+- `--format compact-json`: compact the `result` payload when used with `--json`.
 
 ## Output
 
@@ -35,6 +36,9 @@ Use first when an agent receives an unknown XMind file.
 {
   "ok": true,
   "command": "inspect",
+  "workbook": "roadmap.xmind",
+  "dry_run": false,
+  "applied": false,
   "result": {
     "format": "xmind-zen",
     "sheet_count": 2,
@@ -58,3 +62,4 @@ Use first when an agent receives an unknown XMind file.
 
 Prefer `inspect` before assuming there is only one sheet.
 
+Legal `--fields` values are documented in `../fields.md`.

@@ -12,18 +12,40 @@
 | --- | --- | --- |
 | `op` | yes | Operation name |
 | `node` | op-specific | Source or target topic selector |
+| `target` | op-specific | Merge target topic selector |
 | `parent` | op-specific | Parent topic selector |
 | `to` | op-specific | Destination parent selector |
+| `path` | op-specific | Canonical path value without selector prefix |
 | `position` | no | Child order at destination |
+| `fields` | op-specific | Explicit field updates for `set` |
 | `tree` | op-specific | Topic tree input |
 | `if_exists` | no | Duplicate handling |
 | `match_by` | no | Matching strategy |
+| `children_only` | no | Delete descendants but keep selected topic |
+| `promote_children` | no | Delete selected topic and move children to its parent |
+| `preserve_ids` | no | Preserve copied ids; diagnostic workflows only |
+| `prune` | no | Remove unmatched existing topics during `merge_tree` |
+
+## Operation Names
+
+Patch operation names use snake_case. Canonical operation names mirror CLI command intent:
+
+| CLI command | Canonical patch op | Accepted aliases |
+| --- | --- | --- |
+| `add` | `add` | none |
+| `add-tree` | `add_tree` | none |
+| `set` | `set` | none |
+| `delete` | `delete` | `delete_tree` |
+| `move` | `move` | `move_tree` |
+| `copy` | `copy` | `clone_tree` |
+
+Agents should generate only canonical names. Aliases exist for compatibility and may be reported as canonical names in dry-run output.
 
 ## assert_exists
 
 ```yaml
 - op: assert_exists
-  node: path:/Roadmap/Q2
+  node: path:/Q2
 ```
 
 Fails with `not_found` if the selector does not resolve to one topic.
@@ -32,7 +54,7 @@ Fails with `not_found` if the selector does not resolve to one topic.
 
 ```yaml
 - op: assert_not_exists
-  node: path:/Roadmap/Q2/Deprecated
+  node: path:/Q2/Deprecated
 ```
 
 Fails with `patch_conflict` if the selector resolves to any topic.
@@ -41,7 +63,7 @@ Fails with `patch_conflict` if the selector resolves to any topic.
 
 ```yaml
 - op: add
-  parent: path:/Roadmap/Q2
+  parent: path:/Q2
   title: Payment
 ```
 
@@ -51,7 +73,7 @@ Creates one child topic.
 
 ```yaml
 - op: add_tree
-  parent: path:/Roadmap/Q2
+  parent: path:/Q2
   position: last
   if_exists: error
   tree:
@@ -64,7 +86,7 @@ Creates a complete subtree under `parent`.
 
 ```yaml
 - op: set
-  node: path:/Roadmap/Q2/Payment
+  node: path:/Q2/Payment
   fields:
     title: Payments
     note: Payment scope
@@ -72,11 +94,21 @@ Creates a complete subtree under `parent`.
 
 Updates explicit fields only.
 
+Set a field to `null` to clear it:
+
+```yaml
+- op: set
+  node: path:/Q2/Payment
+  fields:
+    note: null
+    image: null
+```
+
 ## replace_tree
 
 ```yaml
 - op: replace_tree
-  node: path:/Roadmap/Q2/Payment
+  node: path:/Q2/Payment
   tree:
     title: Payment
     children: []
@@ -88,7 +120,7 @@ Replaces the selected subtree with the provided tree. The selected topic path is
 
 ```yaml
 - op: merge_tree
-  target: path:/Roadmap/Q2/Payment
+  target: path:/Q2/Payment
   match_by: title_path
   tree:
     title: Payment
@@ -98,50 +130,83 @@ Replaces the selected subtree with the provided tree. The selected topic path is
 
 Merges by relative identity. Existing matched topics are updated; missing topics are created; unmatched existing topics are preserved unless `prune: true` is set.
 
-## delete and delete_tree
+`prune` is specific to `merge_tree`. When `prune: true`, existing descendants under `target` that are not matched by the input tree are deleted and reported in the diff.
+
+`match_by: id` requires ids inside the input tree. It is valid only when tree nodes include existing topic ids from a prior export or read command. If any input tree node lacks an id under `match_by: id`, the patch fails with `invalid_patch` and a `field_path`.
+
+## delete
 
 ```yaml
-- op: delete_tree
-  node: path:/Roadmap/Q2/Deprecated
+- op: delete
+  node: path:/Q2/Deprecated
 ```
 
-Deletes the selected topic and descendants. `delete` is an alias for `delete_tree` unless `children_only` or `promote_children` is set.
+Deletes the selected topic and descendants by default. This matches `xmind delete`.
 
-## move and move_tree
+Variants:
 
 ```yaml
-- op: move_tree
-  node: path:/Roadmap/Q2/Payment
-  to: path:/Roadmap/Q3
+- op: delete
+  node: path:/Q2/Deprecated
+  children_only: true
+```
+
+```yaml
+- op: delete
+  node: path:/Q2/Deprecated
+  promote_children: true
+```
+
+`children_only` keeps the selected topic and deletes descendants. `promote_children` deletes the selected topic and moves its direct children to the deleted topic's parent. These two flags are mutually exclusive.
+
+`delete_tree` is an accepted alias for `delete` with neither flag set.
+
+## move
+
+```yaml
+- op: move
+  node: path:/Q2/Payment
+  to: path:/Q3
   position: last
 ```
 
 Moves the selected topic and descendants. Moving a topic into itself or its descendants is a `patch_conflict`.
 
-## copy and clone_tree
+`move_tree` is an accepted alias for `move`.
+
+## copy
 
 ```yaml
-- op: clone_tree
-  node: path:/Roadmap/Q2/Payment
-  to: path:/Roadmap/Q3
+- op: copy
+  node: path:/Q2/Payment
+  to: path:/Q3
 ```
 
 Copies the selected subtree. New topic ids are generated by default.
+
+```yaml
+- op: copy
+  node: path:/Q2/Payment
+  to: path:/Q3
+  preserve_ids: false
+```
+
+`preserve_ids` defaults to `false`. Agents should leave it false unless performing a diagnostic export/import workflow where duplicate ids cannot be written back to the same workbook. `clone_tree` is an accepted alias for `copy`.
 
 ## ensure_path
 
 ```yaml
 - op: ensure_path
-  path: /Roadmap/Q2/Payment
+  path: /Q2/Payment
 ```
 
-Creates missing path segments. Existing segments are reused.
+Creates missing path segments. `path` is a canonical path value relative to the selected sheet root, not a selector string, so it intentionally does not include the `path:` prefix. Existing segments are reused.
 
 ## sort_children
 
 ```yaml
 - op: sort_children
-  node: path:/Roadmap/Q2
+  node: path:/Q2
   by: title
   order: asc
 ```
@@ -152,7 +217,7 @@ Sorts direct children only unless `recursive: true` is set.
 
 ```yaml
 - op: set_tree_metadata
-  node: path:/Roadmap/Q2/Payment
+  node: path:/Q2/Payment
   recursive: true
   add_labels: [MVP]
 ```
@@ -170,4 +235,3 @@ A patch fails before writing when:
 - validation fails.
 
 Failure output includes `operation_index`.
-

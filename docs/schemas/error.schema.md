@@ -44,7 +44,7 @@
 ```json
 {
   "id": "topic-123",
-  "path": "/Roadmap/Q2/Payment",
+  "path": "/Q2/Payment",
   "title": "Payment",
   "sheet": "Roadmap"
 }
