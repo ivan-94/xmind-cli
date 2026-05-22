@@ -19,6 +19,7 @@ pub enum TopicClearField {
     Labels,
     Markers,
     Hyperlink,
+    Image,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -983,6 +984,9 @@ fn clear_topic_fields_in_topic(
                     }
                     TopicClearField::Hyperlink => {
                         object.remove("href");
+                    }
+                    TopicClearField::Image => {
+                        object.remove("image");
                     }
                 }
             }

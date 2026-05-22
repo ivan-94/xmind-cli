@@ -770,6 +770,62 @@ fn set_image_apply_replaces_existing_topic_image_reference() {
 }
 
 #[test]
+fn set_clear_image_apply_removes_topic_image_reference_without_removing_asset() {
+    let temp_dir = tempfile::tempdir().expect("temp dir is created");
+    let workbook = temp_dir.path().join("topic-image.xmind");
+    fs::copy("tests/fixtures/xmind/topic-image.xmind", &workbook).expect("fixture is copied");
+    let workbook_arg = workbook.to_string_lossy().into_owned();
+
+    let output = Command::cargo_bin("xmind")
+        .expect("xmind binary is built for CLI tests")
+        .args([
+            "set",
+            &workbook_arg,
+            "--node",
+            "path:/Q2/Payment",
+            "--clear",
+            "image",
+            "--apply",
+            "--json",
+        ])
+        .output()
+        .expect("set command runs");
+
+    assert_eq!(output.status.code(), Some(0));
+    assert!(
+        output.stderr.is_empty(),
+        "json set output should not emit stderr diagnostics: {}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+
+    let get_output = Command::cargo_bin("xmind")
+        .expect("xmind binary is built for CLI tests")
+        .args([
+            "get",
+            &workbook_arg,
+            "--node",
+            "path:/Q2/Payment",
+            "--include-assets",
+            "--json",
+        ])
+        .output()
+        .expect("get command runs");
+    let get_body: Value = serde_json::from_slice(&get_output.stdout).expect("stdout is JSON");
+    assert!(get_body["result"]["topic"]["image"].is_null());
+
+    let assets_output = Command::cargo_bin("xmind")
+        .expect("xmind binary is built for CLI tests")
+        .args(["export", &workbook_arg, "--format", "assets"])
+        .output()
+        .expect("export assets command runs");
+    let assets_body: Value = serde_json::from_slice(&assets_output.stdout).expect("stdout is JSON");
+    assert_eq!(
+        assets_body["assets"][0]["asset_id"],
+        "xap:resources/payment.png"
+    );
+}
+
+#[test]
 fn set_hyperlink_apply_writes_topic_hyperlink() {
     let temp_dir = tempfile::tempdir().expect("temp dir is created");
     let workbook = temp_dir.path().join("apply-set-hyperlink.xmind");

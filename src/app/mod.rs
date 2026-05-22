@@ -2400,20 +2400,13 @@ fn parse_clear_fields(fields: Vec<String>) -> Result<Vec<TopicClearField>, CliEr
             "labels" => TopicClearField::Labels,
             "markers" => TopicClearField::Markers,
             "hyperlink" => TopicClearField::Hyperlink,
-            "image" => {
-                return Err(CliErrorBody::new(
-                    ErrorCode::InvalidUsage,
-                    "Clearing topic images is not implemented yet.",
-                    true,
-                    "Use --clear note, --clear labels, --clear markers, or --clear hyperlink.",
-                ));
-            }
+            "image" => TopicClearField::Image,
             _ => {
                 return Err(CliErrorBody::new(
                     ErrorCode::InvalidUsage,
                     format!("Unknown --clear field: {field}"),
                     true,
-                    "Use --clear note, --clear labels, --clear markers, or --clear hyperlink.",
+                    "Use --clear note, --clear labels, --clear markers, --clear hyperlink, or --clear image.",
                 ));
             }
         };
@@ -2432,6 +2425,7 @@ fn clear_field_name(field: TopicClearField) -> &'static str {
         TopicClearField::Labels => "labels",
         TopicClearField::Markers => "markers",
         TopicClearField::Hyperlink => "hyperlink",
+        TopicClearField::Image => "image",
     }
 }
 
@@ -3971,6 +3965,7 @@ fn render_set_clear(invocation: Invocation, json: bool, node: &str, fields: Vec<
         TopicClearField::Labels => !resolved.topic.labels.is_empty(),
         TopicClearField::Markers => !resolved.topic.markers.is_empty(),
         TopicClearField::Hyperlink => resolved.topic.hyperlink.is_some(),
+        TopicClearField::Image => resolved.topic.image.is_some(),
     });
     let path = resolved.path.to_selector_value();
     let human_diff = Diff::from_events(vec![DiffEvent::Updated {
