@@ -233,7 +233,7 @@ Implement a Rust CLI named `xmind` that satisfies the documented product, comman
 - [x] Implement atomic replace.
 - [x] Implement backup writer.
 - [x] Implement `--backup-dir`.
-- [ ] Ensure `--validate-after` failure leaves original file untouched.
+- [x] Ensure `--validate-after` failure leaves original file untouched.
 - [x] Implement `validate` command.
   - [x] Accept documented `validate --strict` option.
 - [x] Add tests for dry-run not writing.

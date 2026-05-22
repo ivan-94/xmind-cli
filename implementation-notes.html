@@ -2591,5 +2591,47 @@
         </li>
       </ul>
     </section>
+
+    <section class="entry">
+      <h2>2026-05-22 - validate-after rollback safety</h2>
+      <h3>Design Decisions</h3>
+      <ul>
+        <li>
+          Centralized the candidate package commit step so write paths validate
+          the temporary workbook before replacing the original workbook path.
+        </li>
+        <li>
+          Added a regression test that forces candidate validation failure and
+          asserts the original workbook bytes remain unchanged.
+        </li>
+      </ul>
+
+      <h3>Deviations</h3>
+      <ul>
+        <li>
+          The mutation writer currently validates candidates unconditionally as
+          an internal safety invariant; the CLI <code>--validate-after</code>
+          option itself is still not parsed on mutation commands.
+        </li>
+      </ul>
+
+      <h3>Tradeoffs</h3>
+      <ul>
+        <li>
+          Keeping validation unconditional avoids a class of partial-write bugs
+          while later CLI flag plumbing catches up to the documented contract.
+        </li>
+      </ul>
+
+      <h3>Open Questions</h3>
+      <ul>
+        <li>
+          Decide whether <code>--validate-after</code> should become a visible
+          no-op over mandatory candidate validation, or whether future writers
+          should distinguish baseline package sanity checks from user-requested
+          post-mutation validation.
+        </li>
+      </ul>
+    </section>
   </body>
 </html>

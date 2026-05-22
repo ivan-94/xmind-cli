@@ -59,8 +59,7 @@ pub fn append_child_topic(
 
     let temp_path = temp_workbook_path(workbook_path);
     write_package(&temp_path, content_json, entries)?;
-    validate_candidate_package(&temp_path)?;
-    fs::rename(&temp_path, workbook_path)?;
+    replace_with_validated_candidate(workbook_path, &temp_path, validate_candidate_package)?;
 
     Ok(())
 }
@@ -98,8 +97,7 @@ pub fn rename_topic(
 
     let temp_path = temp_workbook_path(workbook_path);
     write_package(&temp_path, content_json, entries)?;
-    validate_candidate_package(&temp_path)?;
-    fs::rename(&temp_path, workbook_path)?;
+    replace_with_validated_candidate(workbook_path, &temp_path, validate_candidate_package)?;
 
     Ok(())
 }
@@ -137,8 +135,7 @@ pub fn set_topic_note(
 
     let temp_path = temp_workbook_path(workbook_path);
     write_package(&temp_path, content_json, entries)?;
-    validate_candidate_package(&temp_path)?;
-    fs::rename(&temp_path, workbook_path)?;
+    replace_with_validated_candidate(workbook_path, &temp_path, validate_candidate_package)?;
 
     Ok(())
 }
@@ -303,6 +300,19 @@ fn validate_candidate_package(candidate_path: &Path) -> Result<(), XMindWriteErr
     crate::infra::xmind::decode::read_workbook(candidate_path)
         .map(|_| ())
         .map_err(|error| XMindWriteError::CandidateValidationFailed(error.to_string()))
+}
+
+fn replace_with_validated_candidate<F>(
+    workbook_path: &Path,
+    candidate_path: &Path,
+    validate_candidate: F,
+) -> Result<(), XMindWriteError>
+where
+    F: FnOnce(&Path) -> Result<(), XMindWriteError>,
+{
+    validate_candidate(candidate_path)?;
+    fs::rename(candidate_path, workbook_path)?;
+    Ok(())
 }
 
 #[derive(Serialize)]
@@ -492,7 +502,10 @@ mod tests {
     use crate::domain::topic::{AssetId, Topic, TopicId, TopicImageRef};
     use crate::domain::workbook::{PreservationBag, ResourceIndex, Workbook};
 
-    use super::{encode_workbook_content, validate_candidate_package, Value, XMindWriteError};
+    use super::{
+        encode_workbook_content, replace_with_validated_candidate, validate_candidate_package,
+        Value, XMindWriteError,
+    };
 
     #[test]
     fn encodes_domain_workbook_to_supported_storage_dtos() {
@@ -637,5 +650,30 @@ mod tests {
             error,
             XMindWriteError::CandidateValidationFailed(_)
         ));
+    }
+
+    #[test]
+    fn validated_replace_leaves_original_file_untouched_when_validation_fails() {
+        let temp_dir = tempfile::tempdir().expect("temp dir is created");
+        let workbook = temp_dir.path().join("roadmap.xmind");
+        let candidate = temp_dir.path().join("roadmap.xmind.tmp");
+        std::fs::write(&workbook, b"original workbook").expect("original is written");
+        std::fs::write(&candidate, b"candidate workbook").expect("candidate is written");
+
+        let error = replace_with_validated_candidate(&workbook, &candidate, |_| {
+            Err(XMindWriteError::CandidateValidationFailed(
+                "forced validation failure".to_owned(),
+            ))
+        })
+        .expect_err("candidate validation failure prevents replace");
+
+        assert!(matches!(
+            error,
+            XMindWriteError::CandidateValidationFailed(_)
+        ));
+        assert_eq!(
+            std::fs::read(&workbook).expect("original is readable"),
+            b"original workbook"
+        );
     }
 }
