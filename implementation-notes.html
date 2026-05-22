@@ -3075,5 +3075,51 @@
         </li>
       </ul>
     </section>
+
+    <section class="entry">
+      <h2>2026-05-22 - set clear repeated flags</h2>
+      <h3>Design Decisions</h3>
+      <ul>
+        <li>
+          Implemented repeated <code>xmind set --clear &lt;field&gt;</code> flags
+          for <code>note</code>, <code>labels</code>, <code>markers</code>, and
+          <code>hyperlink</code>.
+        </li>
+        <li>
+          Each clear operation removes the corresponding XMind storage field
+          rather than writing an empty note, empty href, or placeholder value.
+        </li>
+      </ul>
+
+      <h3>Deviations</h3>
+      <ul>
+        <li>
+          <code>--clear image</code> remains rejected for now because topic image
+          mutation is tracked as a later PLAN item.
+        </li>
+        <li>
+          Comma-separated clear values such as
+          <code>--clear labels,markers</code> are rejected to match the command
+          reference's repeated-flag syntax.
+        </li>
+      </ul>
+
+      <h3>Tradeoffs</h3>
+      <ul>
+        <li>
+          The implementation deduplicates repeated clear fields so retries and
+          accidental duplicate flags remain idempotent while preserving first-seen
+          output order.
+        </li>
+      </ul>
+
+      <h3>Open Questions</h3>
+      <ul>
+        <li>
+          Revisit <code>--clear image</code> when topic image write support is
+          implemented.
+        </li>
+      </ul>
+    </section>
   </body>
 </html>

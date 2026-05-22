@@ -16,7 +16,7 @@ use crate::domain::selector::Selector;
 use crate::domain::sheet::Sheet;
 use crate::domain::topic::Topic;
 use crate::infra::fs::backup::{create_backup, create_backup_in_dir, BackupError};
-use crate::infra::xmind::encode::XMindWriteError;
+use crate::infra::xmind::encode::{TopicClearField, XMindWriteError};
 use crate::render::diff::render_human_outline;
 
 pub fn run(cli: Cli) -> i32 {
@@ -191,6 +191,14 @@ pub fn run(cli: Cli) -> i32 {
             let hyperlink = hyperlink.clone();
             render_set_hyperlink(invocation, json, &node, &hyperlink)
         }
+        Action::SetClear {
+            ref node,
+            ref fields,
+        } => {
+            let node = node.clone();
+            let fields = fields.clone();
+            render_set_clear(invocation, json, &node, fields)
+        }
         Action::Delete { ref node } => {
             let node = node.clone();
             render_delete(invocation, json, &node)
@@ -301,6 +309,10 @@ enum Action {
     SetHyperlink {
         node: String,
         hyperlink: String,
+    },
+    SetClear {
+        node: String,
+        fields: Vec<String>,
     },
     Delete {
         node: String,
@@ -519,6 +531,11 @@ impl Invocation {
                     Action::SetHyperlink {
                         node: command.node,
                         hyperlink,
+                    }
+                } else if !command.clear.is_empty() {
+                    Action::SetClear {
+                        node: command.node,
+                        fields: command.clear,
                     }
                 } else {
                     Action::Noop
@@ -1300,6 +1317,59 @@ fn parse_csv_values(input: &str) -> Vec<String> {
         .filter(|value| !value.is_empty())
         .map(ToOwned::to_owned)
         .collect()
+}
+
+fn parse_clear_fields(fields: Vec<String>) -> Result<Vec<TopicClearField>, CliErrorBody> {
+    let mut parsed = Vec::new();
+
+    for field in fields {
+        if field.contains(',') {
+            return Err(CliErrorBody::new(
+                ErrorCode::InvalidUsage,
+                format!("Invalid --clear field: {field}"),
+                true,
+                "Pass one field per --clear flag; comma-separated clear fields are not supported.",
+            ));
+        }
+
+        let clear_field = match field.as_str() {
+            "note" => TopicClearField::Note,
+            "labels" => TopicClearField::Labels,
+            "markers" => TopicClearField::Markers,
+            "hyperlink" => TopicClearField::Hyperlink,
+            "image" => {
+                return Err(CliErrorBody::new(
+                    ErrorCode::InvalidUsage,
+                    "Clearing topic images is not implemented yet.",
+                    true,
+                    "Use --clear note, --clear labels, --clear markers, or --clear hyperlink.",
+                ));
+            }
+            _ => {
+                return Err(CliErrorBody::new(
+                    ErrorCode::InvalidUsage,
+                    format!("Unknown --clear field: {field}"),
+                    true,
+                    "Use --clear note, --clear labels, --clear markers, or --clear hyperlink.",
+                ));
+            }
+        };
+
+        if !parsed.contains(&clear_field) {
+            parsed.push(clear_field);
+        }
+    }
+
+    Ok(parsed)
+}
+
+fn clear_field_name(field: TopicClearField) -> &'static str {
+    match field {
+        TopicClearField::Note => "note",
+        TopicClearField::Labels => "labels",
+        TopicClearField::Markers => "markers",
+        TopicClearField::Hyperlink => "hyperlink",
+    }
 }
 
 fn render_delete(invocation: Invocation, json: bool, node: &str) -> i32 {
@@ -2299,6 +2369,148 @@ fn render_set_hyperlink(invocation: Invocation, json: bool, node: &str, hyperlin
             &invocation.workbook,
             &resolved.topic.id.0,
             hyperlink,
+        ) {
+            return render_workbook_write_error(invocation, json, error);
+        }
+    }
+
+    if json {
+        let envelope = CommandEnvelope {
+            ok: true,
+            command: Some(invocation.command),
+            workbook: Some(invocation.workbook.display().to_string()),
+            dry_run: invocation.dry_run,
+            applied: !invocation.dry_run,
+            result: Some(result),
+            error: None,
+            warnings: Vec::new(),
+        };
+        crate::cli::render_json_envelope(&envelope);
+    } else if !invocation.quiet {
+        println!("{}", render_human_outline(&human_diff));
+    }
+
+    0
+}
+
+fn render_set_clear(invocation: Invocation, json: bool, node: &str, fields: Vec<String>) -> i32 {
+    let clear_fields = match parse_clear_fields(fields) {
+        Ok(fields) => fields,
+        Err(error) => return render_error(invocation, json, error),
+    };
+
+    let workbook = match read_workbook_or_render_error(&invocation, json) {
+        Ok(workbook) => workbook,
+        Err(exit_code) => return exit_code,
+    };
+
+    let sheet = match select_sheet_or_render_error(&workbook, &invocation, json) {
+        Ok(sheet) => sheet,
+        Err(exit_code) => return exit_code,
+    };
+
+    let selector = match Selector::parse(node) {
+        Ok(selector) => selector,
+        Err(error) => {
+            let error = CliErrorBody::new(
+                ErrorCode::InvalidUsage,
+                format!("Node selector is invalid: {error}"),
+                true,
+                "Use a valid selector such as root, id:<topic-id>, path:/Q2, or title:Payment.",
+            );
+            return render_error(invocation, json, error);
+        }
+    };
+
+    let resolved = match resolve_topic(&sheet.root, &selector) {
+        ResolveOne::Found(resolved) => resolved,
+        ResolveOne::NotFound => {
+            let error = CliErrorBody::new(
+                ErrorCode::NotFound,
+                format!("Selector did not match a topic: {}", selector.render()),
+                true,
+                "Run tree or find to rediscover the topic selector, then retry.",
+            )
+            .with_selector(selector.render());
+            return render_error(invocation, json, error);
+        }
+        ResolveOne::Ambiguous(candidates) => {
+            let error = CliErrorBody::new(
+                ErrorCode::AmbiguousSelector,
+                "Selector matched multiple topics.",
+                true,
+                "Retry with one of the candidate ids.",
+            )
+            .with_selector(selector.render())
+            .with_candidates(
+                candidates
+                    .into_iter()
+                    .map(|candidate| CandidateDto {
+                        id: candidate.topic.id.0.clone(),
+                        path: candidate.path.to_selector_value(),
+                        title: candidate.topic.title.clone(),
+                        sheet: Some(sheet.title.clone()),
+                    })
+                    .collect(),
+            );
+            return render_error(invocation, json, error);
+        }
+    };
+
+    let changed_fields = clear_fields
+        .iter()
+        .copied()
+        .map(clear_field_name)
+        .collect::<Vec<_>>();
+    let will_change = clear_fields.iter().any(|field| match field {
+        TopicClearField::Note => resolved.topic.note.is_some(),
+        TopicClearField::Labels => !resolved.topic.labels.is_empty(),
+        TopicClearField::Markers => !resolved.topic.markers.is_empty(),
+        TopicClearField::Hyperlink => resolved.topic.hyperlink.is_some(),
+    });
+    let path = resolved.path.to_selector_value();
+    let human_diff = Diff::from_events(vec![DiffEvent::Updated {
+        path: resolved.path.clone(),
+        fields: changed_fields
+            .iter()
+            .map(|field| FieldChange::new(*field))
+            .collect(),
+    }]);
+    let mut result = SetTitleDryRunResultDto {
+        will_change,
+        updated: UpdatedTopicDto {
+            id: resolved.topic.id.0.clone(),
+            path: Some(path.clone()),
+            old_path: None,
+            new_path: None,
+            new_note: None,
+            new_labels: None,
+            new_markers: None,
+            new_hyperlink: None,
+            changed_fields,
+        },
+        summary: SummaryDto {
+            added: 0,
+            updated: 1,
+            deleted: 0,
+            moved: 0,
+        },
+        diff: vec![DiffEventDto {
+            event: "updated",
+            path,
+        }],
+        backup_path: None,
+    };
+
+    if !invocation.dry_run {
+        result.backup_path = match create_mutation_backup(&invocation) {
+            Ok(backup_path) => backup_path,
+            Err(error) => return render_backup_error(invocation, json, error),
+        };
+        if let Err(error) = crate::infra::xmind::encode::clear_topic_fields(
+            &invocation.workbook,
+            &resolved.topic.id.0,
+            &clear_fields,
         ) {
             return render_workbook_write_error(invocation, json, error);
         }

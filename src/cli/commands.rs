@@ -171,6 +171,9 @@ pub struct SetCommand {
     #[arg(long)]
     pub hyperlink: Option<String>,
 
+    #[arg(long, value_name = "FIELD")]
+    pub clear: Vec<String>,
+
     #[command(flatten)]
     pub mode: MutationMode,
 }

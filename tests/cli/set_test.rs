@@ -674,6 +674,101 @@ fn set_hyperlink_apply_writes_topic_hyperlink() {
 }
 
 #[test]
+fn set_clear_repeated_apply_clears_topic_fields() {
+    let temp_dir = tempfile::tempdir().expect("temp dir is created");
+    let workbook = temp_dir.path().join("apply-set-clear.xmind");
+    fs::copy("tests/fixtures/xmind/metadata.xmind", &workbook).expect("fixture is copied");
+    let workbook_arg = workbook.to_string_lossy().into_owned();
+
+    let output = Command::cargo_bin("xmind")
+        .expect("xmind binary is built for CLI tests")
+        .args([
+            "set",
+            &workbook_arg,
+            "--node",
+            "id:topic-payment",
+            "--clear",
+            "note",
+            "--clear",
+            "labels",
+            "--clear",
+            "markers",
+            "--clear",
+            "hyperlink",
+            "--apply",
+            "--json",
+        ])
+        .output()
+        .expect("set command runs");
+
+    assert_eq!(output.status.code(), Some(0));
+    assert!(
+        output.stderr.is_empty(),
+        "json set output should not emit stderr diagnostics: {}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+
+    let body: Value = serde_json::from_slice(&output.stdout).expect("stdout is JSON");
+    assert_eq!(body["ok"], true);
+    assert_eq!(body["command"], "set");
+    assert_eq!(body["applied"], true);
+    assert_eq!(body["result"]["updated"]["changed_fields"][0], "note");
+    assert_eq!(body["result"]["updated"]["changed_fields"][1], "labels");
+    assert_eq!(body["result"]["updated"]["changed_fields"][2], "markers");
+    assert_eq!(body["result"]["updated"]["changed_fields"][3], "hyperlink");
+
+    let get_output = Command::cargo_bin("xmind")
+        .expect("xmind binary is built for CLI tests")
+        .args(["get", &workbook_arg, "--node", "id:topic-payment", "--json"])
+        .output()
+        .expect("get command runs after apply");
+    let topic: Value = serde_json::from_slice(&get_output.stdout).expect("get stdout is JSON");
+    assert!(topic["result"]["topic"].get("note").is_none());
+    assert!(topic["result"]["topic"].get("hyperlink").is_none());
+    assert_eq!(
+        topic["result"]["topic"]["labels"]
+            .as_array()
+            .expect("labels is an array")
+            .len(),
+        0
+    );
+    assert_eq!(
+        topic["result"]["topic"]["markers"]
+            .as_array()
+            .expect("markers is an array")
+            .len(),
+        0
+    );
+}
+
+#[test]
+fn set_clear_rejects_comma_separated_fields() {
+    let output = Command::cargo_bin("xmind")
+        .expect("xmind binary is built for CLI tests")
+        .args([
+            "set",
+            "tests/fixtures/xmind/metadata.xmind",
+            "--node",
+            "id:topic-payment",
+            "--clear",
+            "labels,markers",
+            "--dry-run",
+            "--json",
+        ])
+        .output()
+        .expect("set command runs");
+
+    assert_eq!(output.status.code(), Some(2));
+    let body: Value = serde_json::from_slice(&output.stdout).expect("stdout is JSON");
+    assert_eq!(body["ok"], false);
+    assert_eq!(body["error"]["code"], "invalid_usage");
+    assert_eq!(
+        body["error"]["suggested_fix"],
+        "Pass one field per --clear flag; comma-separated clear fields are not supported."
+    );
+}
+
+#[test]
 fn set_append_note_apply_writes_appended_topic_note() {
     let temp_dir = tempfile::tempdir().expect("temp dir is created");
     let workbook = temp_dir.path().join("apply-append-note.xmind");
