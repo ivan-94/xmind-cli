@@ -203,7 +203,7 @@ Implement a Rust CLI named `xmind` that satisfies the documented product, comman
   - [x] `sheets` sheet fields.
   - [x] `inspect` workbook fields.
 - [ ] Implement `--include-assets`.
-- [ ] Add CLI snapshot tests for each read command.
+- [x] Add CLI snapshot tests for each read command.
 - [x] Add ambiguous sheet tests.
 - [x] Add ambiguous selector tests.
 

@@ -1,0 +1,38 @@
+---
+source: tests/cli/read_snapshots_test.rs
+expression: read_output(&args)
+---
+{
+  "ok": true,
+  "command": "inspect",
+  "workbook": "tests/fixtures/xmind/multiple-sheets.xmind",
+  "dry_run": false,
+  "applied": false,
+  "result": {
+    "capabilities": {
+      "can_preserve_unknown": false,
+      "can_read_topics": true
+    },
+    "file": "tests/fixtures/xmind/multiple-sheets.xmind",
+    "format": "xmind-zen",
+    "resources_count": 0,
+    "sheet_count": 2,
+    "sheets": [
+      {
+        "id": "sheet-roadmap",
+        "index": 0,
+        "root_topic_id": "topic-roadmap-root",
+        "title": "Roadmap",
+        "topic_count": 2
+      },
+      {
+        "id": "sheet-backlog",
+        "index": 1,
+        "root_topic_id": "topic-backlog-root",
+        "title": "Backlog",
+        "topic_count": 2
+      }
+    ]
+  },
+  "warnings": []
+}

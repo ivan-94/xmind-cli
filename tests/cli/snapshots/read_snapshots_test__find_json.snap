@@ -1,0 +1,23 @@
+---
+source: tests/cli/read_snapshots_test.rs
+expression: read_output(&args)
+---
+{
+  "ok": true,
+  "command": "find",
+  "workbook": "tests/fixtures/xmind/minimal.xmind",
+  "dry_run": false,
+  "applied": false,
+  "result": {
+    "matches": [
+      {
+        "children_count": 0,
+        "id": "topic-payment",
+        "path": "/Q2/Payment",
+        "sheet": "Roadmap",
+        "title": "Payment"
+      }
+    ]
+  },
+  "warnings": []
+}

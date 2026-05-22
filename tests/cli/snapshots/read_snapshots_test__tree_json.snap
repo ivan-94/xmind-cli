@@ -1,0 +1,34 @@
+---
+source: tests/cli/read_snapshots_test.rs
+expression: read_output(&args)
+---
+{
+  "ok": true,
+  "command": "tree",
+  "workbook": "tests/fixtures/xmind/minimal.xmind",
+  "dry_run": false,
+  "applied": false,
+  "result": {
+    "root": {
+      "children": [
+        {
+          "children": [
+            {
+              "id": "topic-payment",
+              "path": "/Q2/Payment",
+              "title": "Payment"
+            }
+          ],
+          "id": "topic-q2",
+          "path": "/Q2",
+          "title": "Q2"
+        }
+      ],
+      "id": "topic-root",
+      "path": "/",
+      "title": "Roadmap"
+    },
+    "sheet": "Roadmap"
+  },
+  "warnings": []
+}

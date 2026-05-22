@@ -1,0 +1,23 @@
+---
+source: tests/cli/read_snapshots_test.rs
+expression: read_output(&args)
+---
+{
+  "ok": true,
+  "command": "sheets",
+  "workbook": "tests/fixtures/xmind/minimal.xmind",
+  "dry_run": false,
+  "applied": false,
+  "result": {
+    "sheets": [
+      {
+        "id": "sheet-roadmap",
+        "index": 0,
+        "root_topic_id": "topic-root",
+        "title": "Roadmap",
+        "topic_count": 3
+      }
+    ]
+  },
+  "warnings": []
+}
