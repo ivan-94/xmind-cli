@@ -110,9 +110,21 @@ pub(super) fn render_patch(invocation: Invocation, json: bool, ops_path: &Path) 
 
     let mut operations = Vec::new();
     let mut diff = Vec::new();
+    let mut deleted_path_refs = Vec::new();
 
     for (index, op) in patch.ops.iter().enumerate() {
         let op_name = op.canonical_op();
+        if let Err(exit_code) = reject_deleted_path_references(
+            invocation.clone(),
+            json,
+            index,
+            op_name,
+            op,
+            &deleted_path_refs,
+        ) {
+            return exit_code;
+        }
+
         if matches!(op_name, "assert_exists" | "assert_not_exists") {
             match render_patch_assert_operation(invocation.clone(), json, sheet, index, op_name, op)
             {
@@ -187,6 +199,7 @@ pub(super) fn render_patch(invocation: Invocation, json: bool, ops_path: &Path) 
                             .into_iter()
                             .map(|path| PatchDiffEventDto::path_event("added", path)),
                     );
+                    remember_deleted_paths(&mut deleted_path_refs, &plan.deleted_paths);
                     diff.extend(
                         plan.deleted_paths
                             .into_iter()
@@ -204,6 +217,7 @@ pub(super) fn render_patch(invocation: Invocation, json: bool, ops_path: &Path) 
         } else if op_name == "delete" {
             match plan_patch_delete(invocation.clone(), json, sheet, index, op_name, op) {
                 Ok(plan) => {
+                    remember_deleted_paths(&mut deleted_path_refs, &plan.deleted_paths);
                     diff.extend(
                         plan.deleted_paths
                             .into_iter()
@@ -474,6 +488,62 @@ fn summarize_patch_diff(diff: &[PatchDiffEventDto]) -> PatchSummaryDto {
         deleted: diff.iter().filter(|event| event.event == "deleted").count(),
         moved: diff.iter().filter(|event| event.event == "moved").count(),
     }
+}
+
+fn remember_deleted_paths(deleted_path_refs: &mut Vec<TopicPath>, deleted_paths: &[String]) {
+    deleted_path_refs.extend(
+        deleted_paths
+            .iter()
+            .filter_map(|path| TopicPath::parse_selector_value(path).ok()),
+    );
+}
+
+fn reject_deleted_path_references(
+    invocation: Invocation,
+    json: bool,
+    index: usize,
+    op_name: &str,
+    op: &PatchOpDto,
+    deleted_path_refs: &[TopicPath],
+) -> Result<(), i32> {
+    if deleted_path_refs.is_empty() {
+        return Ok(());
+    }
+
+    for (field, selector_value) in [
+        ("node", op.node.as_deref()),
+        ("target", op.target.as_deref()),
+        ("parent", op.parent.as_deref()),
+        ("to", op.to.as_deref()),
+    ] {
+        let Some(selector_value) = selector_value else {
+            continue;
+        };
+        let Ok(Selector::Path(path)) = Selector::parse(selector_value) else {
+            continue;
+        };
+        if deleted_path_refs
+            .iter()
+            .any(|deleted_path| topic_path_is_same_or_descendant(&path, deleted_path))
+        {
+            let selector = Selector::Path(path).render();
+            let error = CliErrorBody::new(
+                ErrorCode::PatchConflict,
+                format!("Patch operation references a topic deleted by an earlier operation: {selector}"),
+                false,
+                "Remove the later operation, or revise the earlier delete/prune operation so this path is preserved.",
+            )
+            .with_operation_field_context(index, op_name.to_owned(), field)
+            .with_selector(selector);
+            return Err(render_error(invocation, json, error));
+        }
+    }
+
+    Ok(())
+}
+
+fn topic_path_is_same_or_descendant(path: &TopicPath, ancestor: &TopicPath) -> bool {
+    path.segments().starts_with(ancestor.segments())
 }
 
 fn plan_patch_add(

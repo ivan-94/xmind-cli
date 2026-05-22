@@ -332,6 +332,52 @@ ops:
 }
 
 #[test]
+fn patch_conflict_reports_later_operation_targeting_pruned_topic() {
+    let temp_dir = tempfile::tempdir().expect("temp dir is created");
+    let ops = temp_dir.path().join("prune-conflict.yaml");
+    std::fs::write(
+        &ops,
+        r#"
+ops:
+  - op: merge_tree
+    target: path:/Q2
+    prune: true
+    tree:
+      title: Q2
+      children: []
+  - op: set
+    node: path:/Q2/Payment
+    fields:
+      note: Should conflict because Payment was pruned
+"#,
+    )
+    .expect("patch fixture is written");
+    let ops_arg = ops.to_string_lossy().into_owned();
+
+    let output = Command::cargo_bin("xmind")
+        .expect("xmind binary is built for CLI tests")
+        .args([
+            "patch",
+            "tests/fixtures/xmind/minimal.xmind",
+            "--ops",
+            &ops_arg,
+            "--dry-run",
+            "--json",
+        ])
+        .output()
+        .expect("patch command runs");
+
+    assert_eq!(output.status.code(), Some(8));
+    let body: Value = serde_json::from_slice(&output.stdout).expect("stdout is JSON");
+    assert_eq!(body["ok"], false);
+    assert_eq!(body["error"]["code"], "patch_conflict");
+    assert_eq!(body["error"]["operation_index"], 1);
+    assert_eq!(body["error"]["operation"], "set");
+    assert_eq!(body["error"]["selector"], "path:/Q2/Payment");
+    assert_eq!(body["error"]["field_path"], "ops[1].node");
+}
+
+#[test]
 fn patch_dry_run_merge_tree_match_by_id_updates_existing_topic() {
     let temp_dir = tempfile::tempdir().expect("temp dir is created");
     let ops = temp_dir.path().join("merge-tree-id.yaml");
