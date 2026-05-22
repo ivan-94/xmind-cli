@@ -126,6 +126,12 @@
           <code>cargo test</code> 和 <code>cargo doc</code>；本地质量门仍由
           <code>./scripts/quality-gate.sh</code> 控制。
         </li>
+        <li>
+          安全检查在 CI 独立 job 运行：<code>rustsec/audit-check@v2.0.0</code>
+          执行 cargo audit，<code>EmbarkStudios/cargo-deny-action@v2</code>
+          执行 cargo deny；本地环境未预装这些 cargo 子命令，因此不加入
+          <code>./scripts/quality-gate.sh</code>。
+        </li>
       </ul>
     </section>
 

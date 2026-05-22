@@ -403,8 +403,8 @@ Implement a Rust CLI named `xmind` that satisfies the documented product, comman
 - [x] Run `cargo clippy --workspace --all-targets --all-features -- -D warnings` in CI.
 - [x] Run `cargo test --workspace --all-features` in CI.
 - [x] Run `cargo doc --workspace --no-deps` in CI.
-- [ ] Add `cargo audit`.
-- [ ] Add `cargo deny check`.
+- [x] Add `cargo audit`.
+- [x] Add `cargo deny check`.
 - [ ] Add release build smoke test.
 - [ ] Add shell completion generation.
 - [ ] Add installation instructions.
