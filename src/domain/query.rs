@@ -59,6 +59,9 @@ impl QueryComparison {
             (QueryField::Depth, QueryOperator::Lt, QueryValue::Number(expected)) => {
                 (depth as i64) < *expected
             }
+            (QueryField::Depth, QueryOperator::Lte, QueryValue::Number(expected)) => {
+                (depth as i64) <= *expected
+            }
             _ => false,
         }
     }
@@ -83,6 +86,7 @@ enum QueryOperator {
     Gt,
     Gte,
     Lt,
+    Lte,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -181,6 +185,7 @@ impl<'a> QueryParser<'a> {
             ">" => Ok(QueryOperator::Gt),
             ">=" => Ok(QueryOperator::Gte),
             "<" => Ok(QueryOperator::Lt),
+            "<=" => Ok(QueryOperator::Lte),
             other => Err(QueryParseError::UnsupportedOperator(other.to_owned())),
         }
     }
@@ -466,6 +471,19 @@ mod tests {
     #[test]
     fn depth_less_than_matches_shallower_topic() {
         let expr = QueryExpr::parse("depth < 1").expect("query parses");
+        let topic = Topic {
+            id: TopicId("topic-root".to_owned()),
+            title: "Roadmap".to_owned(),
+            note: None,
+            children: Vec::new(),
+        };
+
+        assert!(expr.matches_topic(&topic, &TopicPath::root(), 0));
+    }
+
+    #[test]
+    fn depth_less_or_equal_matches_same_depth_topic() {
+        let expr = QueryExpr::parse("depth <= 0").expect("query parses");
         let topic = Topic {
             id: TopicId("topic-root".to_owned()),
             title: "Roadmap".to_owned(),

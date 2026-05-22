@@ -141,7 +141,7 @@ Implement a Rust CLI named `xmind` that satisfies the documented product, comman
   - [x] `>`
   - [x] `>=`
   - [x] `<`
-  - [ ] `<=`
+  - [x] `<=`
   - [x] `contains`
   - [x] `starts_with`
   - [x] `ends_with`
