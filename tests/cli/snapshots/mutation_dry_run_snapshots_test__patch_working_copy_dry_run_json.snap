@@ -1,0 +1,43 @@
+---
+source: tests/cli/mutation_dry_run_snapshots_test.rs
+expression: mutation_output(&args)
+---
+{
+  "ok": true,
+  "command": "patch",
+  "workbook": "tests/fixtures/xmind/minimal.xmind",
+  "dry_run": true,
+  "applied": false,
+  "result": {
+    "will_change": true,
+    "summary": {
+      "added": 1,
+      "updated": 1,
+      "deleted": 0,
+      "moved": 0
+    },
+    "operations": [
+      {
+        "index": 0,
+        "op": "add",
+        "status": "planned"
+      },
+      {
+        "index": 1,
+        "op": "set",
+        "status": "planned"
+      }
+    ],
+    "diff": [
+      {
+        "event": "added",
+        "path": "/Q2/Working Copy Topic"
+      },
+      {
+        "event": "updated",
+        "path": "/Q2/Working Copy Topic"
+      }
+    ]
+  },
+  "warnings": []
+}

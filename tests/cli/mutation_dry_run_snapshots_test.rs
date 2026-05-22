@@ -79,6 +79,17 @@ fn mutation_dry_run_json_outputs_match_snapshots() {
                 "--json",
             ],
         ),
+        (
+            "patch_working_copy_dry_run_json",
+            vec![
+                "patch",
+                "tests/fixtures/xmind/minimal.xmind",
+                "--ops",
+                "tests/fixtures/patch/working-copy.yaml",
+                "--dry-run",
+                "--json",
+            ],
+        ),
     ];
 
     for (name, args) in cases {

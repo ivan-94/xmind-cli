@@ -1,0 +1,8 @@
+ops:
+  - op: add
+    parent: path:/Q2
+    title: Working Copy Topic
+  - op: set
+    node: path:/Q2/Working Copy Topic
+    fields:
+      note: Updated after creation
