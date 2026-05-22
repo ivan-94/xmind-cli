@@ -153,6 +153,7 @@ pub fn run(cli: Cli) -> i32 {
             let backup_dir = backup_dir.clone();
             render_backup(invocation, json, backup_dir)
         }
+        Action::Restore => render_restore(invocation, json),
         Action::Patch { ref ops } => {
             let ops = ops.clone();
             render_patch(invocation, json, &ops)
@@ -491,6 +492,7 @@ enum Action {
     Backup {
         backup_dir: Option<std::path::PathBuf>,
     },
+    Restore,
     Noop,
 }
 
@@ -824,14 +826,17 @@ impl Invocation {
                     })
                 }
             }),
-            Command::Restore(command) => Some(Self::mutation(
-                "restore",
-                command.workbook,
-                command.mode.apply_mode.dry_run,
-                command.mode.backup,
-                sheet_selection,
-                quiet,
-            )),
+            Command::Restore(command) => Some(
+                Self::mutation(
+                    "restore",
+                    command.workbook,
+                    command.mode.apply_mode.dry_run,
+                    command.mode.backup,
+                    sheet_selection,
+                    quiet,
+                )
+                .with_action(Action::Restore),
+            ),
             Command::Completion(_) => None,
         }
     }
@@ -2060,6 +2065,178 @@ fn render_backup(
     0
 }
 
+fn render_restore(invocation: Invocation, json: bool) -> i32 {
+    let restore_from = match find_latest_restore_backup(&invocation.workbook) {
+        Ok(Some(path)) => path,
+        Ok(None) => {
+            let error = CliErrorBody::new(
+                ErrorCode::FileNotFound,
+                "No matching backup was found for this workbook.",
+                true,
+                "Create a backup first with xmind backup, then retry restore.",
+            )
+            .with_path(
+                default_backup_dir(&invocation.workbook)
+                    .display()
+                    .to_string(),
+            );
+            return render_error(invocation, json, error);
+        }
+        Err(error) => {
+            let error = CliErrorBody::new(
+                ErrorCode::WriteFailed,
+                format!("Backup directory could not be read: {error}"),
+                true,
+                "Check backup directory permissions and retry.",
+            )
+            .with_path(
+                default_backup_dir(&invocation.workbook)
+                    .display()
+                    .to_string(),
+            );
+            return render_error(invocation, json, error);
+        }
+    };
+
+    if let Err(error) = crate::infra::xmind::decode::read_workbook(&restore_from) {
+        let error = CliErrorBody::new(
+            ErrorCode::ValidationFailed,
+            format!("Backup is not a valid supported XMind workbook: {error}"),
+            false,
+            "Choose another backup or recreate the backup from a readable workbook.",
+        )
+        .with_path(restore_from.display().to_string());
+        return render_error(invocation, json, error);
+    }
+
+    let mut backup_path = None;
+    if !invocation.dry_run {
+        match create_mutation_backup(&invocation) {
+            Ok(path) => backup_path = path,
+            Err(error) => return render_backup_error(invocation, json, error),
+        }
+
+        let temp_path = restore_temp_path(&invocation.workbook);
+        if let Err(error) = fs::copy(&restore_from, &temp_path) {
+            let error = CliErrorBody::new(
+                ErrorCode::WriteFailed,
+                format!("Restore candidate could not be written: {error}"),
+                true,
+                "Check write permissions in the workbook directory and retry.",
+            )
+            .with_path(temp_path.display().to_string());
+            return render_error(invocation, json, error);
+        }
+
+        if let Err(error) = crate::infra::xmind::decode::read_workbook(&temp_path) {
+            let _ = fs::remove_file(&temp_path);
+            let error = CliErrorBody::new(
+                ErrorCode::ValidationFailed,
+                format!("Restore candidate failed validation: {error}"),
+                false,
+                "Choose another backup or recreate the backup from a readable workbook.",
+            )
+            .with_path(temp_path.display().to_string());
+            return render_error(invocation, json, error);
+        }
+
+        if let Err(error) = fs::rename(&temp_path, &invocation.workbook) {
+            let _ = fs::remove_file(&temp_path);
+            let error = CliErrorBody::new(
+                ErrorCode::WriteFailed,
+                format!("Workbook could not be replaced from backup: {error}"),
+                true,
+                "Check write permissions and retry.",
+            )
+            .with_path(invocation.workbook.display().to_string());
+            return render_error(invocation, json, error);
+        }
+    }
+
+    let result = RestoreResultDto {
+        restored_from: restore_from.display().to_string(),
+        output: invocation.workbook.display().to_string(),
+        backup_path,
+    };
+
+    if json {
+        let envelope = CommandEnvelope {
+            ok: true,
+            command: Some(invocation.command),
+            workbook: Some(invocation.workbook.display().to_string()),
+            dry_run: invocation.dry_run,
+            applied: !invocation.dry_run,
+            result: Some(result),
+            error: None,
+            warnings: Vec::new(),
+        };
+        crate::cli::render_json_envelope(&envelope);
+    } else if !invocation.quiet {
+        if invocation.dry_run {
+            println!(
+                "Would restore {} from {}",
+                invocation.workbook.display(),
+                restore_from.display()
+            );
+        } else {
+            println!(
+                "Restored {} from {}",
+                invocation.workbook.display(),
+                restore_from.display()
+            );
+        }
+    }
+
+    0
+}
+
+fn find_latest_restore_backup(workbook: &Path) -> std::io::Result<Option<PathBuf>> {
+    let backup_dir = default_backup_dir(workbook);
+    if !backup_dir.exists() {
+        return Ok(None);
+    }
+
+    let stem = workbook
+        .file_stem()
+        .and_then(|stem| stem.to_str())
+        .unwrap_or("workbook");
+    let extension = workbook
+        .extension()
+        .and_then(|extension| extension.to_str())
+        .unwrap_or("xmind");
+    let prefix = format!("{stem}.");
+    let suffix = format!(".{extension}");
+    let mut candidates = Vec::new();
+
+    for entry in fs::read_dir(&backup_dir)? {
+        let path = entry?.path();
+        let Some(file_name) = path.file_name().and_then(|file_name| file_name.to_str()) else {
+            continue;
+        };
+        if path.is_file() && file_name.starts_with(&prefix) && file_name.ends_with(&suffix) {
+            candidates.push(path);
+        }
+    }
+
+    candidates.sort_by(|left, right| left.file_name().cmp(&right.file_name()));
+    Ok(candidates.pop())
+}
+
+fn default_backup_dir(workbook: &Path) -> PathBuf {
+    workbook
+        .parent()
+        .unwrap_or_else(|| Path::new("."))
+        .join(".xmind-backups")
+}
+
+fn restore_temp_path(workbook: &Path) -> PathBuf {
+    let file_name = workbook
+        .file_name()
+        .and_then(|file_name| file_name.to_str())
+        .unwrap_or("workbook.xmind");
+    workbook.with_file_name(format!("{file_name}.restore.tmp"))
+}
+
 fn backup_timestamp() -> String {
     SystemTime::now()
         .duration_since(UNIX_EPOCH)
@@ -3277,6 +3454,14 @@ struct ValidateResultDto {
 #[derive(Debug, Serialize)]
 struct BackupResultDto {
     backup_path: String,
+}
+
+#[derive(Debug, Serialize)]
+struct RestoreResultDto {
+    restored_from: String,
+    output: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    backup_path: Option<String>,
 }
 
 pub(super) fn read_workbook_or_render_error(

@@ -105,6 +105,10 @@ name = "backup_test"
 path = "tests/cli/backup_test.rs"
 
 [[test]]
+name = "restore_test"
+path = "tests/cli/restore_test.rs"
+
+[[test]]
 name = "export_test"
 path = "tests/cli/export_test.rs"
 

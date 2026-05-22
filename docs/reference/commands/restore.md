@@ -8,7 +8,8 @@
 
 ## Purpose
 
-Restore a workbook from a backup.
+Restore a workbook from the newest matching backup in the workbook's default
+`.xmind-backups` directory.
 
 ## Synopsis
 
@@ -21,6 +22,11 @@ xmind restore [options] (--dry-run | --apply) <workbook.xmind>
 - `--dry-run` or `--apply`: exactly one is required.
 - `--backup`: create a backup before applying.
 - Global output and sheet options are documented in `../global-options.md`.
+
+`restore` looks for files named like `<workbook-stem>.<timestamp>.<extension>`
+under `.xmind-backups` next to the workbook and chooses the lexicographically
+latest match. Backups created by `xmind backup` and mutating commands with
+`--backup` use this naming scheme.
 
 ## Output
 
@@ -46,4 +52,4 @@ xmind restore [options] (--dry-run | --apply) <workbook.xmind>
 
 ## Notes for Agents
 
-The current CLI restores in place against the workbook positional argument; there is no separate `--output` or `--overwrite` flag in the help surface.
+The current CLI restores in place against the workbook positional argument; there is no separate `--output`, `--overwrite`, or explicit backup source flag in the help surface.
