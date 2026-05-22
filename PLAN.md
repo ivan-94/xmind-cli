@@ -324,7 +324,7 @@ Implement a Rust CLI named `xmind` that satisfies the documented product, comman
 - [x] Implement `match_by: title`.
 - [x] Add operation-indexed diagnostics.
 - [x] Add conflict detection.
-- [ ] Add all-or-nothing working copy semantics.
+- [x] Add all-or-nothing working copy semantics.
 - [ ] Add dry-run patch snapshots.
 - [ ] Add idempotent patch tests.
 

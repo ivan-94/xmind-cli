@@ -278,6 +278,11 @@
           再次引用”的 dry-run 场景；这会返回 <code>patch_conflict</code>
           并指向后续 op 的 selector 字段。
         </li>
+        <li>
+          Patch dry-run 现在使用内存 working copy 顺序规划操作；后续 op 的
+          selector 会看到前序 op 已创建、重命名、删除、移动或合并后的主题。
+          该行为只影响规划与诊断，<code>patch --apply</code> 写回仍未开放。
+        </li>
       </ul>
     </section>
   </body>
