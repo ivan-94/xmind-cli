@@ -220,3 +220,68 @@ fn import_output_dry_run_reports_creation_diff_from_empty_workbook() {
     assert_eq!(body["result"]["diff"][1]["path"], "/收银台");
     assert_eq!(body["result"]["diff"][8]["path"], "/对账");
 }
+
+#[test]
+fn export_markdown_then_import_output_round_trips_topic_outline() {
+    let temp_dir = tempfile::tempdir().expect("temp dir is created");
+    let markdown_path = temp_dir.path().join("roadmap.md");
+    let workbook_path = temp_dir.path().join("roundtrip.xmind");
+    let markdown_arg = markdown_path.to_string_lossy().into_owned();
+    let workbook_arg = workbook_path.to_string_lossy().into_owned();
+
+    let export_output = Command::cargo_bin("xmind")
+        .expect("xmind binary is built for CLI tests")
+        .args([
+            "export",
+            "tests/fixtures/xmind/minimal.xmind",
+            "--format",
+            "markdown",
+            "--output",
+            &markdown_arg,
+        ])
+        .output()
+        .expect("export command runs");
+
+    assert_eq!(export_output.status.code(), Some(0));
+    assert!(
+        export_output.stderr.is_empty(),
+        "export should not emit stderr diagnostics: {}",
+        String::from_utf8_lossy(&export_output.stderr)
+    );
+
+    let import_output = Command::cargo_bin("xmind")
+        .expect("xmind binary is built for CLI tests")
+        .args([
+            "import",
+            "--input",
+            &markdown_arg,
+            "--output",
+            &workbook_arg,
+            "--apply",
+            "--json",
+        ])
+        .output()
+        .expect("import command runs");
+
+    assert_eq!(import_output.status.code(), Some(0));
+    assert!(
+        import_output.stderr.is_empty(),
+        "import should not emit stderr diagnostics: {}",
+        String::from_utf8_lossy(&import_output.stderr)
+    );
+
+    let tree_output = Command::cargo_bin("xmind")
+        .expect("xmind binary is built for CLI tests")
+        .args(["tree", &workbook_arg, "--json", "--depth", "3"])
+        .output()
+        .expect("tree command runs on round-tripped workbook");
+
+    assert_eq!(tree_output.status.code(), Some(0));
+    let tree: Value = serde_json::from_slice(&tree_output.stdout).expect("tree stdout is JSON");
+    assert_eq!(tree["result"]["root"]["title"], "Roadmap");
+    assert_eq!(tree["result"]["root"]["children"][0]["title"], "Q2");
+    assert_eq!(
+        tree["result"]["root"]["children"][0]["children"][0]["title"],
+        "Payment"
+    );
+}
