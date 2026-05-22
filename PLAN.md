@@ -209,7 +209,7 @@ Implement a Rust CLI named `xmind` that satisfies the documented product, comman
 
 ## Phase 7: Diff Engine
 
-- [ ] Implement structured `Diff`.
+- [x] Implement structured `Diff`.
 - [ ] Implement `DiffEvent::Added`.
 - [ ] Implement `DiffEvent::Removed`.
 - [ ] Implement `DiffEvent::Updated`.

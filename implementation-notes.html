@@ -1880,5 +1880,43 @@
         </li>
       </ul>
     </section>
+
+    <section class="entry">
+      <h2>2026-05-22 - structured Diff scaffold</h2>
+      <h3>Design Decisions</h3>
+      <ul>
+        <li>
+          Added a domain-level <code>Diff</code> aggregate that owns an ordered
+          list of diff events and exposes empty-state inspection.
+        </li>
+        <li>
+          Kept concrete event variants out of this slice so each documented
+          <code>DiffEvent</code> type can be added in its own PLAN task.
+        </li>
+      </ul>
+
+      <h3>Deviations</h3>
+      <ul>
+        <li>
+          Runtime dry-run code still emits existing DTOs directly until the
+          event-specific diff tasks provide enough domain structure to replace
+          them.
+        </li>
+      </ul>
+
+      <h3>Tradeoffs</h3>
+      <ul>
+        <li>
+          The new aggregate uses temporary dead-code allowances on accessors
+          because this slice establishes the type before later slices wire it
+          into renderers and mutation planning.
+        </li>
+      </ul>
+
+      <h3>Open Questions</h3>
+      <ul>
+        <li>None.</li>
+      </ul>
+    </section>
   </body>
 </html>
