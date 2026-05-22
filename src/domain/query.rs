@@ -75,6 +75,10 @@ impl QueryComparison {
                 let rendered_path = path.to_selector_value();
                 expected.iter().any(|value| rendered_path == *value)
             }
+            (QueryField::Note, QueryOperator::Contains, QueryValue::String(needle)) => topic
+                .note
+                .as_deref()
+                .is_some_and(|note| note.contains(needle)),
             (QueryField::Note, QueryOperator::Exists, QueryValue::None) => topic.note.is_some(),
             (QueryField::Depth, QueryOperator::Gt, QueryValue::Number(expected)) => {
                 (depth as i64) > *expected
