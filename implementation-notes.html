@@ -243,6 +243,11 @@
           <code>patch_conflict</code>；<code>preserve_ids: false</code>
           是默认复制路径。
         </li>
+        <li>
+          Patch <code>merge_tree</code> 已支持 <code>prune: true</code>
+          dry-run 规划：在 <code>title_path</code> 匹配范围内，未被输入 tree
+          匹配的 existing descendants 会输出 <code>deleted</code> diff。
+        </li>
       </ul>
     </section>
   </body>

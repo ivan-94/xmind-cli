@@ -176,16 +176,21 @@ pub(super) fn render_patch(invocation: Invocation, json: bool, ops_path: &Path) 
             }
         } else if op_name == "merge_tree" {
             match plan_patch_merge_tree(invocation.clone(), json, sheet, index, op_name, op) {
-                Ok((updated_paths, added_paths)) => {
+                Ok(plan) => {
                     diff.extend(
-                        updated_paths
+                        plan.updated_paths
                             .into_iter()
                             .map(|path| PatchDiffEventDto::path_event("updated", path)),
                     );
                     diff.extend(
-                        added_paths
+                        plan.added_paths
                             .into_iter()
                             .map(|path| PatchDiffEventDto::path_event("added", path)),
+                    );
+                    diff.extend(
+                        plan.deleted_paths
+                            .into_iter()
+                            .map(|path| PatchDiffEventDto::path_event("deleted", path)),
                     );
                     operations.push(PatchOperationDto {
                         index,
@@ -777,7 +782,7 @@ fn plan_patch_merge_tree(
     index: usize,
     op_name: &str,
     op: &PatchOpDto,
-) -> Result<(Vec<String>, Vec<String>), i32> {
+) -> Result<PatchMergeTreePlan, i32> {
     let match_by = op.match_by.as_deref().unwrap_or("title_path");
     if match_by != "title_path" {
         let error = CliErrorBody::new(
@@ -790,18 +795,6 @@ fn plan_patch_merge_tree(
         .with_field_path("match_by");
         return Err(render_error(invocation, json, error));
     }
-    if op.prune.unwrap_or(false) {
-        let error = CliErrorBody::new(
-            ErrorCode::InvalidPatch,
-            "merge_tree prune is not implemented in this slice.",
-            true,
-            "Omit prune or set prune: false.",
-        )
-        .with_operation_context(index, op_name.to_owned())
-        .with_field_path("prune");
-        return Err(render_error(invocation, json, error));
-    }
-
     let Some(target) = &op.target else {
         let error = CliErrorBody::new(
             ErrorCode::InvalidPatch,
@@ -891,15 +884,28 @@ fn plan_patch_merge_tree(
 
     let mut updated_paths = Vec::new();
     let mut added_paths = Vec::new();
+    let mut deleted_paths = Vec::new();
     collect_merge_tree_diff(
         resolved.topic,
         &resolved.path,
         tree,
+        op.prune.unwrap_or(false),
         &mut updated_paths,
         &mut added_paths,
+        &mut deleted_paths,
     );
 
-    Ok((updated_paths, added_paths))
+    Ok(PatchMergeTreePlan {
+        updated_paths,
+        added_paths,
+        deleted_paths,
+    })
+}
+
+struct PatchMergeTreePlan {
+    updated_paths: Vec<String>,
+    added_paths: Vec<String>,
+    deleted_paths: Vec<String>,
 }
 
 fn plan_patch_delete(
@@ -1752,8 +1758,10 @@ fn collect_merge_tree_diff(
     topic: &Topic,
     path: &TopicPath,
     tree: &TopicTreeInputDto,
+    prune: bool,
     updated_paths: &mut Vec<String>,
     added_paths: &mut Vec<String>,
+    deleted_paths: &mut Vec<String>,
 ) {
     if merge_tree_updates_topic(topic, tree) {
         updated_paths.push(path.to_selector_value());
@@ -1769,11 +1777,28 @@ fn collect_merge_tree_diff(
                 child_topic,
                 &path.join(child_tree.title.clone()),
                 child_tree,
+                prune,
                 updated_paths,
                 added_paths,
+                deleted_paths,
             );
         } else {
             added_paths.extend(collect_added_paths(path, child_tree));
+        }
+    }
+
+    if prune {
+        for child_topic in &topic.children {
+            if !tree
+                .children
+                .iter()
+                .any(|child_tree| child_tree.title == child_topic.title)
+            {
+                deleted_paths.extend(collect_deleted_paths(
+                    child_topic,
+                    &path.join(child_topic.title.clone()),
+                ));
+            }
         }
     }
 }
