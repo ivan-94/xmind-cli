@@ -96,6 +96,14 @@ pub fn run(cli: Cli) -> i32 {
             let ops = ops.clone();
             render_patch(invocation, json, &ops)
         }
+        Action::Add {
+            ref parent,
+            ref title,
+        } => {
+            let parent = parent.clone();
+            let title = title.clone();
+            render_add(invocation, json, &parent, &title)
+        }
         Action::Noop => 0,
     }
 }
@@ -148,6 +156,10 @@ enum Action {
     },
     Patch {
         ops: std::path::PathBuf,
+    },
+    Add {
+        parent: String,
+        title: String,
     },
     Validate {
         strict: bool,
@@ -270,13 +282,19 @@ impl Invocation {
                 sheet_selection,
                 quiet,
             )),
-            Command::Add(command) => Some(Self::mutation(
-                "add",
-                command.workbook,
-                command.mode.dry_run,
-                sheet_selection,
-                quiet,
-            )),
+            Command::Add(command) => Some(
+                Self::mutation(
+                    "add",
+                    command.workbook,
+                    command.mode.dry_run,
+                    sheet_selection,
+                    quiet,
+                )
+                .with_action(Action::Add {
+                    parent: command.parent,
+                    title: command.title,
+                }),
+            ),
             Command::AddTree(command) => Some(Self::mutation(
                 "add-tree",
                 command.workbook,
@@ -464,6 +482,11 @@ impl Invocation {
             sheet_selection,
             action: Action::Noop,
         }
+    }
+
+    fn with_action(mut self, action: Action) -> Self {
+        self.action = action;
+        self
     }
 
     fn patch(
@@ -810,6 +833,121 @@ fn render_validate(invocation: Invocation, json: bool, strict: bool) -> i32 {
     0
 }
 
+fn render_add(invocation: Invocation, json: bool, parent: &str, title: &str) -> i32 {
+    if !invocation.dry_run {
+        let error = CliErrorBody::new(
+            ErrorCode::InvalidUsage,
+            "Only add --dry-run is implemented in this slice.",
+            true,
+            "Retry with --dry-run, or wait for the transactional writer slice before using --apply.",
+        );
+        return render_error(invocation, json, error);
+    }
+
+    let workbook = match read_workbook_or_render_error(&invocation, json) {
+        Ok(workbook) => workbook,
+        Err(exit_code) => return exit_code,
+    };
+
+    let sheet = match select_sheet_or_render_error(&workbook, &invocation, json) {
+        Ok(sheet) => sheet,
+        Err(exit_code) => return exit_code,
+    };
+
+    let parent_selector = match Selector::parse(parent) {
+        Ok(selector) => selector,
+        Err(error) => {
+            let error = CliErrorBody::new(
+                ErrorCode::InvalidUsage,
+                format!("Parent selector is invalid: {error}"),
+                true,
+                "Use a valid selector such as root, id:<topic-id>, path:/Q2, or title:Payment.",
+            );
+            return render_error(invocation, json, error);
+        }
+    };
+
+    let parent = match resolve_topic(&sheet.root, &parent_selector) {
+        ResolveOne::Found(resolved) => resolved,
+        ResolveOne::NotFound => {
+            let error = CliErrorBody::new(
+                ErrorCode::NotFound,
+                format!(
+                    "Parent selector did not match a topic: {}",
+                    parent_selector.render()
+                ),
+                true,
+                "Run tree or find to rediscover the parent selector, then retry.",
+            )
+            .with_selector(parent_selector.render());
+            return render_error(invocation, json, error);
+        }
+        ResolveOne::Ambiguous(candidates) => {
+            let error = CliErrorBody::new(
+                ErrorCode::AmbiguousSelector,
+                "Parent selector matched multiple topics.",
+                true,
+                "Retry with one of the candidate ids.",
+            )
+            .with_selector(parent_selector.render())
+            .with_candidates(
+                candidates
+                    .into_iter()
+                    .map(|candidate| CandidateDto {
+                        id: candidate.topic.id.0.clone(),
+                        path: candidate.path.to_selector_value(),
+                        title: candidate.topic.title.clone(),
+                        sheet: Some(sheet.title.clone()),
+                    })
+                    .collect(),
+            );
+            return render_error(invocation, json, error);
+        }
+    };
+
+    let created_path = parent.path.join(title.to_owned()).to_selector_value();
+    let result = AddDryRunResultDto {
+        will_change: true,
+        parent: TopicRefDto {
+            id: parent.topic.id.0.clone(),
+            path: parent.path.to_selector_value(),
+            title: parent.topic.title.clone(),
+        },
+        created: CreatedTopicDto {
+            path: created_path.clone(),
+            title: title.to_owned(),
+        },
+        summary: SummaryDto {
+            added: 1,
+            updated: 0,
+            deleted: 0,
+            moved: 0,
+        },
+        diff: vec![DiffEventDto {
+            event: "added",
+            path: created_path,
+        }],
+    };
+
+    if json {
+        let envelope = CommandEnvelope {
+            ok: true,
+            command: Some(invocation.command),
+            workbook: Some(invocation.workbook.display().to_string()),
+            dry_run: true,
+            applied: false,
+            result: Some(result),
+            error: None,
+            warnings: Vec::new(),
+        };
+        crate::cli::render_json_envelope(&envelope);
+    } else if !invocation.quiet {
+        println!("planned 1 added topic");
+    }
+
+    0
+}
+
 #[derive(Debug, Serialize)]
 struct ValidateResultDto {
     valid: bool,
@@ -1147,6 +1285,28 @@ struct PatchDryRunResultDto {
     summary: SummaryDto,
     operations: Vec<PatchOperationDto>,
     diff: Vec<DiffEventDto>,
+}
+
+#[derive(Debug, Serialize)]
+struct AddDryRunResultDto {
+    will_change: bool,
+    parent: TopicRefDto,
+    created: CreatedTopicDto,
+    summary: SummaryDto,
+    diff: Vec<DiffEventDto>,
+}
+
+#[derive(Debug, Serialize)]
+struct TopicRefDto {
+    id: String,
+    path: String,
+    title: String,
+}
+
+#[derive(Debug, Serialize)]
+struct CreatedTopicDto {
+    path: String,
+    title: String,
 }
 
 #[derive(Debug, Serialize)]

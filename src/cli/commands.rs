@@ -9,7 +9,7 @@ pub enum Command {
     Tree(TreeCommand),
     Find(FindCommand),
     Get(GetCommand),
-    Add(MutationCommand),
+    Add(AddCommand),
     AddTree(MutationCommand),
     Set(MutationCommand),
     Delete(MutationCommand),
@@ -92,6 +92,20 @@ pub struct MutationMode {
 #[derive(Debug, Args)]
 pub struct MutationCommand {
     pub workbook: PathBuf,
+
+    #[command(flatten)]
+    pub mode: MutationMode,
+}
+
+#[derive(Debug, Args)]
+pub struct AddCommand {
+    pub workbook: PathBuf,
+
+    #[arg(long)]
+    pub parent: String,
+
+    #[arg(long)]
+    pub title: String,
 
     #[command(flatten)]
     pub mode: MutationMode,

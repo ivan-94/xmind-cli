@@ -57,6 +57,10 @@ name = "patch_test"
 path = "tests/cli/patch_test.rs"
 
 [[test]]
+name = "add_test"
+path = "tests/cli/add_test.rs"
+
+[[test]]
 name = "get_test"
 path = "tests/cli/get_test.rs"
 

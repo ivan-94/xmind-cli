@@ -236,7 +236,7 @@ Implement a Rust CLI named `xmind` that satisfies the documented product, comman
 - [ ] Ensure `--validate-after` failure leaves original file untouched.
 - [x] Implement `validate` command.
   - [x] Accept documented `validate --strict` option.
-- [ ] Add tests for dry-run not writing.
+- [x] Add tests for dry-run not writing.
 - [ ] Add tests for validation failure rollback.
 - [ ] Add tests for backup creation.
 
