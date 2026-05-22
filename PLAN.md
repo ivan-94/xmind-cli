@@ -92,7 +92,7 @@ Implement a Rust CLI named `xmind` that satisfies the documented product, comman
 - [x] Implement human text renderer scaffold.
 - [x] Implement `--quiet` behavior for human output.
 - [ ] Implement `--no-color` behavior for human output.
-- [ ] Add snapshot tests for success JSON envelope.
+- [x] Add snapshot tests for success JSON envelope.
 - [ ] Add snapshot tests for failure JSON envelope.
 - [ ] Add tests for each documented exit code mapping.
 

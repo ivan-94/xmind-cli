@@ -33,6 +33,10 @@ name = "invalid_usage_test"
 path = "tests/cli/invalid_usage_test.rs"
 
 [[test]]
+name = "json_envelope_snapshots_test"
+path = "tests/cli/json_envelope_snapshots_test.rs"
+
+[[test]]
 name = "runtime_errors_test"
 path = "tests/cli/runtime_errors_test.rs"
 

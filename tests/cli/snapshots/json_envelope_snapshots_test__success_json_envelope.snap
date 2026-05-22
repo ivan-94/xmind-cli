@@ -1,0 +1,24 @@
+---
+source: tests/cli/json_envelope_snapshots_test.rs
+assertion_line: 5
+expression: "command_output(&[\"sheets\", \"tests/fixtures/xmind/minimal.xmind\", \"--json\"])"
+---
+{
+  "ok": true,
+  "command": "sheets",
+  "workbook": "tests/fixtures/xmind/minimal.xmind",
+  "dry_run": false,
+  "applied": false,
+  "result": {
+    "sheets": [
+      {
+        "id": "sheet-roadmap",
+        "index": 0,
+        "root_topic_id": "topic-root",
+        "title": "Roadmap",
+        "topic_count": 3
+      }
+    ]
+  },
+  "warnings": []
+}
