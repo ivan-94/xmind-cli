@@ -271,3 +271,40 @@ fn export_format_assets_lists_resource_ids_to_stdout() {
     assert_eq!(body["format"], "assets");
     assert_eq!(body["assets"][0]["asset_id"], "xap:resources/payment.png");
 }
+
+#[test]
+fn export_format_assets_output_writes_embedded_resources_to_directory() {
+    let temp_dir = tempfile::tempdir().expect("temp dir is created");
+    let output_dir = temp_dir.path().join("assets");
+    let output_arg = output_dir.to_string_lossy().into_owned();
+
+    let output = Command::cargo_bin("xmind")
+        .expect("xmind binary is built for CLI tests")
+        .args([
+            "export",
+            "tests/fixtures/xmind/topic-image.xmind",
+            "--format",
+            "assets",
+            "--output",
+            &output_arg,
+            "--json",
+        ])
+        .output()
+        .expect("export command runs");
+
+    assert_eq!(output.status.code(), Some(0));
+    assert!(
+        output.stderr.is_empty(),
+        "export should not emit stderr diagnostics: {}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    let body: Value = serde_json::from_slice(&output.stdout).expect("stdout is JSON");
+    assert_eq!(body["ok"], true);
+    assert_eq!(body["result"]["output"], output_arg);
+
+    let exported_image = output_dir.join("resources/payment.png");
+    assert_eq!(
+        std::fs::read(exported_image).expect("embedded resource is exported"),
+        b"png-bytes"
+    );
+}

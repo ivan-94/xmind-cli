@@ -1236,15 +1236,19 @@ fn render_export(
             }
         }
         OutputFormat::Assets => {
+            let assets = workbook
+                .resources
+                .asset_ids()
+                .into_iter()
+                .map(|asset_id| serde_json::json!({ "asset_id": asset_id }))
+                .collect::<Vec<_>>();
             let result = serde_json::json!({
                 "format": "assets",
-                "assets": workbook.resources.asset_ids().into_iter().map(|asset_id| {
-                    serde_json::json!({ "asset_id": asset_id })
-                }).collect::<Vec<_>>(),
+                "assets": assets,
             });
             let content = serde_json::to_string_pretty(&result).expect("export result serializes");
             if let Some(output) = output {
-                return write_export_output(invocation, json, output, overwrite, &content);
+                return write_export_assets_output(invocation, json, output, overwrite, &workbook);
             }
             if json {
                 let envelope = CommandEnvelope {
@@ -1349,6 +1353,128 @@ fn write_export_output(
     }
 
     0
+}
+
+fn write_export_assets_output(
+    invocation: Invocation,
+    json: bool,
+    output: PathBuf,
+    overwrite: bool,
+    workbook: &Workbook,
+) -> i32 {
+    if output.exists() && !overwrite {
+        let error = CliErrorBody::new(
+            ErrorCode::WriteFailed,
+            format!("Export output already exists: {}", output.display()),
+            false,
+            "Choose a different output path, or pass --overwrite to replace the existing asset directory.",
+        )
+        .with_path(output.display().to_string());
+        return render_error(invocation, json, error);
+    }
+
+    if output.exists() {
+        let remove_result = if output.is_dir() {
+            fs::remove_dir_all(&output)
+        } else {
+            fs::remove_file(&output)
+        };
+        if let Err(error) = remove_result {
+            let error = CliErrorBody::new(
+                ErrorCode::WriteFailed,
+                format!("Export output could not be replaced: {error}"),
+                false,
+                "Check output path permissions and retry.",
+            )
+            .with_path(output.display().to_string());
+            return render_error(invocation, json, error);
+        }
+    }
+
+    if let Err(error) = fs::create_dir_all(&output) {
+        let error = CliErrorBody::new(
+            ErrorCode::WriteFailed,
+            format!("Export output directory could not be created: {error}"),
+            false,
+            "Check output path permissions and retry.",
+        )
+        .with_path(output.display().to_string());
+        return render_error(invocation, json, error);
+    }
+
+    for entry in workbook.preservation.package_entries() {
+        let name = entry.name();
+        if !name.starts_with("resources/") || name.ends_with('/') {
+            continue;
+        }
+
+        let destination = match safe_asset_export_path(&output, name) {
+            Some(destination) => destination,
+            None => {
+                let error = CliErrorBody::new(
+                    ErrorCode::WriteFailed,
+                    format!("Asset path is not safe to export: {name}"),
+                    false,
+                    "Inspect the workbook package and retry with a trusted file.",
+                )
+                .with_path(name.to_owned());
+                return render_error(invocation, json, error);
+            }
+        };
+        if let Some(parent) = destination.parent() {
+            if let Err(error) = fs::create_dir_all(parent) {
+                let error = CliErrorBody::new(
+                    ErrorCode::WriteFailed,
+                    format!("Asset output directory could not be created: {error}"),
+                    false,
+                    "Check output path permissions and retry.",
+                )
+                .with_path(parent.display().to_string());
+                return render_error(invocation, json, error);
+            }
+        }
+        if let Err(error) = fs::write(&destination, entry.bytes()) {
+            let error = CliErrorBody::new(
+                ErrorCode::WriteFailed,
+                format!("Asset output could not be written: {error}"),
+                false,
+                "Check output path permissions and retry.",
+            )
+            .with_path(destination.display().to_string());
+            return render_error(invocation, json, error);
+        }
+    }
+
+    if json {
+        let envelope = CommandEnvelope {
+            ok: true,
+            command: Some(invocation.command),
+            workbook: Some(invocation.workbook.display().to_string()),
+            dry_run: false,
+            applied: false,
+            result: Some(serde_json::json!({
+                "output": output.display().to_string(),
+            })),
+            error: None,
+            warnings: Vec::new(),
+        };
+        crate::cli::render_json_envelope(&envelope);
+    }
+
+    0
+}
+
+fn safe_asset_export_path(output: &Path, entry_name: &str) -> Option<PathBuf> {
+    let relative = Path::new(entry_name);
+    if relative.components().any(|component| {
+        !matches!(
+            component,
+            std::path::Component::Normal(_) | std::path::Component::CurDir
+        )
+    }) {
+        return None;
+    }
+    Some(output.join(relative))
 }
 
 fn render_import_output(

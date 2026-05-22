@@ -387,6 +387,11 @@
           <code>sha256</code> 前缀生成不冲突的 <code>resources/</code> 路径，避免覆盖无关资源。
           只有目标 topic 原本就引用同一 asset id 时，才允许同名资源替换。
         </li>
+        <li>
+          <code>export --format assets --output &lt;dir&gt;</code> 会导出 workbook
+          中的 <code>resources/</code> 原始文件，并保留资源目录结构；不带
+          <code>--overwrite</code> 时仍拒绝覆盖已有输出路径。
+        </li>
       </ul>
     </section>
   </body>

@@ -355,7 +355,7 @@ Implement a Rust CLI named `xmind` that satisfies the documented product, comman
 - [x] Implement topic image replace.
 - [x] Implement topic image clear.
 - [x] Preserve unrelated assets.
-- [ ] Export embedded assets.
+- [x] Export embedded assets.
 - [ ] Return `unsupported_asset_type` for unsupported images.
 - [ ] Add image fixture tests.
 - [ ] Add asset preservation tests.
