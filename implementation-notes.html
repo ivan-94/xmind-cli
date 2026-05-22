@@ -1544,5 +1544,46 @@
         </li>
       </ul>
     </section>
+
+    <section class="entry">
+      <h2>2026-05-22 - ResourceIndex scaffold</h2>
+      <h3>Design Decisions</h3>
+      <ul>
+        <li>
+          <code>Workbook</code> now owns a <code>ResourceIndex</code>, and
+          <code>inspect</code> reads <code>resources_count</code> from that
+          index instead of using a hard-coded zero.
+        </li>
+        <li>
+          The reader initializes an empty resource index until package resource
+          scanning is implemented.
+        </li>
+      </ul>
+
+      <h3>Deviations</h3>
+      <ul>
+        <li>
+          This is only the domain container. It does not yet load package
+          entries, media types, sizes, checksums, or usage data.
+        </li>
+      </ul>
+
+      <h3>Tradeoffs</h3>
+      <ul>
+        <li>
+          I avoided exposing an unfinished <code>Asset</code> API in production
+          code. The only runtime method needed now is <code>len()</code>; test
+          helpers stay behind <code>cfg(test)</code>.
+        </li>
+      </ul>
+
+      <h3>Open Questions</h3>
+      <ul>
+        <li>
+          Resource metadata loading still needs to define the full asset DTO and
+          id normalization rules.
+        </li>
+      </ul>
+    </section>
   </body>
 </html>

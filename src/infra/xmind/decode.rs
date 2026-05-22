@@ -7,7 +7,7 @@ use thiserror::Error;
 
 use crate::domain::sheet::{Sheet, SheetId};
 use crate::domain::topic::{AssetId, Topic, TopicId, TopicImageRef};
-use crate::domain::workbook::Workbook;
+use crate::domain::workbook::{ResourceIndex, Workbook};
 
 pub fn read_workbook(path: &Path) -> Result<Workbook, XMindReadError> {
     let file = File::open(path)?;
@@ -26,6 +26,7 @@ pub fn read_workbook(path: &Path) -> Result<Workbook, XMindReadError> {
 
     Ok(Workbook {
         sheets: sheets.into_iter().map(Into::into).collect(),
+        resources: ResourceIndex::default(),
     })
 }
 

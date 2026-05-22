@@ -606,7 +606,7 @@ fn render_inspect(
         format: "xmind-zen",
         sheet_count: sheets.len(),
         sheets,
-        resources_count: 0,
+        resources_count: workbook.resources.len(),
         capabilities: InspectCapabilitiesDto {
             can_read_topics: true,
             can_preserve_unknown: false,

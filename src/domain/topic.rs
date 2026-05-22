@@ -13,7 +13,7 @@ pub struct Topic {
 #[derive(Debug)]
 pub struct TopicId(pub String);
 
-#[derive(Debug)]
+#[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd)]
 pub struct AssetId(pub String);
 
 impl AssetId {
