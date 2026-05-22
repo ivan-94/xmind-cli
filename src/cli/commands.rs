@@ -188,6 +188,9 @@ pub struct DeleteCommand {
     #[arg(long)]
     pub children_only: bool,
 
+    #[arg(long)]
+    pub promote_children: bool,
+
     #[command(flatten)]
     pub mode: MutationMode,
 }

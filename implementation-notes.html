@@ -3201,5 +3201,45 @@
         </li>
       </ul>
     </section>
+
+    <section class="entry">
+      <h2>2026-05-22 - delete promote children</h2>
+      <h3>Design Decisions</h3>
+      <ul>
+        <li>
+          Implemented <code>xmind delete --promote-children</code> so deleting a
+          topic moves its direct children to the deleted topic's parent.
+        </li>
+        <li>
+          JSON output includes a <code>promoted</code> list with
+          <code>from_path</code> and <code>to_path</code>, and summary
+          <code>moved</code> counts the promoted direct children.
+        </li>
+      </ul>
+
+      <h3>Deviations</h3>
+      <ul>
+        <li>
+          Descendants under promoted children are preserved as part of those
+          child subtrees and are not listed individually as promoted paths.
+        </li>
+      </ul>
+
+      <h3>Tradeoffs</h3>
+      <ul>
+        <li>
+          Children are inserted at the deleted topic's original sibling position
+          so surrounding sibling order stays stable.
+        </li>
+      </ul>
+
+      <h3>Open Questions</h3>
+      <ul>
+        <li>
+          Confirm whether future human-readable output should display promoted
+          path pairs in addition to the deleted topic path.
+        </li>
+      </ul>
+    </section>
   </body>
 </html>

@@ -202,9 +202,10 @@ pub fn run(cli: Cli) -> i32 {
         Action::Delete {
             ref node,
             children_only,
+            promote_children,
         } => {
             let node = node.clone();
-            render_delete(invocation, json, &node, children_only)
+            render_delete(invocation, json, &node, children_only, promote_children)
         }
         Action::Move {
             ref node,
@@ -320,6 +321,7 @@ enum Action {
     Delete {
         node: String,
         children_only: bool,
+        promote_children: bool,
     },
     Move {
         node: String,
@@ -557,6 +559,7 @@ impl Invocation {
                 .with_action(Action::Delete {
                     node: command.node,
                     children_only: command.children_only,
+                    promote_children: command.promote_children,
                 }),
             ),
             Command::Move(command) => Some(
@@ -1379,7 +1382,23 @@ fn clear_field_name(field: TopicClearField) -> &'static str {
     }
 }
 
-fn render_delete(invocation: Invocation, json: bool, node: &str, children_only: bool) -> i32 {
+fn render_delete(
+    invocation: Invocation,
+    json: bool,
+    node: &str,
+    children_only: bool,
+    promote_children: bool,
+) -> i32 {
+    if children_only && promote_children {
+        let error = CliErrorBody::new(
+            ErrorCode::InvalidUsage,
+            "delete cannot use --children-only and --promote-children together.",
+            true,
+            "Choose one delete mode and retry.",
+        );
+        return render_error(invocation, json, error);
+    }
+
     let workbook = match read_workbook_or_render_error(&invocation, json) {
         Ok(workbook) => workbook,
         Err(exit_code) => return exit_code,
@@ -1451,8 +1470,15 @@ fn render_delete(invocation: Invocation, json: bool, node: &str, children_only: 
 
     let deleted = if children_only {
         collect_descendant_paths(resolved.topic, &resolved.path)
+    } else if promote_children {
+        vec![resolved.path.to_selector_value()]
     } else {
         collect_deleted_paths(resolved.topic, &resolved.path)
+    };
+    let promoted = if promote_children {
+        collect_promoted_paths(resolved.topic, &resolved.path)
+    } else {
+        Vec::new()
     };
     let diff = deleted
         .iter()
@@ -1469,9 +1495,10 @@ fn render_delete(invocation: Invocation, json: bool, node: &str, children_only: 
             added: 0,
             updated: 0,
             deleted: diff.len(),
-            moved: 0,
+            moved: promoted.len(),
         },
         diff,
+        promoted,
         backup_path: None,
     };
 
@@ -1482,6 +1509,11 @@ fn render_delete(invocation: Invocation, json: bool, node: &str, children_only: 
         };
         let write_result = if children_only {
             crate::infra::xmind::encode::delete_topic_children(
+                &invocation.workbook,
+                &resolved.topic.id.0,
+            )
+        } else if promote_children {
+            crate::infra::xmind::encode::delete_topic_promote_children(
                 &invocation.workbook,
                 &resolved.topic.id.0,
             )
@@ -3054,8 +3086,17 @@ struct DeleteDryRunResultDto {
     deleted: Vec<String>,
     summary: SummaryDto,
     diff: Vec<DiffEventDto>,
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    promoted: Vec<PromotedTopicDto>,
     #[serde(skip_serializing_if = "Option::is_none")]
     backup_path: Option<String>,
+}
+
+#[derive(Debug, Serialize)]
+struct PromotedTopicDto {
+    id: String,
+    from_path: String,
+    to_path: String,
 }
 
 #[derive(Debug, Serialize)]
@@ -3783,6 +3824,24 @@ fn collect_descendant_paths(topic: &Topic, path: &TopicPath) -> Vec<String> {
     }
 
     paths
+}
+
+fn collect_promoted_paths(topic: &Topic, path: &TopicPath) -> Vec<PromotedTopicDto> {
+    let parent_path = if path.segments().is_empty() {
+        TopicPath::root()
+    } else {
+        TopicPath::from_segments(path.segments()[..path.segments().len() - 1].to_vec())
+    };
+
+    topic
+        .children
+        .iter()
+        .map(|child| PromotedTopicDto {
+            id: child.id.0.clone(),
+            from_path: path.join(child.title.clone()).to_selector_value(),
+            to_path: parent_path.join(child.title.clone()).to_selector_value(),
+        })
+        .collect()
 }
 
 fn render_workbook_write_error(invocation: Invocation, json: bool, error: XMindWriteError) -> i32 {
