@@ -1147,7 +1147,7 @@ fn renamed_path(path: &TopicPath, title: &str) -> String {
     TopicPath::from_segments(segments).to_selector_value()
 }
 
-fn render_set_note(invocation: Invocation, json: bool, node: &str, _note: &str) -> i32 {
+fn render_set_note(invocation: Invocation, json: bool, node: &str, note: &str) -> i32 {
     let workbook = match read_workbook_or_render_error(&invocation, json) {
         Ok(workbook) => workbook,
         Err(exit_code) => return exit_code,
@@ -1206,16 +1206,6 @@ fn render_set_note(invocation: Invocation, json: bool, node: &str, _note: &str) 
         }
     };
 
-    if !invocation.dry_run {
-        let error = CliErrorBody::new(
-            ErrorCode::InvalidUsage,
-            "Only set --note --dry-run is implemented in this slice.",
-            true,
-            "Retry with --dry-run, or wait for the note writer slice before using --apply.",
-        );
-        return render_error(invocation, json, error);
-    }
-
     let path = resolved.path.to_selector_value();
     let result = SetTitleDryRunResultDto {
         will_change: true,
@@ -1238,13 +1228,30 @@ fn render_set_note(invocation: Invocation, json: bool, node: &str, _note: &str) 
         }],
     };
 
+    if !invocation.dry_run {
+        if let Err(error) = crate::infra::xmind::encode::set_topic_note(
+            &invocation.workbook,
+            &resolved.topic.id.0,
+            note,
+        ) {
+            let error = CliErrorBody::new(
+                ErrorCode::WriteFailed,
+                format!("Workbook could not be written: {error}"),
+                true,
+                "Check write permissions and retry.",
+            )
+            .with_path(invocation.workbook.display().to_string());
+            return render_error(invocation, json, error);
+        }
+    }
+
     if json {
         let envelope = CommandEnvelope {
             ok: true,
             command: Some(invocation.command),
             workbook: Some(invocation.workbook.display().to_string()),
-            dry_run: true,
-            applied: false,
+            dry_run: invocation.dry_run,
+            applied: !invocation.dry_run,
             result: Some(result),
             error: None,
             warnings: Vec::new(),
@@ -1967,6 +1974,11 @@ fn render_tree_topic(topic: &TreeTopicDto, fields: &[&str]) -> Value {
             "title" => {
                 object.insert("title".to_owned(), serde_json::json!(topic.title));
             }
+            "note" => {
+                if let Some(note) = &topic.note {
+                    object.insert("note".to_owned(), serde_json::json!(note));
+                }
+            }
             "children_count" => {
                 if let Some(children_count) = topic.children_count {
                     object.insert(
@@ -2002,6 +2014,9 @@ struct TreeTopicDto {
     title: String,
 
     #[serde(skip_serializing_if = "Option::is_none")]
+    note: Option<String>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
     children: Option<Vec<TreeTopicDto>>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -2027,6 +2042,7 @@ impl TreeTopicDto {
             id: topic.id.0.clone(),
             path: path.to_selector_value(),
             title: topic.title.clone(),
+            note: topic.note.clone(),
             children,
             children_count: (!include_children && !topic.children.is_empty())
                 .then_some(topic.children.len()),
