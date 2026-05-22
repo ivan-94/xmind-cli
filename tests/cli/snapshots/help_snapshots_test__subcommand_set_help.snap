@@ -11,6 +11,7 @@ Arguments:
 Options:
       --node <NODE>                
       --title <TITLE>              
+      --note <NOTE>                
       --dry-run                    
       --apply                      
       --json                       

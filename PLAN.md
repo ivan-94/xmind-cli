@@ -245,7 +245,7 @@ Implement a Rust CLI named `xmind` that satisfies the documented product, comman
 - [ ] Implement mutation planning service.
 - [ ] Implement `add`.
 - [x] Implement `set --title`.
-- [ ] Implement `set --note`.
+- [x] Implement `set --note`.
 - [ ] Implement `set --append-note`.
 - [ ] Implement `set --set-labels`.
 - [ ] Implement `set --add-label`.
