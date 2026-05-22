@@ -34,6 +34,9 @@ impl QueryComparison {
             (QueryField::Title, QueryOperator::Eq, QueryValue::String(expected)) => {
                 topic.title == *expected
             }
+            (QueryField::Title, QueryOperator::Ne, QueryValue::String(expected)) => {
+                topic.title != *expected
+            }
         }
     }
 }
@@ -46,6 +49,7 @@ enum QueryField {
 #[derive(Clone, Debug, Eq, PartialEq)]
 enum QueryOperator {
     Eq,
+    Ne,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -122,6 +126,7 @@ impl<'a> QueryParser<'a> {
 
         match operator {
             "=" => Ok(QueryOperator::Eq),
+            "!=" => Ok(QueryOperator::Ne),
             other => Err(QueryParseError::UnsupportedOperator(other.to_owned())),
         }
     }
@@ -243,5 +248,18 @@ mod tests {
         };
 
         assert!(expr.matches_topic(&topic, &TopicPath::root(), 0));
+    }
+
+    #[test]
+    fn title_inequality_rejects_matching_topic_title() {
+        let expr = QueryExpr::parse(r#"title != "Payment""#).expect("query parses");
+        let topic = Topic {
+            id: TopicId("topic-payment".to_owned()),
+            title: "Payment".to_owned(),
+            note: None,
+            children: Vec::new(),
+        };
+
+        assert!(!expr.matches_topic(&topic, &TopicPath::root(), 0));
     }
 }
