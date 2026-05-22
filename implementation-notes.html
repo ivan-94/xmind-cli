@@ -2633,5 +2633,48 @@
         </li>
       </ul>
     </section>
+
+    <section class="entry">
+      <h2>2026-05-22 - validation rollback diagnostics test</h2>
+      <h3>Design Decisions</h3>
+      <ul>
+        <li>
+          Added a focused CLI-layer test for candidate validation failures so
+          rollback-related writer errors are classified as
+          <code>validation_failed</code>.
+        </li>
+        <li>
+          Routed existing workbook mutation write errors through a shared mapper
+          to keep add and set diagnostics consistent.
+        </li>
+      </ul>
+
+      <h3>Deviations</h3>
+      <ul>
+        <li>
+          The test exercises the CLI error-mapping boundary directly because the
+          current public CLI has no deterministic way to make a valid source
+          workbook produce an invalid candidate workbook.
+        </li>
+      </ul>
+
+      <h3>Tradeoffs</h3>
+      <ul>
+        <li>
+          A direct mapping test is narrower than an end-to-end CLI failure test,
+          but it avoids adding test-only runtime switches or corrupting fixture
+          generation behavior.
+        </li>
+      </ul>
+
+      <h3>Open Questions</h3>
+      <ul>
+        <li>
+          Replace or complement this boundary test with an end-to-end
+          <code>--validate-after</code> failure scenario once mutation commands
+          expose the documented flag and validation policy.
+        </li>
+      </ul>
+    </section>
   </body>
 </html>

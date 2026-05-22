@@ -237,7 +237,7 @@ Implement a Rust CLI named `xmind` that satisfies the documented product, comman
 - [x] Implement `validate` command.
   - [x] Accept documented `validate --strict` option.
 - [x] Add tests for dry-run not writing.
-- [ ] Add tests for validation failure rollback.
+- [x] Add tests for validation failure rollback.
 - [ ] Add tests for backup creation.
 
 ## Phase 9: Single-Topic Mutations

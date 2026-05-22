@@ -15,6 +15,7 @@ use crate::domain::selector::Selector;
 use crate::domain::sheet::Sheet;
 use crate::domain::topic::Topic;
 use crate::infra::fs::backup::create_backup_in_dir;
+use crate::infra::xmind::encode::XMindWriteError;
 use crate::render::diff::render_human_outline;
 
 pub fn run(cli: Cli) -> i32 {
@@ -1106,14 +1107,7 @@ fn render_add(invocation: Invocation, json: bool, parent: &str, title: &str) -> 
             title,
             &new_topic_id,
         ) {
-            let error = CliErrorBody::new(
-                ErrorCode::WriteFailed,
-                format!("Workbook could not be written: {error}"),
-                true,
-                "Check write permissions and retry.",
-            )
-            .with_path(invocation.workbook.display().to_string());
-            return render_error(invocation, json, error);
+            return render_workbook_write_error(invocation, json, error);
         }
     }
 
@@ -1552,14 +1546,7 @@ fn render_set_title(invocation: Invocation, json: bool, node: &str, title: &str)
             &resolved.topic.id.0,
             title,
         ) {
-            let error = CliErrorBody::new(
-                ErrorCode::WriteFailed,
-                format!("Workbook could not be written: {error}"),
-                true,
-                "Check write permissions and retry.",
-            )
-            .with_path(invocation.workbook.display().to_string());
-            return render_error(invocation, json, error);
+            return render_workbook_write_error(invocation, json, error);
         }
     }
 
@@ -1682,14 +1669,7 @@ fn render_set_note(invocation: Invocation, json: bool, node: &str, note: &str) -
             &resolved.topic.id.0,
             note,
         ) {
-            let error = CliErrorBody::new(
-                ErrorCode::WriteFailed,
-                format!("Workbook could not be written: {error}"),
-                true,
-                "Check write permissions and retry.",
-            )
-            .with_path(invocation.workbook.display().to_string());
-            return render_error(invocation, json, error);
+            return render_workbook_write_error(invocation, json, error);
         }
     }
 
@@ -1810,14 +1790,7 @@ fn render_set_append_note(
             &resolved.topic.id.0,
             &new_note,
         ) {
-            let error = CliErrorBody::new(
-                ErrorCode::WriteFailed,
-                format!("Workbook could not be written: {error}"),
-                true,
-                "Check write permissions and retry.",
-            )
-            .with_path(invocation.workbook.display().to_string());
-            return render_error(invocation, json, error);
+            return render_workbook_write_error(invocation, json, error);
         }
     }
 
@@ -2916,6 +2889,30 @@ fn collect_deleted_paths(topic: &Topic, path: &TopicPath) -> Vec<String> {
     paths
 }
 
+fn render_workbook_write_error(invocation: Invocation, json: bool, error: XMindWriteError) -> i32 {
+    let error = workbook_write_error_body(&invocation.workbook, error);
+    render_error(invocation, json, error)
+}
+
+fn workbook_write_error_body(workbook: &Path, error: XMindWriteError) -> CliErrorBody {
+    match error {
+        XMindWriteError::CandidateValidationFailed(message) => CliErrorBody::new(
+            ErrorCode::ValidationFailed,
+            format!("Candidate workbook failed validation: {message}"),
+            false,
+            "The original workbook was left unchanged. Inspect the mutation and retry.",
+        )
+        .with_path(workbook.display().to_string()),
+        error => CliErrorBody::new(
+            ErrorCode::WriteFailed,
+            format!("Workbook could not be written: {error}"),
+            true,
+            "Check write permissions and retry.",
+        )
+        .with_path(workbook.display().to_string()),
+    }
+}
+
 fn render_error(invocation: Invocation, json: bool, error: CliErrorBody) -> i32 {
     let exit_code = error.exit_code;
 
@@ -2936,4 +2933,26 @@ fn render_error(invocation: Invocation, json: bool, error: CliErrorBody) -> i32 
     }
 
     exit_code
+}
+
+#[cfg(test)]
+mod tests {
+    use std::path::Path;
+
+    use crate::cli::ErrorCode;
+    use crate::infra::xmind::encode::XMindWriteError;
+
+    use super::workbook_write_error_body;
+
+    #[test]
+    fn candidate_validation_write_error_maps_to_validation_failed() {
+        let error = workbook_write_error_body(
+            Path::new("roadmap.xmind"),
+            XMindWriteError::CandidateValidationFailed("forced validation failure".to_owned()),
+        );
+
+        assert!(matches!(error.code, ErrorCode::ValidationFailed));
+        assert_eq!(error.exit_code, ErrorCode::ValidationFailed.exit_code());
+        assert_eq!(error.path.as_deref(), Some("roadmap.xmind"));
+    }
 }
