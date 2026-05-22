@@ -104,6 +104,10 @@ path = "tests/cli/copy_test.rs"
 name = "backup_test"
 path = "tests/cli/backup_test.rs"
 
+[[test]]
+name = "export_test"
+path = "tests/cli/export_test.rs"
+
 [dependencies]
 clap = { version = "=4.5.4", features = ["derive"] }
 serde = { version = "=1.0.203", features = ["derive"] }

@@ -291,6 +291,11 @@
           Patch idempotency 已开始落到行为测试：<code>set</code>
           写入与当前主题相同的字段值时不再产生 <code>updated</code> diff。
         </li>
+        <li>
+          <code>export --format json</code> 已输出原始 JSON payload，当前复用
+          tree payload 结构（<code>sheet</code> + <code>root</code>）。其他
+          export 格式和文件输出仍在后续任务中实现。
+        </li>
       </ul>
     </section>
   </body>

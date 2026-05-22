@@ -47,7 +47,7 @@ pub fn run(cli: Cli) -> i32 {
         index: sheet_index,
     };
 
-    let Some(invocation) = Invocation::from_command(command, sheet_selection, quiet)
+    let Some(invocation) = Invocation::from_command(command, sheet_selection, quiet, format)
         .map(|invocation| invocation.with_no_color(no_color))
     else {
         return 0;
@@ -106,6 +106,10 @@ pub fn run(cli: Cli) -> i32 {
             render_get(invocation, json, &node, depth, &fields, compact_json)
         }
         Action::Validate { strict } => render_validate(invocation, json, strict),
+        Action::Export { ref format } => {
+            let format = format.clone();
+            render_export(invocation, json, &format)
+        }
         Action::Backup { ref backup_dir } => {
             let backup_dir = backup_dir.clone();
             render_backup(invocation, json, backup_dir)
@@ -406,6 +410,9 @@ enum Action {
     Validate {
         strict: bool,
     },
+    Export {
+        format: OutputFormat,
+    },
     Backup {
         backup_dir: Option<std::path::PathBuf>,
     },
@@ -480,6 +487,7 @@ impl Invocation {
         command: Option<Command>,
         sheet_selection: SheetSelection,
         quiet: bool,
+        output_format: OutputFormat,
     ) -> Option<Self> {
         match command? {
             Command::Inspect(command) => {
@@ -516,9 +524,13 @@ impl Invocation {
                 sheet_selection,
                 quiet,
             )),
-            Command::Export(command) => {
-                Some(Self::read("export", command.workbook, sheet_selection))
-            }
+            Command::Export(command) => Some(
+                Self::read("export", command.workbook, sheet_selection).with_action(
+                    Action::Export {
+                        format: output_format,
+                    },
+                ),
+            ),
             Command::Backup(command) => Some(
                 Self::read("backup", command.workbook, sheet_selection).with_action(
                     Action::Backup {
@@ -1028,6 +1040,50 @@ fn render_tree(
         crate::cli::render_json_envelope(&envelope);
     } else if !invocation.quiet {
         render_tree_text(&result.root, 0);
+    }
+
+    0
+}
+
+fn render_export(invocation: Invocation, json: bool, format: &OutputFormat) -> i32 {
+    if format != &OutputFormat::Json {
+        let error = CliErrorBody::new(
+            ErrorCode::InvalidUsage,
+            "Only export --format json is implemented in this slice.",
+            true,
+            "Use --format json, or wait for the remaining export format slices.",
+        );
+        return render_error(invocation, json, error);
+    }
+
+    let workbook = match read_workbook_or_render_error(&invocation, json) {
+        Ok(workbook) => workbook,
+        Err(exit_code) => return exit_code,
+    };
+
+    let sheet = match select_sheet_or_render_error(&workbook, &invocation, json) {
+        Ok(sheet) => sheet,
+        Err(exit_code) => return exit_code,
+    };
+
+    let result = TreeResultDto::from_sheet(sheet, None);
+    if json {
+        let envelope = CommandEnvelope {
+            ok: true,
+            command: Some(invocation.command),
+            workbook: Some(invocation.workbook.display().to_string()),
+            dry_run: false,
+            applied: false,
+            result: Some(serde_json::to_value(&result).expect("export result serializes")),
+            error: None,
+            warnings: Vec::new(),
+        };
+        crate::cli::render_json_envelope(&envelope);
+    } else if !invocation.quiet {
+        println!(
+            "{}",
+            serde_json::to_string_pretty(&result).expect("export result serializes")
+        );
     }
 
     0
