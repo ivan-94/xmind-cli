@@ -10,7 +10,7 @@ pub enum Command {
     Find(FindCommand),
     Get(GetCommand),
     Add(AddCommand),
-    AddTree(MutationCommand),
+    AddTree(AddTreeCommand),
     Set(SetCommand),
     Delete(DeleteCommand),
     Move(MoveCommand),
@@ -135,6 +135,20 @@ pub struct AddCommand {
 
     #[arg(long)]
     pub create_missing_path: bool,
+
+    #[command(flatten)]
+    pub mode: MutationMode,
+}
+
+#[derive(Debug, Args)]
+pub struct AddTreeCommand {
+    pub workbook: PathBuf,
+
+    #[arg(long)]
+    pub parent: String,
+
+    #[arg(long)]
+    pub input: PathBuf,
 
     #[command(flatten)]
     pub mode: MutationMode,

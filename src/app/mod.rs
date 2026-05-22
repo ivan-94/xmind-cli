@@ -124,6 +124,14 @@ pub fn run(cli: Cli) -> i32 {
                 create_missing_path,
             )
         }
+        Action::AddTree {
+            ref parent,
+            ref input,
+        } => {
+            let parent = parent.clone();
+            let input = input.clone();
+            render_add_tree(invocation, json, &parent, &input)
+        }
         Action::SetTitle {
             ref node,
             ref title,
@@ -308,6 +316,10 @@ enum Action {
         title: String,
         position: Option<String>,
         create_missing_path: bool,
+    },
+    AddTree {
+        parent: String,
+        input: std::path::PathBuf,
     },
     SetTitle {
         node: String,
@@ -516,14 +528,20 @@ impl Invocation {
                     create_missing_path: command.create_missing_path,
                 }),
             ),
-            Command::AddTree(command) => Some(Self::mutation(
-                "add-tree",
-                command.workbook,
-                command.mode.apply_mode.dry_run,
-                command.mode.backup,
-                sheet_selection,
-                quiet,
-            )),
+            Command::AddTree(command) => Some(
+                Self::mutation(
+                    "add-tree",
+                    command.workbook,
+                    command.mode.apply_mode.dry_run,
+                    command.mode.backup,
+                    sheet_selection,
+                    quiet,
+                )
+                .with_action(Action::AddTree {
+                    parent: command.parent,
+                    input: command.input,
+                }),
+            ),
             Command::Set(command) => Some(
                 Self::mutation(
                     "set",
@@ -1497,6 +1515,157 @@ fn render_add_create_missing_path(
     }
 
     0
+}
+
+fn render_add_tree(invocation: Invocation, json: bool, parent: &str, input: &Path) -> i32 {
+    if !invocation.dry_run {
+        let error = CliErrorBody::new(
+            ErrorCode::InvalidUsage,
+            "Only add-tree --dry-run is implemented for YAML tree input.",
+            true,
+            "Retry with --dry-run until the add-tree writer slice is implemented.",
+        );
+        return render_error(invocation, json, error);
+    }
+
+    let workbook = match read_workbook_or_render_error(&invocation, json) {
+        Ok(workbook) => workbook,
+        Err(exit_code) => return exit_code,
+    };
+
+    let sheet = match select_sheet_or_render_error(&workbook, &invocation, json) {
+        Ok(sheet) => sheet,
+        Err(exit_code) => return exit_code,
+    };
+
+    let parent_selector = match Selector::parse(parent) {
+        Ok(selector) => selector,
+        Err(error) => {
+            let error = CliErrorBody::new(
+                ErrorCode::InvalidUsage,
+                format!("Parent selector is invalid: {error}"),
+                true,
+                "Use a valid selector such as root, id:<topic-id>, path:/Q2, or title:Payment.",
+            );
+            return render_error(invocation, json, error);
+        }
+    };
+
+    let parent = match resolve_topic(&sheet.root, &parent_selector) {
+        ResolveOne::Found(resolved) => resolved,
+        ResolveOne::NotFound => {
+            let error = CliErrorBody::new(
+                ErrorCode::NotFound,
+                format!(
+                    "Parent selector did not match a topic: {}",
+                    parent_selector.render()
+                ),
+                true,
+                "Run tree or find to rediscover the parent selector, then retry.",
+            )
+            .with_selector(parent_selector.render());
+            return render_error(invocation, json, error);
+        }
+        ResolveOne::Ambiguous(candidates) => {
+            let error = CliErrorBody::new(
+                ErrorCode::AmbiguousSelector,
+                "Parent selector matched multiple topics.",
+                true,
+                "Retry with one of the candidate ids.",
+            )
+            .with_selector(parent_selector.render())
+            .with_candidates(
+                candidates
+                    .into_iter()
+                    .map(|candidate| CandidateDto {
+                        id: candidate.topic.id.0.clone(),
+                        path: candidate.path.to_selector_value(),
+                        title: candidate.topic.title.clone(),
+                        sheet: Some(sheet.title.clone()),
+                    })
+                    .collect(),
+            );
+            return render_error(invocation, json, error);
+        }
+    };
+
+    let tree = match read_yaml_tree_input(input) {
+        Ok(tree) => tree,
+        Err(message) => {
+            let error = CliErrorBody::new(
+                ErrorCode::InvalidTreeInput,
+                message,
+                true,
+                "Provide a YAML tree input file with a top-level title.",
+            )
+            .with_path(input.display().to_string());
+            return render_error(invocation, json, error);
+        }
+    };
+
+    let added_paths = collect_added_paths(&parent.path, &tree);
+    let created_root_path = added_paths
+        .first()
+        .expect("tree input creates at least the root topic")
+        .clone();
+    let result = AddTreeDryRunResultDto {
+        will_change: !added_paths.is_empty(),
+        parent: TopicRefDto {
+            id: parent.topic.id.0.clone(),
+            path: parent.path.to_selector_value(),
+            title: parent.topic.title.clone(),
+        },
+        created_root: CreatedTopicDto {
+            path: created_root_path,
+            title: tree.title,
+        },
+        summary: SummaryDto {
+            added: added_paths.len(),
+            updated: 0,
+            deleted: 0,
+            moved: 0,
+        },
+        diff: added_paths
+            .into_iter()
+            .map(|path| DiffEventDto {
+                event: "added",
+                path,
+            })
+            .collect(),
+    };
+
+    if json {
+        let envelope = CommandEnvelope {
+            ok: true,
+            command: Some(invocation.command),
+            workbook: Some(invocation.workbook.display().to_string()),
+            dry_run: true,
+            applied: false,
+            result: Some(result),
+            error: None,
+            warnings: Vec::new(),
+        };
+        crate::cli::render_json_envelope(&envelope);
+    } else if !invocation.quiet {
+        println!("planned {} added topics", result.summary.added);
+    }
+
+    0
+}
+
+fn read_yaml_tree_input(input: &Path) -> Result<TopicTreeInputDto, String> {
+    let is_yaml = input
+        .extension()
+        .and_then(|extension| extension.to_str())
+        .is_some_and(|extension| matches!(extension, "yaml" | "yml"));
+
+    if !is_yaml {
+        return Err("Only YAML tree input is implemented in this slice.".to_owned());
+    }
+
+    let content = fs::read_to_string(input)
+        .map_err(|error| format!("Tree input could not be read: {error}"))?;
+    serde_yaml::from_str(&content).map_err(|error| format!("Tree input YAML is invalid: {error}"))
 }
 
 fn generated_topic_id(title: &str) -> String {
@@ -3656,6 +3825,15 @@ struct PatchDryRunResultDto {
     will_change: bool,
     summary: SummaryDto,
     operations: Vec<PatchOperationDto>,
+    diff: Vec<DiffEventDto>,
+}
+
+#[derive(Debug, Serialize)]
+struct AddTreeDryRunResultDto {
+    will_change: bool,
+    parent: TopicRefDto,
+    created_root: CreatedTopicDto,
+    summary: SummaryDto,
     diff: Vec<DiffEventDto>,
 }
 

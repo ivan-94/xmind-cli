@@ -3738,5 +3738,45 @@
         </li>
       </ul>
     </section>
+    <section class="entry">
+      <h2>2026-05-22 - YAML tree input parser</h2>
+      <h3>Design Decisions</h3>
+      <ul>
+        <li>
+          <code>add-tree</code> now accepts <code>--parent</code> and
+          <code>--input</code> and can parse YAML topic trees for dry-run JSON
+          previews.
+        </li>
+        <li>
+          The dry-run output reuses the structured mutation envelope with parent,
+          created root, summary, and one added diff event per topic in preorder.
+        </li>
+      </ul>
+
+      <h3>Deviations</h3>
+      <ul>
+        <li>
+          This slice intentionally supports YAML input only. JSON tree input,
+          Markdown input, validation hardening, and apply/write behavior remain
+          later PLAN items.
+        </li>
+      </ul>
+
+      <h3>Tradeoffs</h3>
+      <ul>
+        <li>
+          Non-YAML extensions are rejected for now even though YAML parsers can
+          parse JSON syntax. This keeps the next JSON parser task observable and
+          avoids silently accepting a format before its contract is tested.
+        </li>
+      </ul>
+
+      <h3>Open Questions</h3>
+      <ul>
+        <li>
+          None for this slice.
+        </li>
+      </ul>
+    </section>
   </body>
 </html>
