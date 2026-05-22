@@ -1918,5 +1918,42 @@
         <li>None.</li>
       </ul>
     </section>
+
+    <section class="entry">
+      <h2>2026-05-22 - DiffEvent Added</h2>
+      <h3>Design Decisions</h3>
+      <ul>
+        <li>
+          Added <code>DiffEvent::Added</code> with a domain
+          <code>TopicPath</code>, matching the documented diff model.
+        </li>
+        <li>
+          Added <code>Diff::from_events</code> so event-specific slices can
+          construct ordered diffs without exposing the internal vector.
+        </li>
+      </ul>
+
+      <h3>Deviations</h3>
+      <ul>
+        <li>
+          The event is not yet used by CLI dry-run responses; renderer wiring is
+          tracked by later Phase 7 tasks.
+        </li>
+      </ul>
+
+      <h3>Tradeoffs</h3>
+      <ul>
+        <li>
+          Kept the event payload to path-only for this slice, deferring ids and
+          field-level details until the diff renderer and mutation planning
+          tasks need them.
+        </li>
+      </ul>
+
+      <h3>Open Questions</h3>
+      <ul>
+        <li>None.</li>
+      </ul>
+    </section>
   </body>
 </html>
