@@ -28,8 +28,7 @@ impl PreservationBag {
         self.raw_json_fields.is_empty() && self.package_entries.is_empty()
     }
 
-    #[cfg(test)]
-    fn preserve_json_field(&mut self, field: impl Into<String>, value: Value) {
+    pub fn preserve_json_field(&mut self, field: impl Into<String>, value: Value) {
         self.raw_json_fields.insert(field.into(), value);
     }
 

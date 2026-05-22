@@ -3,6 +3,7 @@ use std::io::Read;
 use std::path::Path;
 
 use serde::Deserialize;
+use serde_json::{Map, Value};
 use thiserror::Error;
 
 use crate::domain::sheet::{Sheet, SheetId};
@@ -32,6 +33,9 @@ pub fn read_workbook(path: &Path) -> Result<Workbook, XMindReadError> {
         .read_to_string(&mut content)?;
 
     let sheets: Vec<StorageSheet> = serde_json::from_str(&content)?;
+    for (sheet_index, sheet) in sheets.iter().enumerate() {
+        sheet.preserve_unknown_json_fields(&mut preservation, &format!("sheets[{sheet_index}]"));
+    }
 
     Ok(Workbook {
         sheets: sheets.into_iter().map(Into::into).collect(),
@@ -64,6 +68,16 @@ struct StorageSheet {
     id: String,
     title: String,
     root_topic: StorageTopic,
+    #[serde(flatten)]
+    unknown_fields: Map<String, Value>,
+}
+
+impl StorageSheet {
+    fn preserve_unknown_json_fields(&self, preservation: &mut PreservationBag, path: &str) {
+        preserve_unknown_fields(preservation, path, &self.unknown_fields);
+        self.root_topic
+            .preserve_unknown_json_fields(preservation, &format!("{path}.rootTopic"));
+    }
 }
 
 impl From<StorageSheet> for Sheet {
@@ -89,6 +103,30 @@ struct StorageTopic {
     markers: Vec<StorageMarker>,
     #[serde(default)]
     children: StorageChildren,
+    #[serde(flatten)]
+    unknown_fields: Map<String, Value>,
+}
+
+impl StorageTopic {
+    fn preserve_unknown_json_fields(&self, preservation: &mut PreservationBag, path: &str) {
+        preserve_unknown_fields(preservation, path, &self.unknown_fields);
+        for (index, child) in self.children.attached.iter().enumerate() {
+            child.preserve_unknown_json_fields(
+                preservation,
+                &format!("{path}.children.attached[{index}]"),
+            );
+        }
+    }
+}
+
+fn preserve_unknown_fields(
+    preservation: &mut PreservationBag,
+    path: &str,
+    fields: &Map<String, Value>,
+) {
+    for (field, value) in fields {
+        preservation.preserve_json_field(format!("{path}.{field}"), value.clone());
+    }
 }
 
 #[derive(Debug, Deserialize)]

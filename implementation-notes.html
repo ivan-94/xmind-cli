@@ -1714,5 +1714,46 @@
         </li>
       </ul>
     </section>
+
+    <section class="entry">
+      <h2>2026-05-22 - unknown JSON field preservation</h2>
+      <h3>Design Decisions</h3>
+      <ul>
+        <li>
+          Storage sheet and topic DTOs now capture unknown JSON fields with
+          <code>serde(flatten)</code> and record them in the workbook
+          <code>PreservationBag</code> before conversion to the domain model.
+        </li>
+        <li>
+          Preserved field keys include a simple structural path such as
+          <code>sheets[0].rootTopic.unknownVendorField</code> for future writer
+          merge work.
+        </li>
+      </ul>
+
+      <h3>Deviations</h3>
+      <ul>
+        <li>
+          This slice records unknown field values but does not merge them back
+          during writes yet. Writer merge behavior remains a later PLAN item.
+        </li>
+      </ul>
+
+      <h3>Tradeoffs</h3>
+      <ul>
+        <li>
+          The public CLI still exposes only the preservation capability boolean,
+          keeping internal storage paths out of normal command output.
+        </li>
+      </ul>
+
+      <h3>Open Questions</h3>
+      <ul>
+        <li>
+          Confirm whether the preservation path format should become a stable
+          internal contract before implementing writer merge semantics.
+        </li>
+      </ul>
+    </section>
   </body>
 </html>
