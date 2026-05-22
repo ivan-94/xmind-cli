@@ -2,21 +2,20 @@
 source: tests/cli/help_snapshots_test.rs
 expression: "help_output(&[subcommand, \"--help\"])"
 ---
-Usage: xmind import [OPTIONS] <--dry-run|--apply> <WORKBOOK>
-
-Arguments:
-  <WORKBOOK>  
+Usage: xmind import [OPTIONS] --input <INPUT> --output <OUTPUT> <--dry-run|--apply>
 
 Options:
-      --dry-run                    
-      --apply                      
-      --backup                     
-      --json                       
-      --format <FORMAT>            [default: text] [possible values: text, json, compact-json, markdown, outline, assets]
-      --fields <FIELDS>            
-      --quiet                      
-      --no-color                   
-      --sheet <SHEET>              
-      --sheet-id <SHEET_ID>        
-      --sheet-index <SHEET_INDEX>  
-  -h, --help                       Print help
+      --input <INPUT>                  
+      --output <OUTPUT>                
+      --markdown-mode <MARKDOWN_MODE>  [possible values: heading, list, hybrid, auto]
+      --dry-run                        
+      --apply                          
+      --json                           
+      --format <FORMAT>                [default: text] [possible values: text, json, compact-json, markdown, outline, assets]
+      --fields <FIELDS>                
+      --quiet                          
+      --no-color                       
+      --sheet <SHEET>                  
+      --sheet-id <SHEET_ID>            
+      --sheet-index <SHEET_INDEX>      
+  -h, --help                           Print help

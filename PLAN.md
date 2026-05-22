@@ -338,7 +338,7 @@ Implement a Rust CLI named `xmind` that satisfies the documented product, comman
 - [x] Implement `export --output`.
 - [x] Implement `export --overwrite`.
 - [x] Implement `export --json` wrapping payload in envelope.
-- [ ] Implement `import --output`.
+- [x] Implement `import --output`.
 - [ ] Implement `import --into`.
 - [ ] Implement `import --overwrite`.
 - [ ] Implement `import --dry-run` no-file behavior.

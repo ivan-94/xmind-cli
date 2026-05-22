@@ -323,6 +323,12 @@
           原始导出内容放在 <code>result</code> 字段中；当同时使用
           <code>--output</code> 时，stdout envelope 只报告写入路径。
         </li>
+        <li>
+          <code>import --output</code> 已支持从 YAML/JSON tree input
+          创建新 workbook；<code>.md</code>/<code>.markdown</code> 输入会复用
+          Markdown outline parser。当前切片仅支持 <code>--apply</code>，
+          dry-run、覆盖既有输出和导入到既有 workbook 仍由后续任务处理。
+        </li>
       </ul>
     </section>
   </body>

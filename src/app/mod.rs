@@ -17,8 +17,9 @@ use crate::domain::mutation::{AddTopicRequest, MutationPlanner};
 use crate::domain::path::TopicPath;
 use crate::domain::query::QueryExpr;
 use crate::domain::selector::Selector;
-use crate::domain::sheet::Sheet;
-use crate::domain::topic::Topic;
+use crate::domain::sheet::{Sheet, SheetId};
+use crate::domain::topic::{AssetId, Topic, TopicId, TopicImageRef};
+use crate::domain::workbook::{PreservationBag, ResourceIndex, Workbook};
 use crate::infra::fs::backup::{create_backup, create_backup_in_dir, BackupError};
 use crate::infra::xmind::encode::{InsertPosition, TopicClearField, XMindWriteError};
 use crate::render::diff::render_human_outline;
@@ -58,7 +59,7 @@ pub fn run(cli: Cli) -> i32 {
         return render_error(invocation, json, error);
     }
 
-    if !invocation.workbook.exists() {
+    if invocation.action.requires_existing_workbook() && !invocation.workbook.exists() {
         let path = invocation.workbook.display().to_string();
         let error = CliErrorBody::new(
             ErrorCode::FileNotFound,
@@ -115,6 +116,13 @@ pub fn run(cli: Cli) -> i32 {
             let format = format.clone();
             let output = output.clone();
             render_export(invocation, json, &format, output, overwrite)
+        }
+        Action::ImportOutput {
+            ref input,
+            markdown_mode,
+        } => {
+            let input = input.clone();
+            render_import_output(invocation, json, &input, markdown_mode)
         }
         Action::Backup { ref backup_dir } => {
             let backup_dir = backup_dir.clone();
@@ -421,10 +429,20 @@ enum Action {
         output: Option<PathBuf>,
         overwrite: bool,
     },
+    ImportOutput {
+        input: PathBuf,
+        markdown_mode: Option<MarkdownMode>,
+    },
     Backup {
         backup_dir: Option<std::path::PathBuf>,
     },
     Noop,
+}
+
+impl Action {
+    fn requires_existing_workbook(&self) -> bool {
+        !matches!(self, Self::ImportOutput { .. })
+    }
 }
 
 fn count_topics(topic: &Topic) -> usize {
@@ -710,14 +728,20 @@ impl Invocation {
                 sheet_selection,
                 quiet,
             )),
-            Command::Import(command) => Some(Self::mutation(
-                "import",
-                command.workbook,
-                command.mode.apply_mode.dry_run,
-                command.mode.backup,
-                sheet_selection,
-                quiet,
-            )),
+            Command::Import(command) => Some(
+                Self::mutation(
+                    "import",
+                    command.output,
+                    command.mode.dry_run,
+                    false,
+                    sheet_selection,
+                    quiet,
+                )
+                .with_action(Action::ImportOutput {
+                    input: command.input,
+                    markdown_mode: command.markdown_mode,
+                }),
+            ),
             Command::Restore(command) => Some(Self::mutation(
                 "restore",
                 command.workbook,
@@ -1262,6 +1286,157 @@ fn write_export_output(
     }
 
     0
+}
+
+fn render_import_output(
+    invocation: Invocation,
+    json: bool,
+    input: &Path,
+    markdown_mode: Option<MarkdownMode>,
+) -> i32 {
+    if invocation.dry_run {
+        let error = CliErrorBody::new(
+            ErrorCode::InvalidUsage,
+            "import --output --dry-run is not implemented in this slice.",
+            true,
+            "Retry with --apply until the import dry-run slice is implemented.",
+        );
+        return render_error(invocation, json, error);
+    }
+
+    if invocation.workbook.exists() {
+        let error = CliErrorBody::new(
+            ErrorCode::WriteFailed,
+            format!(
+                "Import output already exists: {}",
+                invocation.workbook.display()
+            ),
+            false,
+            "Choose a different output path, or use --overwrite once that option is available.",
+        )
+        .with_path(invocation.workbook.display().to_string());
+        return render_error(invocation, json, error);
+    }
+
+    let tree = match read_import_tree_input(input, markdown_mode) {
+        Ok(tree) => tree,
+        Err(message) => {
+            let error = CliErrorBody::new(
+                ErrorCode::InvalidTreeInput,
+                message,
+                true,
+                "Provide a Markdown, YAML, or JSON tree input file with a top-level title.",
+            )
+            .with_path(input.display().to_string());
+            return render_error(invocation, json, error);
+        }
+    };
+    if let Err(error) = validate_topic_tree_input(&tree) {
+        let error = CliErrorBody::new(
+            ErrorCode::InvalidTreeInput,
+            error.message,
+            true,
+            "Provide a topic tree where every topic has a non-empty title.",
+        )
+        .with_path(input.display().to_string())
+        .with_field_path(error.field_path);
+        return render_error(invocation, json, error);
+    }
+
+    let added = count_topic_tree_input(&tree);
+    let root_title = tree.title.clone();
+    let workbook = Workbook {
+        sheets: vec![Sheet {
+            id: SheetId("sheet-1".to_owned()),
+            title: root_title,
+            root: topic_tree_input_to_topic(tree),
+        }],
+        resources: ResourceIndex::default(),
+        preservation: PreservationBag::default(),
+    };
+
+    if let Err(error) =
+        crate::infra::xmind::encode::write_new_workbook(&invocation.workbook, &workbook)
+    {
+        return render_workbook_write_error(invocation, json, error);
+    }
+
+    let result = ImportOutputResultDto {
+        output: invocation.workbook.display().to_string(),
+        summary: SummaryDto {
+            added,
+            updated: 0,
+            deleted: 0,
+            moved: 0,
+        },
+    };
+
+    if json {
+        let envelope = CommandEnvelope {
+            ok: true,
+            command: Some(invocation.command),
+            workbook: Some(invocation.workbook.display().to_string()),
+            dry_run: false,
+            applied: true,
+            result: Some(result),
+            error: None,
+            warnings: Vec::new(),
+        };
+        crate::cli::render_json_envelope(&envelope);
+    } else if !invocation.quiet {
+        println!(
+            "created {} with {added} topics",
+            invocation.workbook.display()
+        );
+    }
+
+    0
+}
+
+fn read_import_tree_input(
+    input: &Path,
+    markdown_mode: Option<MarkdownMode>,
+) -> Result<TopicTreeInputDto, String> {
+    match input
+        .extension()
+        .and_then(|extension| extension.to_str())
+        .unwrap_or_default()
+    {
+        "md" | "markdown" => read_tree_input(None, Some(input), markdown_mode),
+        _ => read_tree_input(Some(input), None, markdown_mode),
+    }
+}
+
+fn count_topic_tree_input(tree: &TopicTreeInputDto) -> usize {
+    1 + tree
+        .children
+        .iter()
+        .map(count_topic_tree_input)
+        .sum::<usize>()
+}
+
+fn topic_tree_input_to_topic(tree: TopicTreeInputDto) -> Topic {
+    Topic {
+        id: TopicId(tree.id.unwrap_or_else(|| generated_topic_id(&tree.title))),
+        title: tree.title,
+        note: tree.note,
+        labels: tree.labels,
+        markers: tree.markers,
+        hyperlink: None,
+        image: tree.image.and_then(topic_tree_image_input_to_ref),
+        children: tree
+            .children
+            .into_iter()
+            .map(topic_tree_input_to_topic)
+            .collect(),
+    }
+}
+
+fn topic_tree_image_input_to_ref(image: TopicTreeImageInputDto) -> Option<TopicImageRef> {
+    image
+        .asset_id
+        .or(image.path)
+        .map(|asset_id| TopicImageRef::new(AssetId::new(asset_id), image.alt, image.title))
 }
 
 fn render_get(
@@ -3941,6 +4116,12 @@ struct AddDryRunResultDto {
     diff: Vec<DiffEventDto>,
     #[serde(skip_serializing_if = "Option::is_none")]
     backup_path: Option<String>,
+}
+
+#[derive(Debug, Serialize)]
+struct ImportOutputResultDto {
+    output: String,
+    summary: SummaryDto,
 }
 
 #[derive(Debug, Serialize)]

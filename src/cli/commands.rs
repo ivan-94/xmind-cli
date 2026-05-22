@@ -21,7 +21,7 @@ pub enum Command {
     Diff(WorkbookCommand),
     Validate(ValidateCommand),
     Export(ExportCommand),
-    Import(MutationCommand),
+    Import(ImportCommand),
     Backup(BackupCommand),
     Restore(MutationCommand),
 }
@@ -104,6 +104,21 @@ pub struct ExportCommand {
 
     #[arg(long)]
     pub overwrite: bool,
+}
+
+#[derive(Debug, Args)]
+pub struct ImportCommand {
+    #[arg(long)]
+    pub input: PathBuf,
+
+    #[arg(long)]
+    pub output: PathBuf,
+
+    #[arg(long, value_enum)]
+    pub markdown_mode: Option<MarkdownMode>,
+
+    #[command(flatten)]
+    pub mode: ApplyMode,
 }
 
 #[derive(Debug, Args)]

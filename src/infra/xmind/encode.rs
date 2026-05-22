@@ -40,6 +40,17 @@ pub fn encode_workbook_content(workbook: &Workbook) -> Result<Vec<u8>, XMindWrit
     Ok(serde_json::to_vec_pretty(&content)?)
 }
 
+pub fn write_new_workbook(
+    workbook_path: &Path,
+    workbook: &Workbook,
+) -> Result<(), XMindWriteError> {
+    let content_json = encode_workbook_content(workbook)?;
+    let temp_path = temp_workbook_path(workbook_path);
+    write_package(&temp_path, content_json, Vec::new())?;
+    replace_with_validated_candidate(workbook_path, &temp_path, validate_candidate_package)?;
+    Ok(())
+}
+
 pub fn append_child_topic(
     workbook_path: &Path,
     parent_topic_id: &str,
