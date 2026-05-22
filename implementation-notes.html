@@ -2469,5 +2469,47 @@
         <li>None.</li>
       </ul>
     </section>
+
+    <section class="entry">
+      <h2>2026-05-22 - candidate package validation</h2>
+      <h3>Design Decisions</h3>
+      <ul>
+        <li>
+          Added candidate validation that reads the temporary candidate workbook
+          with the normal XMind reader before replacing the original file.
+        </li>
+        <li>
+          Wired candidate validation into the current append child, rename
+          topic, and set note write paths.
+        </li>
+      </ul>
+
+      <h3>Deviations</h3>
+      <ul>
+        <li>
+          Validation failures currently surface as <code>write_failed</code>
+          through existing mutation error handling because dedicated
+          <code>validation_failed</code> CLI mapping is tracked by later
+          rollback/error-code tasks.
+        </li>
+      </ul>
+
+      <h3>Tradeoffs</h3>
+      <ul>
+        <li>
+          Reusing the reader keeps validation strict enough to catch malformed
+          zip/content candidates without adding a second validation engine.
+        </li>
+      </ul>
+
+      <h3>Open Questions</h3>
+      <ul>
+        <li>
+          Map candidate validation failures to public
+          <code>validation_failed</code> once rollback tests and validate-after
+          semantics are implemented.
+        </li>
+      </ul>
+    </section>
   </body>
 </html>

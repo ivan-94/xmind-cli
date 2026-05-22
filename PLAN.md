@@ -229,7 +229,7 @@ Implement a Rust CLI named `xmind` that satisfies the documented product, comman
 - [x] Merge preserved unknown JSON fields.
 - [x] Reuse preserved package entries.
 - [x] Write candidate package to temp file in destination directory.
-- [ ] Implement candidate validation.
+- [x] Implement candidate validation.
 - [x] Implement atomic replace.
 - [ ] Implement backup writer.
 - [ ] Implement `--backup-dir`.

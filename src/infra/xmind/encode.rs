@@ -59,6 +59,7 @@ pub fn append_child_topic(
 
     let temp_path = temp_workbook_path(workbook_path);
     write_package(&temp_path, content_json, entries)?;
+    validate_candidate_package(&temp_path)?;
     fs::rename(&temp_path, workbook_path)?;
 
     Ok(())
@@ -97,6 +98,7 @@ pub fn rename_topic(
 
     let temp_path = temp_workbook_path(workbook_path);
     write_package(&temp_path, content_json, entries)?;
+    validate_candidate_package(&temp_path)?;
     fs::rename(&temp_path, workbook_path)?;
 
     Ok(())
@@ -135,6 +137,7 @@ pub fn set_topic_note(
 
     let temp_path = temp_workbook_path(workbook_path);
     write_package(&temp_path, content_json, entries)?;
+    validate_candidate_package(&temp_path)?;
     fs::rename(&temp_path, workbook_path)?;
 
     Ok(())
@@ -294,6 +297,12 @@ fn temp_workbook_path(workbook_path: &Path) -> PathBuf {
         .and_then(|name| name.to_str())
         .unwrap_or("workbook.xmind");
     workbook_path.with_file_name(format!("{file_name}.tmp"))
+}
+
+fn validate_candidate_package(candidate_path: &Path) -> Result<(), XMindWriteError> {
+    crate::infra::xmind::decode::read_workbook(candidate_path)
+        .map(|_| ())
+        .map_err(|error| XMindWriteError::CandidateValidationFailed(error.to_string()))
 }
 
 #[derive(Serialize)]
@@ -472,6 +481,9 @@ pub enum XMindWriteError {
 
     #[error("topic was not found in content.json: {0}")]
     TopicNotFound(String),
+
+    #[error("candidate workbook failed validation: {0}")]
+    CandidateValidationFailed(String),
 }
 
 #[cfg(test)]
@@ -480,7 +492,7 @@ mod tests {
     use crate::domain::topic::{AssetId, Topic, TopicId, TopicImageRef};
     use crate::domain::workbook::{PreservationBag, ResourceIndex, Workbook};
 
-    use super::{encode_workbook_content, Value};
+    use super::{encode_workbook_content, validate_candidate_package, Value, XMindWriteError};
 
     #[test]
     fn encodes_domain_workbook_to_supported_storage_dtos() {
@@ -598,5 +610,32 @@ mod tests {
             value[0]["rootTopic"]["children"]["attached"][0]["vendorChild"]["child"],
             true
         );
+    }
+
+    #[test]
+    fn candidate_validation_rejects_malformed_content_package() {
+        use std::fs::File;
+        use std::io::Write;
+
+        use zip::write::FileOptions;
+
+        let temp_dir = tempfile::tempdir().expect("temp dir is created");
+        let candidate = temp_dir.path().join("candidate.xmind");
+        let file = File::create(&candidate).expect("candidate is created");
+        let mut zip = zip::ZipWriter::new(file);
+        let options = FileOptions::default().compression_method(zip::CompressionMethod::Deflated);
+
+        zip.start_file("content.json", options)
+            .expect("content entry starts");
+        zip.write_all(br#"not-json"#)
+            .expect("malformed content is written");
+        zip.finish().expect("zip finishes");
+
+        let error = validate_candidate_package(&candidate).expect_err("candidate is invalid");
+
+        assert!(matches!(
+            error,
+            XMindWriteError::CandidateValidationFailed(_)
+        ));
     }
 }
