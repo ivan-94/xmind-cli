@@ -3968,5 +3968,44 @@
         </li>
       </ul>
     </section>
+    <section class="entry">
+      <h2>2026-05-22 - Markdown heading outline parser</h2>
+      <h3>Design Decisions</h3>
+      <ul>
+        <li>
+          <code>add-tree --from-markdown</code> now parses heading-only outlines:
+          one heading root, with deeper heading levels becoming descendants in
+          preorder.
+        </li>
+        <li>
+          Root frontmatter defaults are merged into the parsed heading root when
+          present.
+        </li>
+      </ul>
+
+      <h3>Deviations</h3>
+      <ul>
+        <li>
+          Paragraphs under headings are ignored for now; note mapping is a later
+          PLAN item.
+        </li>
+      </ul>
+
+      <h3>Tradeoffs</h3>
+      <ul>
+        <li>
+          The parser currently accepts simple heading lines and defers ambiguous
+          Markdown diagnostics such as skipped heading levels to the invalid
+          Markdown diagnostics task.
+        </li>
+      </ul>
+
+      <h3>Open Questions</h3>
+      <ul>
+        <li>
+          None for this slice.
+        </li>
+      </ul>
+    </section>
   </body>
 </html>

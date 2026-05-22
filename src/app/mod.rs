@@ -1702,7 +1702,7 @@ fn read_tree_input(
 ) -> Result<TopicTreeInputDto, String> {
     match (input, from_markdown) {
         (Some(input), None) => read_yaml_or_json_tree_input(input),
-        (None, Some(input)) => read_markdown_frontmatter_tree_input(input),
+        (None, Some(input)) => read_markdown_tree_input(input),
         (None, None) => Err("add-tree requires --input or --from-markdown.".to_owned()),
         (Some(_), Some(_)) => {
             Err("add-tree accepts only one of --input or --from-markdown.".to_owned())
@@ -1727,21 +1727,111 @@ fn read_yaml_or_json_tree_input(input: &Path) -> Result<TopicTreeInputDto, Strin
     }
 }
 
-fn read_markdown_frontmatter_tree_input(input: &Path) -> Result<TopicTreeInputDto, String> {
+fn read_markdown_tree_input(input: &Path) -> Result<TopicTreeInputDto, String> {
     let content = fs::read_to_string(input)
         .map_err(|error| format!("Markdown input could not be read: {error}"))?;
-    let Some(frontmatter) = markdown_frontmatter(&content) else {
-        return Err("Markdown input frontmatter is missing.".to_owned());
+    let (frontmatter, body) = split_markdown_frontmatter(&content);
+    let defaults = match frontmatter {
+        Some(frontmatter) => serde_yaml::from_str::<TopicTreeDefaultsDto>(frontmatter)
+            .map_err(|error| format!("Markdown frontmatter YAML is invalid: {error}"))?,
+        None => TopicTreeDefaultsDto::default(),
     };
 
-    serde_yaml::from_str(frontmatter)
-        .map_err(|error| format!("Markdown frontmatter YAML is invalid: {error}"))
+    if let Some(mut tree) = parse_markdown_heading_outline(body)? {
+        apply_topic_tree_defaults(&mut tree, defaults);
+        return Ok(tree);
+    }
+
+    defaults.into_topic_tree().ok_or_else(|| {
+        "Markdown input must include frontmatter title or a heading outline.".to_owned()
+    })
 }
 
-fn markdown_frontmatter(content: &str) -> Option<&str> {
-    let rest = content.strip_prefix("---\n")?;
-    let end = rest.find("\n---")?;
-    Some(&rest[..end])
+fn split_markdown_frontmatter(content: &str) -> (Option<&str>, &str) {
+    let Some(rest) = content.strip_prefix("---\n") else {
+        return (None, content);
+    };
+    let Some(end) = rest.find("\n---") else {
+        return (None, content);
+    };
+    let frontmatter = &rest[..end];
+    let body = rest[end + "\n---".len()..]
+        .strip_prefix('\n')
+        .unwrap_or_default();
+    (Some(frontmatter), body)
+}
+
+fn parse_markdown_heading_outline(content: &str) -> Result<Option<TopicTreeInputDto>, String> {
+    let mut stack = Vec::<(usize, TopicTreeInputDto)>::new();
+    let mut roots = Vec::<TopicTreeInputDto>::new();
+
+    for line in content.lines() {
+        let Some((level, title)) = parse_markdown_heading(line) else {
+            continue;
+        };
+        let node = TopicTreeInputDto::new(title);
+
+        while stack
+            .last()
+            .is_some_and(|(stack_level, _)| *stack_level >= level)
+        {
+            let (_, completed) = stack.pop().expect("stack is not empty");
+            if let Some((_, parent)) = stack.last_mut() {
+                parent.children.push(completed);
+            } else {
+                roots.push(completed);
+            }
+        }
+
+        stack.push((level, node));
+    }
+
+    while let Some((_, completed)) = stack.pop() {
+        if let Some((_, parent)) = stack.last_mut() {
+            parent.children.push(completed);
+        } else {
+            roots.push(completed);
+        }
+    }
+
+    match roots.len() {
+        0 => Ok(None),
+        1 => Ok(roots.pop()),
+        _ => Err("Markdown heading outline must contain one top-level root.".to_owned()),
+    }
+}
+
+fn parse_markdown_heading(line: &str) -> Option<(usize, String)> {
+    let trimmed = line.trim_start();
+    let level = trimmed
+        .chars()
+        .take_while(|character| *character == '#')
+        .count();
+    if level == 0 || level > 6 {
+        return None;
+    }
+
+    let title = trimmed[level..].trim();
+    if title.is_empty() {
+        return None;
+    }
+
+    Some((level, title.to_owned()))
+}
+
+fn apply_topic_tree_defaults(tree: &mut TopicTreeInputDto, defaults: TopicTreeDefaultsDto) {
+    if tree.id.is_none() {
+        tree.id = defaults.id;
+    }
+    if tree.labels.is_empty() {
+        tree.labels = defaults.labels;
+    }
+    if tree.markers.is_empty() {
+        tree.markers = defaults.markers;
+    }
+    if tree.image.is_none() {
+        tree.image = defaults.image;
+    }
 }
 
 struct TreeInputValidationError {
@@ -3936,6 +4026,43 @@ struct TopicTreeInputDto {
 
     #[serde(default)]
     children: Vec<TopicTreeInputDto>,
+}
+
+impl TopicTreeInputDto {
+    fn new(title: String) -> Self {
+        Self {
+            id: None,
+            title,
+            labels: Vec::new(),
+            markers: Vec::new(),
+            image: None,
+            children: Vec::new(),
+        }
+    }
+}
+
+#[derive(Default, Debug, Deserialize)]
+struct TopicTreeDefaultsDto {
+    id: Option<String>,
+    title: Option<String>,
+    #[serde(default)]
+    labels: Vec<String>,
+    #[serde(default)]
+    markers: Vec<String>,
+    image: Option<TopicTreeImageInputDto>,
+}
+
+impl TopicTreeDefaultsDto {
+    fn into_topic_tree(self) -> Option<TopicTreeInputDto> {
+        Some(TopicTreeInputDto {
+            id: self.id,
+            title: self.title?,
+            labels: self.labels,
+            markers: self.markers,
+            image: self.image,
+            children: Vec::new(),
+        })
+    }
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
