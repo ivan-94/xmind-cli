@@ -102,3 +102,55 @@ fn delete_apply_removes_topic_subtree() {
         0
     );
 }
+
+#[test]
+fn delete_children_only_apply_removes_descendants_but_keeps_topic() {
+    let temp_dir = tempfile::tempdir().expect("temp dir is created");
+    let workbook = temp_dir.path().join("apply-delete-children-only.xmind");
+    fs::copy("tests/fixtures/xmind/minimal.xmind", &workbook).expect("fixture is copied");
+    let workbook_arg = workbook.to_string_lossy().into_owned();
+
+    let output = Command::cargo_bin("xmind")
+        .expect("xmind binary is built for CLI tests")
+        .args([
+            "delete",
+            &workbook_arg,
+            "--node",
+            "id:topic-q2",
+            "--children-only",
+            "--apply",
+            "--json",
+        ])
+        .output()
+        .expect("delete command runs");
+
+    assert_eq!(output.status.code(), Some(0));
+    assert!(
+        output.stderr.is_empty(),
+        "json delete output should not emit stderr diagnostics: {}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+
+    let body: Value = serde_json::from_slice(&output.stdout).expect("stdout is JSON");
+    assert_eq!(body["ok"], true);
+    assert_eq!(body["command"], "delete");
+    assert_eq!(body["applied"], true);
+    assert_eq!(body["result"]["deleted"][0], "/Q2/Payment");
+    assert_eq!(body["result"]["summary"]["deleted"], 1);
+
+    let tree_output = Command::cargo_bin("xmind")
+        .expect("xmind binary is built for CLI tests")
+        .args(["tree", &workbook_arg, "--json", "--depth", "2"])
+        .output()
+        .expect("tree command runs after apply");
+    let tree: Value = serde_json::from_slice(&tree_output.stdout).expect("tree stdout is JSON");
+    let q2 = &tree["result"]["root"]["children"][0];
+    assert_eq!(q2["title"], "Q2");
+    assert_eq!(
+        q2["children"]
+            .as_array()
+            .expect("children is an array")
+            .len(),
+        0
+    );
+}

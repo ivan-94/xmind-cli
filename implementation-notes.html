@@ -3161,5 +3161,45 @@
         </li>
       </ul>
     </section>
+
+    <section class="entry">
+      <h2>2026-05-22 - delete children only</h2>
+      <h3>Design Decisions</h3>
+      <ul>
+        <li>
+          Implemented <code>xmind delete --children-only</code> for dry-run and
+          apply by deleting descendants while preserving the selected topic.
+        </li>
+        <li>
+          The deleted path list reports descendant paths only; the retained topic
+          is not counted as deleted.
+        </li>
+      </ul>
+
+      <h3>Deviations</h3>
+      <ul>
+        <li>
+          <code>--promote-children</code> is still deferred to its dedicated PLAN
+          item.
+        </li>
+      </ul>
+
+      <h3>Tradeoffs</h3>
+      <ul>
+        <li>
+          The storage writer clears the target's attached-children array instead
+          of deleting descendants one by one, keeping the operation atomic and
+          preserving the selected topic's own metadata.
+        </li>
+      </ul>
+
+      <h3>Open Questions</h3>
+      <ul>
+        <li>
+          Confirm later whether root <code>--children-only</code> should be the
+          recommended way to clear a whole sheet in user-facing docs.
+        </li>
+      </ul>
+    </section>
   </body>
 </html>

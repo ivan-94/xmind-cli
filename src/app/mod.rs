@@ -199,9 +199,12 @@ pub fn run(cli: Cli) -> i32 {
             let fields = fields.clone();
             render_set_clear(invocation, json, &node, fields)
         }
-        Action::Delete { ref node } => {
+        Action::Delete {
+            ref node,
+            children_only,
+        } => {
             let node = node.clone();
-            render_delete(invocation, json, &node)
+            render_delete(invocation, json, &node, children_only)
         }
         Action::Move {
             ref node,
@@ -316,6 +319,7 @@ enum Action {
     },
     Delete {
         node: String,
+        children_only: bool,
     },
     Move {
         node: String,
@@ -550,7 +554,10 @@ impl Invocation {
                     sheet_selection,
                     quiet,
                 )
-                .with_action(Action::Delete { node: command.node }),
+                .with_action(Action::Delete {
+                    node: command.node,
+                    children_only: command.children_only,
+                }),
             ),
             Command::Move(command) => Some(
                 Self::mutation(
@@ -1372,7 +1379,7 @@ fn clear_field_name(field: TopicClearField) -> &'static str {
     }
 }
 
-fn render_delete(invocation: Invocation, json: bool, node: &str) -> i32 {
+fn render_delete(invocation: Invocation, json: bool, node: &str, children_only: bool) -> i32 {
     let workbook = match read_workbook_or_render_error(&invocation, json) {
         Ok(workbook) => workbook,
         Err(exit_code) => return exit_code,
@@ -1431,18 +1438,22 @@ fn render_delete(invocation: Invocation, json: bool, node: &str) -> i32 {
         }
     };
 
-    if resolved.path.is_root() {
+    if resolved.path.is_root() && !children_only {
         let error = CliErrorBody::new(
             ErrorCode::RootOperationNotAllowed,
             "Deleting the root topic is not allowed.",
             true,
-            "Use a non-root node selector, or use --children-only when that slice is available.",
+            "Use a non-root node selector, or use --children-only to clear root descendants.",
         )
         .with_selector(selector.render());
         return render_error(invocation, json, error);
     }
 
-    let deleted = collect_deleted_paths(resolved.topic, &resolved.path);
+    let deleted = if children_only {
+        collect_descendant_paths(resolved.topic, &resolved.path)
+    } else {
+        collect_deleted_paths(resolved.topic, &resolved.path)
+    };
     let diff = deleted
         .iter()
         .cloned()
@@ -1469,9 +1480,15 @@ fn render_delete(invocation: Invocation, json: bool, node: &str) -> i32 {
             Ok(backup_path) => backup_path,
             Err(error) => return render_backup_error(invocation, json, error),
         };
-        if let Err(error) =
+        let write_result = if children_only {
+            crate::infra::xmind::encode::delete_topic_children(
+                &invocation.workbook,
+                &resolved.topic.id.0,
+            )
+        } else {
             crate::infra::xmind::encode::delete_topic(&invocation.workbook, &resolved.topic.id.0)
-        {
+        };
+        if let Err(error) = write_result {
             return render_workbook_write_error(invocation, json, error);
         }
     }
@@ -3744,6 +3761,19 @@ fn collect_added_paths(parent_path: &TopicPath, tree: &TopicTreeInputDto) -> Vec
 
 fn collect_deleted_paths(topic: &Topic, path: &TopicPath) -> Vec<String> {
     let mut paths = vec![path.to_selector_value()];
+
+    for child in &topic.children {
+        paths.extend(collect_deleted_paths(
+            child,
+            &path.join(child.title.clone()),
+        ));
+    }
+
+    paths
+}
+
+fn collect_descendant_paths(topic: &Topic, path: &TopicPath) -> Vec<String> {
+    let mut paths = Vec::new();
 
     for child in &topic.children {
         paths.extend(collect_deleted_paths(

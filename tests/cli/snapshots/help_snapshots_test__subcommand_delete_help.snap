@@ -9,6 +9,7 @@ Arguments:
 
 Options:
       --node <NODE>                
+      --children-only              
       --dry-run                    
       --apply                      
       --backup                     

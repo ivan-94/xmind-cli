@@ -185,6 +185,9 @@ pub struct DeleteCommand {
     #[arg(long)]
     pub node: String,
 
+    #[arg(long)]
+    pub children_only: bool,
+
     #[command(flatten)]
     pub mode: MutationMode,
 }
