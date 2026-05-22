@@ -543,6 +543,7 @@ mod tests {
             labels: Vec::new(),
             markers: Vec::new(),
             hyperlink: None,
+            image: None,
             children: Vec::new(),
         };
 
@@ -559,6 +560,7 @@ mod tests {
             labels: Vec::new(),
             markers: Vec::new(),
             hyperlink: None,
+            image: None,
             children: Vec::new(),
         };
 
@@ -575,6 +577,7 @@ mod tests {
             labels: Vec::new(),
             markers: Vec::new(),
             hyperlink: None,
+            image: None,
             children: Vec::new(),
         };
 
@@ -591,6 +594,7 @@ mod tests {
             labels: Vec::new(),
             markers: Vec::new(),
             hyperlink: None,
+            image: None,
             children: Vec::new(),
         };
 
@@ -607,6 +611,7 @@ mod tests {
             labels: Vec::new(),
             markers: Vec::new(),
             hyperlink: None,
+            image: None,
             children: Vec::new(),
         };
 
@@ -623,6 +628,7 @@ mod tests {
             labels: Vec::new(),
             markers: Vec::new(),
             hyperlink: None,
+            image: None,
             children: Vec::new(),
         };
 
@@ -639,6 +645,7 @@ mod tests {
             labels: Vec::new(),
             markers: Vec::new(),
             hyperlink: None,
+            image: None,
             children: Vec::new(),
         };
 
@@ -655,6 +662,7 @@ mod tests {
             labels: Vec::new(),
             markers: Vec::new(),
             hyperlink: None,
+            image: None,
             children: Vec::new(),
         };
 
@@ -671,6 +679,7 @@ mod tests {
             labels: Vec::new(),
             markers: Vec::new(),
             hyperlink: None,
+            image: None,
             children: Vec::new(),
         };
 
@@ -687,6 +696,7 @@ mod tests {
             labels: Vec::new(),
             markers: Vec::new(),
             hyperlink: None,
+            image: None,
             children: Vec::new(),
         };
 
@@ -705,6 +715,7 @@ mod tests {
             labels: Vec::new(),
             markers: Vec::new(),
             hyperlink: None,
+            image: None,
             children: Vec::new(),
         };
 
@@ -721,6 +732,7 @@ mod tests {
             labels: Vec::new(),
             markers: Vec::new(),
             hyperlink: None,
+            image: None,
             children: Vec::new(),
         };
 
@@ -738,6 +750,7 @@ mod tests {
             labels: Vec::new(),
             markers: Vec::new(),
             hyperlink: None,
+            image: None,
             children: Vec::new(),
         };
 
@@ -754,6 +767,7 @@ mod tests {
             labels: Vec::new(),
             markers: Vec::new(),
             hyperlink: None,
+            image: None,
             children: Vec::new(),
         };
 
@@ -770,6 +784,7 @@ mod tests {
             labels: Vec::new(),
             markers: Vec::new(),
             hyperlink: None,
+            image: None,
             children: Vec::new(),
         };
 
@@ -786,6 +801,7 @@ mod tests {
             labels: Vec::new(),
             markers: Vec::new(),
             hyperlink: None,
+            image: None,
             children: Vec::new(),
         };
 

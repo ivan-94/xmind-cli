@@ -1338,5 +1338,51 @@
         </li>
       </ul>
     </section>
+
+    <section class="entry">
+      <h2>2026-05-22 - topic image reference loading</h2>
+      <h3>Design Decisions</h3>
+      <ul>
+        <li>
+          Topic image references are read when modern XMind topic JSON exposes
+          an <code>image</code> object with a <code>src</code> value. The first
+          semantic output maps that value to <code>image.asset_id</code> and
+          carries optional <code>alt</code> and <code>title</code> strings.
+        </li>
+        <li>
+          Image references are omitted from JSON output when absent. This keeps
+          existing read snapshots stable while allowing <code>--fields image</code>
+          to expose the reference for topics that have one.
+        </li>
+      </ul>
+
+      <h3>Deviations</h3>
+      <ul>
+        <li>
+          This slice does not inspect package resource entries, infer media
+          types, compute byte sizes, or validate that the referenced asset
+          exists. Those behaviors belong to resource metadata and asset fixture
+          PLAN items.
+        </li>
+      </ul>
+
+      <h3>Tradeoffs</h3>
+      <ul>
+        <li>
+          I kept the initial <code>asset_id</code> equal to XMind's
+          <code>src</code> reference because no resource index exists yet to
+          assign product-owned asset ids without inventing a second mapping.
+        </li>
+      </ul>
+
+      <h3>Open Questions</h3>
+      <ul>
+        <li>
+          Confirm whether future resource indexing should preserve
+          <code>xap:</code> references as asset ids or map them to generated ids
+          while retaining package paths as internal metadata.
+        </li>
+      </ul>
+    </section>
   </body>
 </html>

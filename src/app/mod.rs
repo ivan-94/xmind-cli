@@ -2148,6 +2148,11 @@ fn render_tree_topic(topic: &TreeTopicDto, fields: &[&str]) -> Value {
                     object.insert("hyperlink".to_owned(), serde_json::json!(hyperlink));
                 }
             }
+            "image" => {
+                if let Some(image) = &topic.image {
+                    object.insert("image".to_owned(), serde_json::json!(image));
+                }
+            }
             "children_count" => {
                 if let Some(children_count) = topic.children_count {
                     object.insert(
@@ -2193,6 +2198,9 @@ struct TreeTopicDto {
     hyperlink: Option<String>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
+    image: Option<TopicImageRefDto>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
     children: Option<Vec<TreeTopicDto>>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -2222,9 +2230,31 @@ impl TreeTopicDto {
             labels: topic.labels.clone(),
             markers: topic.markers.clone(),
             hyperlink: topic.hyperlink.clone(),
+            image: topic.image.as_ref().map(TopicImageRefDto::from_topic_image),
             children,
             children_count: (!include_children && !topic.children.is_empty())
                 .then_some(topic.children.len()),
+        }
+    }
+}
+
+#[derive(Debug, Serialize)]
+struct TopicImageRefDto {
+    asset_id: String,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    alt: Option<String>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    title: Option<String>,
+}
+
+impl TopicImageRefDto {
+    fn from_topic_image(image: &crate::domain::topic::TopicImageRef) -> Self {
+        Self {
+            asset_id: image.asset_id.0.clone(),
+            alt: image.alt.clone(),
+            title: image.title.clone(),
         }
     }
 }

@@ -29,7 +29,12 @@
                       "markerId": "task-start"
                     }
                   ],
-                  "href": "https://example.com/payments"
+                  "href": "https://example.com/payments",
+                  "image": {
+                    "src": "xap:resources/payment.png",
+                    "alt": "Payment flow diagram",
+                    "title": "Payment flow"
+                  }
                 }
               ]
             }

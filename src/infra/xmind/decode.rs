@@ -6,7 +6,7 @@ use serde::Deserialize;
 use thiserror::Error;
 
 use crate::domain::sheet::{Sheet, SheetId};
-use crate::domain::topic::{Topic, TopicId};
+use crate::domain::topic::{AssetId, Topic, TopicId, TopicImageRef};
 use crate::domain::workbook::Workbook;
 
 pub fn read_workbook(path: &Path) -> Result<Workbook, XMindReadError> {
@@ -71,6 +71,7 @@ struct StorageTopic {
     title: String,
     notes: Option<StorageNotes>,
     href: Option<String>,
+    image: Option<StorageImage>,
     #[serde(default)]
     labels: Vec<String>,
     #[serde(default)]
@@ -83,6 +84,23 @@ struct StorageTopic {
 #[serde(rename_all = "camelCase")]
 struct StorageMarker {
     marker_id: String,
+}
+
+#[derive(Debug, Deserialize)]
+struct StorageImage {
+    src: Option<String>,
+    alt: Option<String>,
+    title: Option<String>,
+}
+
+impl StorageImage {
+    fn into_topic_image(self) -> Option<TopicImageRef> {
+        self.src.map(|src| TopicImageRef {
+            asset_id: AssetId(src),
+            alt: self.alt,
+            title: self.title,
+        })
+    }
 }
 
 #[derive(Debug, Deserialize)]
@@ -110,6 +128,7 @@ impl From<StorageTopic> for Topic {
                 .map(|marker| marker.marker_id)
                 .collect(),
             hyperlink: value.href,
+            image: value.image.and_then(StorageImage::into_topic_image),
             children: value
                 .children
                 .attached
