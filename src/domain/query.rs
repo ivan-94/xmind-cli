@@ -37,6 +37,9 @@ impl QueryComparison {
             (QueryField::Title, QueryOperator::Ne, QueryValue::String(expected)) => {
                 topic.title != *expected
             }
+            (QueryField::Title, QueryOperator::Contains, QueryValue::String(needle)) => {
+                topic.title.contains(needle)
+            }
         }
     }
 }
@@ -50,6 +53,7 @@ enum QueryField {
 enum QueryOperator {
     Eq,
     Ne,
+    Contains,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -127,6 +131,7 @@ impl<'a> QueryParser<'a> {
         match operator {
             "=" => Ok(QueryOperator::Eq),
             "!=" => Ok(QueryOperator::Ne),
+            "contains" => Ok(QueryOperator::Contains),
             other => Err(QueryParseError::UnsupportedOperator(other.to_owned())),
         }
     }
@@ -261,5 +266,18 @@ mod tests {
         };
 
         assert!(!expr.matches_topic(&topic, &TopicPath::root(), 0));
+    }
+
+    #[test]
+    fn title_contains_matches_substring() {
+        let expr = QueryExpr::parse(r#"title contains "Pay""#).expect("query parses");
+        let topic = Topic {
+            id: TopicId("topic-payment".to_owned()),
+            title: "Payment".to_owned(),
+            note: None,
+            children: Vec::new(),
+        };
+
+        assert!(expr.matches_topic(&topic, &TopicPath::root(), 0));
     }
 }
