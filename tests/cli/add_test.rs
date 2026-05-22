@@ -191,3 +191,46 @@ fn add_apply_with_backup_creates_original_workbook_backup() {
         .expect("children is an array");
     assert_eq!(children[1]["title"], "Refund");
 }
+
+#[test]
+fn add_create_missing_path_apply_creates_intermediate_topics() {
+    let temp_dir = tempfile::tempdir().expect("temp dir is created");
+    let workbook = temp_dir.path().join("add-create-missing-path.xmind");
+    fs::copy("tests/fixtures/xmind/minimal.xmind", &workbook).expect("fixture is copied");
+    let workbook_arg = workbook.to_string_lossy().into_owned();
+
+    let output = Command::cargo_bin("xmind")
+        .expect("xmind binary is built for CLI tests")
+        .args([
+            "add",
+            &workbook_arg,
+            "--parent",
+            "path:/Q3/Payment",
+            "--title",
+            "Refunds",
+            "--create-missing-path",
+            "--apply",
+            "--json",
+        ])
+        .output()
+        .expect("add command runs");
+
+    assert_eq!(output.status.code(), Some(0));
+    let body: Value = serde_json::from_slice(&output.stdout).expect("stdout is JSON");
+    assert_eq!(body["ok"], true);
+    assert_eq!(body["result"]["summary"]["added"], 3);
+    assert_eq!(body["result"]["diff"][0]["path"], "/Q3");
+    assert_eq!(body["result"]["diff"][1]["path"], "/Q3/Payment");
+    assert_eq!(body["result"]["diff"][2]["path"], "/Q3/Payment/Refunds");
+
+    let tree_output = Command::cargo_bin("xmind")
+        .expect("xmind binary is built for CLI tests")
+        .args(["tree", &workbook_arg, "--json", "--depth", "3"])
+        .output()
+        .expect("tree command runs after apply");
+    let tree: Value = serde_json::from_slice(&tree_output.stdout).expect("tree stdout is JSON");
+    let q3 = &tree["result"]["root"]["children"][1];
+    assert_eq!(q3["title"], "Q3");
+    assert_eq!(q3["children"][0]["title"], "Payment");
+    assert_eq!(q3["children"][0]["children"][0]["title"], "Refunds");
+}

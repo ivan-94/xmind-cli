@@ -133,6 +133,9 @@ pub struct AddCommand {
     #[arg(long)]
     pub position: Option<String>,
 
+    #[arg(long)]
+    pub create_missing_path: bool,
+
     #[command(flatten)]
     pub mode: MutationMode,
 }

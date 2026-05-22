@@ -3549,5 +3549,45 @@
         </li>
       </ul>
     </section>
+
+    <section class="entry">
+      <h2>2026-05-22 - create missing path</h2>
+      <h3>Design Decisions</h3>
+      <ul>
+        <li>
+          Implemented <code>add --create-missing-path</code> for missing
+          <code>path:</code> parents by reusing the longest existing prefix and
+          creating the missing parent chain plus the requested topic.
+        </li>
+        <li>
+          Dry-run/apply summaries include every created intermediate topic and
+          the final topic in added counts and diffs.
+        </li>
+      </ul>
+
+      <h3>Deviations</h3>
+      <ul>
+        <li>
+          This slice covers <code>add</code>. <code>add-tree</code> and patch
+          <code>ensure_path</code> remain separate PLAN items.
+        </li>
+      </ul>
+
+      <h3>Tradeoffs</h3>
+      <ul>
+        <li>
+          Missing paths are only accepted for explicit <code>path:</code>
+          selectors, avoiding ambiguous title/query selector creation.
+        </li>
+      </ul>
+
+      <h3>Open Questions</h3>
+      <ul>
+        <li>
+          Confirm whether generated ids for intermediate segments should become
+          globally unique when id-conflict handling is added.
+        </li>
+      </ul>
+    </section>
   </body>
 </html>

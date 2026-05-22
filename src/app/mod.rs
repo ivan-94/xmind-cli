@@ -110,11 +110,19 @@ pub fn run(cli: Cli) -> i32 {
             ref parent,
             ref title,
             ref position,
+            create_missing_path,
         } => {
             let parent = parent.clone();
             let title = title.clone();
             let position = position.clone();
-            render_add(invocation, json, &parent, &title, position)
+            render_add(
+                invocation,
+                json,
+                &parent,
+                &title,
+                position,
+                create_missing_path,
+            )
         }
         Action::SetTitle {
             ref node,
@@ -299,6 +307,7 @@ enum Action {
         parent: String,
         title: String,
         position: Option<String>,
+        create_missing_path: bool,
     },
     SetTitle {
         node: String,
@@ -504,6 +513,7 @@ impl Invocation {
                     parent: command.parent,
                     title: command.title,
                     position: command.position,
+                    create_missing_path: command.create_missing_path,
                 }),
             ),
             Command::AddTree(command) => Some(Self::mutation(
@@ -1228,6 +1238,7 @@ fn render_add(
     parent: &str,
     title: &str,
     position: Option<String>,
+    create_missing_path: bool,
 ) -> i32 {
     let position = match parse_insert_position(position) {
         Ok(position) => position,
@@ -1260,6 +1271,13 @@ fn render_add(
     let parent = match resolve_topic(&sheet.root, &parent_selector) {
         ResolveOne::Found(resolved) => resolved,
         ResolveOne::NotFound => {
+            if create_missing_path {
+                if let Selector::Path(path) = &parent_selector {
+                    return render_add_create_missing_path(
+                        invocation, json, sheet, path, title, position,
+                    );
+                }
+            }
             let error = CliErrorBody::new(
                 ErrorCode::NotFound,
                 format!(
@@ -1343,6 +1361,119 @@ fn render_add(
             &plan.parent_id,
             &plan.title,
             &plan.new_topic_id,
+            position,
+        ) {
+            return render_workbook_write_error(invocation, json, error);
+        }
+    }
+
+    if json {
+        let envelope = CommandEnvelope {
+            ok: true,
+            command: Some(invocation.command),
+            workbook: Some(invocation.workbook.display().to_string()),
+            dry_run: invocation.dry_run,
+            applied: !invocation.dry_run,
+            result: Some(result),
+            error: None,
+            warnings: Vec::new(),
+        };
+        crate::cli::render_json_envelope(&envelope);
+    } else if !invocation.quiet {
+        println!("{}", render_human_outline(&human_diff));
+    }
+
+    0
+}
+
+fn render_add_create_missing_path(
+    invocation: Invocation,
+    json: bool,
+    sheet: &Sheet,
+    parent_path: &TopicPath,
+    title: &str,
+    position: PositionSpec,
+) -> i32 {
+    let Some((existing_parent, existing_parent_path, missing_segments)) =
+        missing_path_segments(&sheet.root, parent_path)
+    else {
+        let error = CliErrorBody::new(
+            ErrorCode::InvalidUsage,
+            "create-missing-path requires a non-root path parent.",
+            true,
+            "Use --parent path:/Some/Missing/Path with --create-missing-path.",
+        );
+        return render_error(invocation, json, error);
+    };
+    let existing_resolved = ResolvedTopic {
+        topic: existing_parent,
+        path: existing_parent_path.clone(),
+    };
+    let position = match insert_position_from_spec(position, &existing_resolved, &sheet.root) {
+        Ok(position) => position,
+        Err(error) => return render_error(invocation, json, error),
+    };
+
+    let mut chain = missing_segments
+        .iter()
+        .map(|segment| (segment.clone(), generated_topic_id(segment)))
+        .collect::<Vec<_>>();
+    chain.push((title.to_owned(), generated_topic_id(title)));
+
+    let mut created_paths = Vec::new();
+    let mut current_path = existing_parent_path.clone();
+    for (segment, _) in &chain {
+        current_path = current_path.join(segment.clone());
+        created_paths.push(current_path.to_selector_value());
+    }
+
+    let human_diff = Diff::from_events(
+        created_paths
+            .iter()
+            .map(|path| DiffEvent::Added {
+                path: TopicPath::parse_selector_value(path).expect("created path is valid"),
+            })
+            .collect(),
+    );
+    let mut result = AddDryRunResultDto {
+        will_change: true,
+        parent: TopicRefDto {
+            id: existing_parent.id.0.clone(),
+            path: existing_parent_path.to_selector_value(),
+            title: existing_parent.title.clone(),
+        },
+        created: CreatedTopicDto {
+            path: created_paths
+                .last()
+                .expect("created path includes final topic")
+                .clone(),
+            title: title.to_owned(),
+        },
+        summary: SummaryDto {
+            added: created_paths.len(),
+            updated: 0,
+            deleted: 0,
+            moved: 0,
+        },
+        diff: created_paths
+            .into_iter()
+            .map(|path| DiffEventDto {
+                event: "added",
+                path,
+            })
+            .collect(),
+        backup_path: None,
+    };
+
+    if !invocation.dry_run {
+        result.backup_path = match create_mutation_backup(&invocation) {
+            Ok(backup_path) => backup_path,
+            Err(error) => return render_backup_error(invocation, json, error),
+        };
+        if let Err(error) = crate::infra::xmind::encode::append_topic_chain(
+            &invocation.workbook,
+            &existing_parent.id.0,
+            &chain,
             position,
         ) {
             return render_workbook_write_error(invocation, json, error);
@@ -4316,6 +4447,34 @@ fn collect_promoted_paths(topic: &Topic, path: &TopicPath) -> Vec<PromotedTopicD
             to_path: parent_path.join(child.title.clone()).to_selector_value(),
         })
         .collect()
+}
+
+fn missing_path_segments<'a>(
+    root: &'a Topic,
+    target_path: &TopicPath,
+) -> Option<(&'a Topic, TopicPath, Vec<String>)> {
+    if target_path.is_root() {
+        return None;
+    }
+
+    let mut current = root;
+    let mut current_path = TopicPath::root();
+    let segments = target_path.segments();
+
+    for (index, segment) in segments.iter().enumerate() {
+        if let Some(child) = current
+            .children
+            .iter()
+            .find(|child| child.title == *segment)
+        {
+            current = child;
+            current_path = current_path.join(segment.clone());
+        } else {
+            return Some((current, current_path, segments[index..].to_vec()));
+        }
+    }
+
+    None
 }
 
 fn render_workbook_write_error(invocation: Invocation, json: bool, error: XMindWriteError) -> i32 {

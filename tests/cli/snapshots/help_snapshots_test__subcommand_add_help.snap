@@ -12,6 +12,7 @@ Options:
       --parent <PARENT>            
       --title <TITLE>              
       --position <POSITION>        
+      --create-missing-path        
       --dry-run                    
       --apply                      
       --backup                     
