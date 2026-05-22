@@ -1,10 +1,10 @@
 mod patch;
+mod tree_input;
 
-use std::fs;
 use std::path::Path;
 use std::time::{SystemTime, UNIX_EPOCH};
 
-use serde::{Deserialize, Serialize};
+use serde::Serialize;
 use serde_json::Value;
 
 use crate::cli::{
@@ -22,7 +22,10 @@ use crate::infra::fs::backup::{create_backup, create_backup_in_dir, BackupError}
 use crate::infra::xmind::encode::{InsertPosition, TopicClearField, XMindWriteError};
 use crate::render::diff::render_human_outline;
 
-use self::patch::{read_patch_file, PatchOpDto};
+use self::patch::render_patch;
+use self::tree_input::{
+    read_tree_input, validate_topic_tree_input, TopicTreeImageInputDto, TopicTreeInputDto,
+};
 
 pub fn run(cli: Cli) -> i32 {
     let Cli {
@@ -277,7 +280,7 @@ pub fn run(cli: Cli) -> i32 {
 }
 
 #[derive(Clone)]
-struct Invocation {
+pub(super) struct Invocation {
     command: String,
     workbook: std::path::PathBuf,
     dry_run: bool,
@@ -1708,376 +1711,6 @@ fn render_add_tree(
     0
 }
 
-fn read_tree_input(
-    input: Option<&Path>,
-    from_markdown: Option<&Path>,
-    markdown_mode: Option<MarkdownMode>,
-) -> Result<TopicTreeInputDto, String> {
-    match (input, from_markdown) {
-        (Some(input), None) => read_yaml_or_json_tree_input(input),
-        (None, Some(input)) => read_markdown_tree_input(input, markdown_mode),
-        (None, None) => Err("add-tree requires --input or --from-markdown.".to_owned()),
-        (Some(_), Some(_)) => {
-            Err("add-tree accepts only one of --input or --from-markdown.".to_owned())
-        }
-    }
-}
-
-fn read_yaml_or_json_tree_input(input: &Path) -> Result<TopicTreeInputDto, String> {
-    let extension = input
-        .extension()
-        .and_then(|extension| extension.to_str())
-        .unwrap_or_default();
-    let content = fs::read_to_string(input)
-        .map_err(|error| format!("Tree input could not be read: {error}"))?;
-
-    match extension {
-        "yaml" | "yml" => serde_yaml::from_str(&content)
-            .map_err(|error| format!("Tree input YAML is invalid: {error}")),
-        "json" => serde_json::from_str(&content)
-            .map_err(|error| format!("Tree input JSON is invalid: {error}")),
-        _ => Err("Tree input must use .yaml, .yml, or .json.".to_owned()),
-    }
-}
-
-fn read_markdown_tree_input(
-    input: &Path,
-    markdown_mode: Option<MarkdownMode>,
-) -> Result<TopicTreeInputDto, String> {
-    let content = fs::read_to_string(input)
-        .map_err(|error| format!("Markdown input could not be read: {error}"))?;
-    let (frontmatter, body) = split_markdown_frontmatter(&content);
-    let defaults = match frontmatter {
-        Some(frontmatter) => serde_yaml::from_str::<TopicTreeDefaultsDto>(frontmatter)
-            .map_err(|error| format!("Markdown frontmatter YAML is invalid: {error}"))?,
-        None => TopicTreeDefaultsDto::default(),
-    };
-    reject_inline_metadata(body)?;
-    reject_unsupported_markdown_mode_body(body, markdown_mode)?;
-
-    if let Some(mut tree) = parse_markdown_outline(body)? {
-        apply_topic_tree_defaults(&mut tree, defaults);
-        return Ok(tree);
-    }
-
-    defaults.into_topic_tree().ok_or_else(|| {
-        "Markdown input must include frontmatter title or a heading outline.".to_owned()
-    })
-}
-
-fn split_markdown_frontmatter(content: &str) -> (Option<&str>, &str) {
-    let Some(rest) = content.strip_prefix("---\n") else {
-        return (None, content);
-    };
-    let Some(end) = rest.find("\n---") else {
-        return (None, content);
-    };
-    let frontmatter = &rest[..end];
-    let body = rest[end + "\n---".len()..]
-        .strip_prefix('\n')
-        .unwrap_or_default();
-    (Some(frontmatter), body)
-}
-
-fn reject_inline_metadata(content: &str) -> Result<(), String> {
-    if content
-        .lines()
-        .any(|line| line.contains('{') && line.contains('}'))
-    {
-        return Err("Inline metadata is not supported in Markdown input.".to_owned());
-    }
-
-    Ok(())
-}
-
-fn reject_unsupported_markdown_mode_body(
-    content: &str,
-    markdown_mode: Option<MarkdownMode>,
-) -> Result<(), String> {
-    if markdown_mode == Some(MarkdownMode::Heading)
-        && content.lines().any(parse_markdown_list_item_line)
-    {
-        return Err("Markdown heading mode does not accept list items.".to_owned());
-    }
-    if markdown_mode == Some(MarkdownMode::List) && content.lines().any(parse_markdown_heading_line)
-    {
-        return Err("Markdown list mode does not accept headings.".to_owned());
-    }
-
-    Ok(())
-}
-
-fn parse_markdown_list_item_line(line: &str) -> bool {
-    parse_markdown_list_item(line).is_some()
-}
-
-fn parse_markdown_heading_line(line: &str) -> bool {
-    parse_markdown_heading(line).is_some()
-}
-
-fn parse_markdown_outline(content: &str) -> Result<Option<TopicTreeInputDto>, String> {
-    let mut stack = Vec::<(usize, usize, TopicTreeInputDto)>::new();
-    let mut roots = Vec::<(usize, TopicTreeInputDto)>::new();
-    let mut current_heading_level = 0;
-
-    for (line_index, line) in content.lines().enumerate() {
-        let line_number = line_index + 1;
-        validate_markdown_list_indent(line, line_index + 1)?;
-        validate_markdown_list_title(line, line_index + 1)?;
-        let item = if let Some((level, title)) = parse_markdown_heading(line) {
-            if current_heading_level > 0 && level > current_heading_level + 1 {
-                return Err(format!(
-                    "Markdown heading levels cannot skip from {current_heading_level} to {level} at line {}.",
-                    line_index + 1
-                ));
-            }
-            current_heading_level = level;
-            Some((level, TopicTreeInputDto::new(title)))
-        } else if let Some((relative_level, node)) = parse_markdown_list_item(line) {
-            Some((current_heading_level + relative_level, node))
-        } else {
-            if let Some((_, _, current)) = stack.last_mut() {
-                append_markdown_note(current, line);
-            }
-            None
-        };
-        let Some((level, node)) = item else {
-            continue;
-        };
-
-        while stack
-            .last()
-            .is_some_and(|(stack_level, _, _)| *stack_level >= level)
-        {
-            let (_, completed_line, completed) = stack.pop().expect("stack is not empty");
-            if let Some((_, _, parent)) = stack.last_mut() {
-                parent.children.push(completed);
-            } else {
-                roots.push((completed_line, completed));
-            }
-        }
-
-        stack.push((level, line_number, node));
-    }
-
-    while let Some((_, completed_line, completed)) = stack.pop() {
-        if let Some((_, _, parent)) = stack.last_mut() {
-            parent.children.push(completed);
-        } else {
-            roots.push((completed_line, completed));
-        }
-    }
-
-    match roots.len() {
-        0 => Ok(None),
-        1 => Ok(roots.pop().map(|(_, root)| root)),
-        _ => Err(format!(
-            "Markdown outline must contain one top-level root; second root starts at line {}.",
-            roots[1].0
-        )),
-    }
-}
-
-fn validate_markdown_list_indent(line: &str, line_number: usize) -> Result<(), String> {
-    let indent = line
-        .chars()
-        .take_while(|character| *character == ' ')
-        .count();
-    let trimmed = line.trim_start();
-    if trimmed.starts_with("- ") && indent % 2 != 0 {
-        return Err(format!(
-            "Markdown unordered list indentation must use multiples of 2 spaces at line {line_number}."
-        ));
-    }
-
-    if is_ordered_markdown_list_item(trimmed) && indent % 3 != 0 {
-        return Err(format!(
-            "Markdown ordered list indentation must use multiples of 3 spaces at line {line_number}."
-        ));
-    }
-
-    Ok(())
-}
-
-fn validate_markdown_list_title(line: &str, line_number: usize) -> Result<(), String> {
-    let trimmed = line.trim_start();
-    let Some(title) = markdown_list_title_text(trimmed) else {
-        return Ok(());
-    };
-    if strip_markdown_task_marker(title.trim()).trim().is_empty() {
-        return Err(format!(
-            "Markdown list item title is empty at line {line_number}."
-        ));
-    }
-
-    Ok(())
-}
-
-fn markdown_list_title_text(trimmed: &str) -> Option<&str> {
-    if let Some(title) = trimmed.strip_prefix("- ") {
-        return Some(title);
-    }
-
-    let dot_index = trimmed.find(". ")?;
-    if !is_ordered_markdown_list_item(trimmed) {
-        return None;
-    }
-
-    Some(&trimmed[dot_index + ". ".len()..])
-}
-
-fn strip_markdown_task_marker(title: &str) -> &str {
-    title
-        .strip_prefix("[ ]")
-        .or_else(|| title.strip_prefix("[x]"))
-        .or_else(|| title.strip_prefix("[X]"))
-        .unwrap_or(title)
-}
-
-fn is_ordered_markdown_list_item(trimmed: &str) -> bool {
-    let Some(dot_index) = trimmed.find(". ") else {
-        return false;
-    };
-
-    dot_index > 0
-        && trimmed[..dot_index]
-            .chars()
-            .all(|character| character.is_ascii_digit())
-}
-
-fn append_markdown_note(topic: &mut TopicTreeInputDto, line: &str) {
-    let line = line.trim();
-    if line.is_empty() {
-        return;
-    }
-
-    if let Some(note) = &mut topic.note {
-        note.push('\n');
-        note.push_str(line);
-    } else {
-        topic.note = Some(line.to_owned());
-    }
-}
-
-fn parse_markdown_list_item(line: &str) -> Option<(usize, TopicTreeInputDto)> {
-    let indent = line
-        .chars()
-        .take_while(|character| *character == ' ')
-        .count();
-    let trimmed = line.trim_start();
-    if let Some(title) = trimmed.strip_prefix("- ") {
-        let node = parse_markdown_list_topic(title.trim())?;
-        return Some((indent / 2 + 1, node));
-    }
-
-    let dot_index = trimmed.find(". ")?;
-    if dot_index == 0
-        || !trimmed[..dot_index]
-            .chars()
-            .all(|character| character.is_ascii_digit())
-    {
-        return None;
-    }
-    let title = trimmed[dot_index + ". ".len()..].trim();
-    let node = parse_markdown_list_topic(title)?;
-
-    Some((indent / 3 + 1, node))
-}
-
-fn parse_markdown_list_topic(title: &str) -> Option<TopicTreeInputDto> {
-    let (title, marker) = if let Some(title) = title.strip_prefix("[ ] ") {
-        (title.trim(), Some("task-open"))
-    } else if let Some(title) = title.strip_prefix("[x] ") {
-        (title.trim(), Some("task-done"))
-    } else if let Some(title) = title.strip_prefix("[X] ") {
-        (title.trim(), Some("task-done"))
-    } else {
-        (title, None)
-    };
-
-    if title.is_empty() {
-        return None;
-    }
-
-    let mut node = TopicTreeInputDto::new(title.to_owned());
-    if let Some(marker) = marker {
-        node.markers.push(marker.to_owned());
-    }
-    Some(node)
-}
-
-fn parse_markdown_heading(line: &str) -> Option<(usize, String)> {
-    let trimmed = line.trim_start();
-    let level = trimmed
-        .chars()
-        .take_while(|character| *character == '#')
-        .count();
-    if level == 0 || level > 6 {
-        return None;
-    }
-
-    let title = trimmed[level..].trim();
-    if title.is_empty() {
-        return None;
-    }
-
-    Some((level, title.to_owned()))
-}
-
-fn apply_topic_tree_defaults(tree: &mut TopicTreeInputDto, defaults: TopicTreeDefaultsDto) {
-    if tree.id.is_none() {
-        tree.id = defaults.id;
-    }
-    if tree.note.is_none() {
-        tree.note = defaults.note;
-    }
-    if tree.labels.is_empty() {
-        tree.labels = defaults.labels;
-    }
-    if tree.markers.is_empty() {
-        tree.markers = defaults.markers;
-    }
-    if tree.image.is_none() {
-        tree.image = defaults.image;
-    }
-}
-
-struct TreeInputValidationError {
-    message: String,
-    field_path: String,
-}
-
-fn validate_topic_tree_input(tree: &TopicTreeInputDto) -> Result<(), TreeInputValidationError> {
-    validate_topic_tree_node(tree, "title")
-}
-
-fn validate_topic_tree_node(
-    tree: &TopicTreeInputDto,
-    title_field_path: &str,
-) -> Result<(), TreeInputValidationError> {
-    if tree.title.trim().is_empty() {
-        return Err(TreeInputValidationError {
-            message: "Topic tree title must not be empty.".to_owned(),
-            field_path: title_field_path.to_owned(),
-        });
-    }
-
-    let child_prefix = title_field_path
-        .strip_suffix(".title")
-        .unwrap_or_default()
-        .to_owned();
-    for (index, child) in tree.children.iter().enumerate() {
-        let child_title_path = if child_prefix.is_empty() {
-            format!("children[{index}].title")
-        } else {
-            format!("{child_prefix}.children[{index}].title")
-        };
-        validate_topic_tree_node(child, &child_title_path)?;
-    }
-
-    Ok(())
-}
-
 fn generated_topic_id(title: &str) -> String {
     let slug = title
         .chars()
@@ -3026,7 +2659,7 @@ fn render_set_title(invocation: Invocation, json: bool, node: &str, title: &str)
     0
 }
 
-fn renamed_path(path: &TopicPath, title: &str) -> String {
+pub(super) fn renamed_path(path: &TopicPath, title: &str) -> String {
     if path.is_root() {
         return TopicPath::root().join(title.to_owned()).to_selector_value();
     }
@@ -3897,521 +3530,7 @@ struct BackupResultDto {
     backup_path: String,
 }
 
-fn render_patch(invocation: Invocation, json: bool, ops_path: &Path) -> i32 {
-    let workbook = match read_workbook_or_render_error(&invocation, json) {
-        Ok(workbook) => workbook,
-        Err(exit_code) => return exit_code,
-    };
-
-    if !invocation.dry_run {
-        let error = CliErrorBody::new(
-            ErrorCode::InvalidUsage,
-            "Only patch --dry-run is implemented in this slice.",
-            true,
-            "Retry with --dry-run, or wait for the transactional writer slice before using --apply.",
-        );
-        return render_error(invocation, json, error);
-    }
-
-    let patch = match read_patch_file(ops_path) {
-        Ok(patch) => patch,
-        Err(message) => {
-            let error = CliErrorBody::new(
-                ErrorCode::InvalidPatch,
-                message,
-                true,
-                "Fix the patch file and retry.",
-            )
-            .with_path(ops_path.display().to_string());
-            return render_error(invocation, json, error);
-        }
-    };
-
-    let sheet = match select_sheet_or_render_error(&workbook, &invocation, json) {
-        Ok(sheet) => sheet,
-        Err(exit_code) => return exit_code,
-    };
-
-    let mut operations = Vec::new();
-    let mut diff = Vec::new();
-
-    for (index, op) in patch.ops.iter().enumerate() {
-        let op_name = op.canonical_op();
-        if matches!(op_name, "assert_exists" | "assert_not_exists") {
-            match render_patch_assert_operation(invocation.clone(), json, sheet, index, op_name, op)
-            {
-                Ok(()) => {
-                    operations.push(PatchOperationDto {
-                        index,
-                        op: op_name.to_owned(),
-                        status: "passed",
-                    });
-                    continue;
-                }
-                Err(exit_code) => return exit_code,
-            }
-        } else if op_name == "add" {
-            match plan_patch_add(invocation.clone(), json, sheet, index, op_name, op) {
-                Ok(path) => {
-                    diff.push(DiffEventDto {
-                        event: "added",
-                        path,
-                    });
-                    operations.push(PatchOperationDto {
-                        index,
-                        op: op_name.to_owned(),
-                        status: "planned",
-                    });
-                    continue;
-                }
-                Err(exit_code) => return exit_code,
-            }
-        } else if op_name == "set" {
-            match plan_patch_set(invocation.clone(), json, sheet, index, op_name, op) {
-                Ok(path) => {
-                    diff.push(DiffEventDto {
-                        event: "updated",
-                        path,
-                    });
-                    operations.push(PatchOperationDto {
-                        index,
-                        op: op_name.to_owned(),
-                        status: "planned",
-                    });
-                    continue;
-                }
-                Err(exit_code) => return exit_code,
-            }
-        } else if op_name != "add_tree" {
-            let error = CliErrorBody::new(
-                ErrorCode::InvalidPatch,
-                format!("Unsupported patch operation: {op_name}"),
-                true,
-                "Use add_tree for the current dry-run patch slice.",
-            )
-            .with_operation_context(index, op_name.to_owned());
-            return render_error(invocation, json, error);
-        }
-
-        let Some(parent) = &op.parent else {
-            let error = CliErrorBody::new(
-                ErrorCode::InvalidPatch,
-                "add_tree operation is missing parent.",
-                true,
-                "Add a parent selector like parent: path:/Q2.",
-            )
-            .with_operation_context(index, op_name.to_owned());
-            return render_error(invocation, json, error);
-        };
-
-        let Some(tree) = &op.tree else {
-            let error = CliErrorBody::new(
-                ErrorCode::InvalidPatch,
-                "add_tree operation is missing tree.",
-                true,
-                "Add a tree object with a title.",
-            )
-            .with_operation_context(index, op_name.to_owned());
-            return render_error(invocation, json, error);
-        };
-
-        let parent_selector = match Selector::parse(parent) {
-            Ok(selector) => selector,
-            Err(error) => {
-                let error = CliErrorBody::new(
-                    ErrorCode::InvalidPatch,
-                    format!("add_tree parent selector is invalid: {error}"),
-                    true,
-                    "Use a parent selector like path:/Q2.",
-                )
-                .with_operation_context(index, op_name.to_owned());
-                return render_error(invocation, json, error);
-            }
-        };
-        let Selector::Path(parent_path) = &parent_selector else {
-            let error = CliErrorBody::new(
-                ErrorCode::InvalidPatch,
-                "add_tree parent must be a path: selector.",
-                true,
-                "Use a parent selector like path:/Q2.",
-            )
-            .with_operation_context(index, op_name.to_owned());
-            return render_error(invocation, json, error);
-        };
-
-        if find_topic_by_path(&sheet.root, parent_path).is_none() {
-            let error = CliErrorBody::new(
-                ErrorCode::NotFound,
-                format!(
-                    "Parent selector did not match a topic: {}",
-                    parent_selector.render()
-                ),
-                true,
-                "Run tree or find to rediscover the parent path, then retry.",
-            );
-            return render_error(invocation, json, error);
-        }
-
-        let added_paths = collect_added_paths(parent_path, tree);
-        diff.extend(added_paths.into_iter().map(|path| DiffEventDto {
-            event: "added",
-            path,
-        }));
-        operations.push(PatchOperationDto {
-            index,
-            op: "add_tree".to_owned(),
-            status: "planned",
-        });
-    }
-
-    let summary = summarize_patch_diff(&diff);
-    let result = PatchDryRunResultDto {
-        will_change: summary.added + summary.updated + summary.deleted + summary.moved > 0,
-        summary,
-        operations,
-        diff,
-    };
-
-    if json {
-        let envelope = CommandEnvelope {
-            ok: true,
-            command: Some(invocation.command),
-            workbook: Some(invocation.workbook.display().to_string()),
-            dry_run: true,
-            applied: false,
-            result: Some(result),
-            error: None,
-            warnings: Vec::new(),
-        };
-        crate::cli::render_json_envelope(&envelope);
-    } else if !invocation.quiet {
-        println!("planned {} added topics", result.summary.added);
-    }
-
-    0
-}
-
-fn summarize_patch_diff(diff: &[DiffEventDto]) -> SummaryDto {
-    SummaryDto {
-        added: diff.iter().filter(|event| event.event == "added").count(),
-        updated: diff.iter().filter(|event| event.event == "updated").count(),
-        deleted: diff.iter().filter(|event| event.event == "deleted").count(),
-        moved: diff.iter().filter(|event| event.event == "moved").count(),
-    }
-}
-
-fn plan_patch_add(
-    invocation: Invocation,
-    json: bool,
-    sheet: &Sheet,
-    index: usize,
-    op_name: &str,
-    op: &PatchOpDto,
-) -> Result<String, i32> {
-    let Some(parent) = &op.parent else {
-        let error = CliErrorBody::new(
-            ErrorCode::InvalidPatch,
-            "add operation is missing parent.",
-            true,
-            "Add a parent selector like parent: path:/Q2.",
-        )
-        .with_operation_context(index, op_name.to_owned());
-        return Err(render_error(invocation, json, error));
-    };
-
-    let Some(title) = &op.title else {
-        let error = CliErrorBody::new(
-            ErrorCode::InvalidPatch,
-            "add operation is missing title.",
-            true,
-            "Add a non-empty title for the new topic.",
-        )
-        .with_operation_context(index, op_name.to_owned());
-        return Err(render_error(invocation, json, error));
-    };
-    if title.trim().is_empty() {
-        let error = CliErrorBody::new(
-            ErrorCode::InvalidPatch,
-            "add operation title must not be empty.",
-            true,
-            "Add a non-empty title for the new topic.",
-        )
-        .with_operation_context(index, op_name.to_owned())
-        .with_field_path("title");
-        return Err(render_error(invocation, json, error));
-    }
-
-    let parent_selector = match Selector::parse(parent) {
-        Ok(selector) => selector,
-        Err(error) => {
-            let error = CliErrorBody::new(
-                ErrorCode::InvalidPatch,
-                format!("add parent selector is invalid: {error}"),
-                true,
-                "Use a parent selector like path:/Q2.",
-            )
-            .with_operation_context(index, op_name.to_owned());
-            return Err(render_error(invocation, json, error));
-        }
-    };
-    let Selector::Path(parent_path) = &parent_selector else {
-        let error = CliErrorBody::new(
-            ErrorCode::InvalidPatch,
-            "add parent must be a path: selector.",
-            true,
-            "Use a parent selector like path:/Q2.",
-        )
-        .with_operation_context(index, op_name.to_owned());
-        return Err(render_error(invocation, json, error));
-    };
-
-    if find_topic_by_path(&sheet.root, parent_path).is_none() {
-        let error = CliErrorBody::new(
-            ErrorCode::NotFound,
-            format!(
-                "Parent selector did not match a topic: {}",
-                parent_selector.render()
-            ),
-            true,
-            "Run tree or find to rediscover the parent path, then retry.",
-        )
-        .with_operation_context(index, op_name.to_owned());
-        return Err(render_error(invocation, json, error));
-    }
-
-    Ok(parent_path.join(title.trim()).to_selector_value())
-}
-
-fn plan_patch_set(
-    invocation: Invocation,
-    json: bool,
-    sheet: &Sheet,
-    index: usize,
-    op_name: &str,
-    op: &PatchOpDto,
-) -> Result<String, i32> {
-    let Some(node) = &op.node else {
-        let error = CliErrorBody::new(
-            ErrorCode::InvalidPatch,
-            "set operation is missing node.",
-            true,
-            "Add a node selector like node: path:/Q2.",
-        )
-        .with_operation_context(index, op_name.to_owned());
-        return Err(render_error(invocation, json, error));
-    };
-
-    let Some(fields) = &op.fields else {
-        let error = CliErrorBody::new(
-            ErrorCode::InvalidPatch,
-            "set operation is missing fields.",
-            true,
-            "Add a fields object with at least one field.",
-        )
-        .with_operation_context(index, op_name.to_owned())
-        .with_field_path("fields");
-        return Err(render_error(invocation, json, error));
-    };
-    if fields.is_empty() {
-        let error = CliErrorBody::new(
-            ErrorCode::InvalidPatch,
-            "set operation fields must not be empty.",
-            true,
-            "Add at least one field to update.",
-        )
-        .with_operation_context(index, op_name.to_owned())
-        .with_field_path("fields");
-        return Err(render_error(invocation, json, error));
-    }
-
-    validate_patch_set_fields(invocation.clone(), json, index, op_name, fields)?;
-
-    let selector = match Selector::parse(node) {
-        Ok(selector) => selector,
-        Err(error) => {
-            let error = CliErrorBody::new(
-                ErrorCode::InvalidPatch,
-                format!("set node selector is invalid: {error}"),
-                true,
-                "Use a valid selector such as root, id:<topic-id>, path:/Q2, or title:Payment.",
-            )
-            .with_operation_context(index, op_name.to_owned());
-            return Err(render_error(invocation, json, error));
-        }
-    };
-
-    let resolved = match resolve_topic(&sheet.root, &selector) {
-        ResolveOne::Found(resolved) => resolved,
-        ResolveOne::NotFound => {
-            let error = CliErrorBody::new(
-                ErrorCode::NotFound,
-                format!("set selector did not match a topic: {}", selector.render()),
-                true,
-                "Run tree or find to rediscover the selector, then retry.",
-            )
-            .with_operation_context(index, op_name.to_owned())
-            .with_selector(selector.render());
-            return Err(render_error(invocation, json, error));
-        }
-        ResolveOne::Ambiguous(candidates) => {
-            let error = CliErrorBody::new(
-                ErrorCode::AmbiguousSelector,
-                "set selector matched multiple topics.",
-                true,
-                "Retry with a selector that resolves to exactly one topic.",
-            )
-            .with_operation_context(index, op_name.to_owned())
-            .with_selector(selector.render())
-            .with_candidates(
-                candidates
-                    .into_iter()
-                    .map(|candidate| CandidateDto {
-                        id: candidate.topic.id.0.clone(),
-                        path: candidate.path.to_selector_value(),
-                        title: candidate.topic.title.clone(),
-                        sheet: Some(sheet.title.clone()),
-                    })
-                    .collect(),
-            );
-            return Err(render_error(invocation, json, error));
-        }
-    };
-
-    let path = fields
-        .get("title")
-        .and_then(|title| title.as_str())
-        .map(|title| renamed_path(&resolved.path, title))
-        .unwrap_or_else(|| resolved.path.to_selector_value());
-    Ok(path)
-}
-
-fn validate_patch_set_fields(
-    invocation: Invocation,
-    json: bool,
-    index: usize,
-    op_name: &str,
-    fields: &serde_json::Map<String, Value>,
-) -> Result<(), i32> {
-    for (field, value) in fields {
-        let valid = match field.as_str() {
-            "title" => value.as_str().is_some_and(|title| !title.trim().is_empty()),
-            "note" | "hyperlink" => value.is_null() || value.is_string(),
-            "labels" | "markers" => {
-                value.is_null()
-                    || value
-                        .as_array()
-                        .is_some_and(|items| items.iter().all(|item| item.is_string()))
-            }
-            "image" => value.is_null() || value.is_object(),
-            _ => false,
-        };
-        if !valid {
-            let error = CliErrorBody::new(
-                ErrorCode::InvalidPatch,
-                format!("set operation field is invalid: {field}"),
-                true,
-                "Use supported fields with values of the documented type.",
-            )
-            .with_operation_context(index, op_name.to_owned())
-            .with_field_path(format!("fields.{field}"));
-            return Err(render_error(invocation, json, error));
-        }
-    }
-
-    Ok(())
-}
-
-fn render_patch_assert_operation(
-    invocation: Invocation,
-    json: bool,
-    sheet: &Sheet,
-    index: usize,
-    op_name: &str,
-    op: &PatchOpDto,
-) -> Result<(), i32> {
-    let Some(node) = &op.node else {
-        let error = CliErrorBody::new(
-            ErrorCode::InvalidPatch,
-            format!("{op_name} operation is missing node."),
-            true,
-            "Add a node selector like node: path:/Q2.",
-        )
-        .with_operation_context(index, op_name.to_owned());
-        return Err(render_error(invocation, json, error));
-    };
-
-    let selector = match Selector::parse(node) {
-        Ok(selector) => selector,
-        Err(error) => {
-            let error = CliErrorBody::new(
-                ErrorCode::InvalidPatch,
-                format!("{op_name} node selector is invalid: {error}"),
-                true,
-                "Use a valid selector such as root, id:<topic-id>, path:/Q2, or title:Payment.",
-            )
-            .with_operation_context(index, op_name.to_owned());
-            return Err(render_error(invocation, json, error));
-        }
-    };
-
-    match (op_name, resolve_topic(&sheet.root, &selector)) {
-        ("assert_exists", ResolveOne::Found(_)) => Ok(()),
-        ("assert_exists", ResolveOne::NotFound) => {
-            let error = CliErrorBody::new(
-                ErrorCode::NotFound,
-                format!(
-                    "assert_exists selector did not match a topic: {}",
-                    selector.render()
-                ),
-                true,
-                "Run tree or find to rediscover the selector, then retry.",
-            )
-            .with_operation_context(index, op_name.to_owned())
-            .with_selector(selector.render());
-            Err(render_error(invocation, json, error))
-        }
-        ("assert_exists", ResolveOne::Ambiguous(candidates)) => {
-            let error = CliErrorBody::new(
-                ErrorCode::AmbiguousSelector,
-                "assert_exists selector matched multiple topics.",
-                true,
-                "Retry with a selector that resolves to exactly one topic.",
-            )
-            .with_operation_context(index, op_name.to_owned())
-            .with_selector(selector.render())
-            .with_candidates(
-                candidates
-                    .into_iter()
-                    .map(|candidate| CandidateDto {
-                        id: candidate.topic.id.0.clone(),
-                        path: candidate.path.to_selector_value(),
-                        title: candidate.topic.title.clone(),
-                        sheet: Some(sheet.title.clone()),
-                    })
-                    .collect(),
-            );
-            Err(render_error(invocation, json, error))
-        }
-        ("assert_not_exists", ResolveOne::NotFound) => Ok(()),
-        ("assert_not_exists", ResolveOne::Found(_) | ResolveOne::Ambiguous(_)) => {
-            let error = CliErrorBody::new(
-                ErrorCode::PatchConflict,
-                format!(
-                    "assert_not_exists selector matched an existing topic: {}",
-                    selector.render()
-                ),
-                false,
-                "Remove or update the conflicting topic, or revise the patch precondition.",
-            )
-            .with_operation_context(index, op_name.to_owned())
-            .with_selector(selector.render());
-            Err(render_error(invocation, json, error))
-        }
-        _ => Ok(()),
-    }
-}
-
-fn read_workbook_or_render_error(
+pub(super) fn read_workbook_or_render_error(
     invocation: &Invocation,
     json: bool,
 ) -> Result<crate::domain::workbook::Workbook, i32> {
@@ -4437,7 +3556,7 @@ fn read_workbook_or_render_error(
     })
 }
 
-fn select_sheet_or_render_error<'a>(
+pub(super) fn select_sheet_or_render_error<'a>(
     workbook: &'a crate::domain::workbook::Workbook,
     invocation: &Invocation,
     json: bool,
@@ -4569,77 +3688,6 @@ struct SheetDto {
     title: String,
     root_topic_id: String,
     topic_count: usize,
-}
-
-#[derive(Debug, Deserialize)]
-struct TopicTreeInputDto {
-    id: Option<String>,
-    title: String,
-    note: Option<String>,
-    #[serde(default)]
-    labels: Vec<String>,
-    #[serde(default)]
-    markers: Vec<String>,
-    image: Option<TopicTreeImageInputDto>,
-
-    #[serde(default)]
-    children: Vec<TopicTreeInputDto>,
-}
-
-impl TopicTreeInputDto {
-    fn new(title: String) -> Self {
-        Self {
-            id: None,
-            title,
-            note: None,
-            labels: Vec::new(),
-            markers: Vec::new(),
-            image: None,
-            children: Vec::new(),
-        }
-    }
-}
-
-#[derive(Default, Debug, Deserialize)]
-struct TopicTreeDefaultsDto {
-    id: Option<String>,
-    title: Option<String>,
-    note: Option<String>,
-    #[serde(default)]
-    labels: Vec<String>,
-    #[serde(default)]
-    markers: Vec<String>,
-    image: Option<TopicTreeImageInputDto>,
-}
-
-impl TopicTreeDefaultsDto {
-    fn into_topic_tree(self) -> Option<TopicTreeInputDto> {
-        Some(TopicTreeInputDto {
-            id: self.id,
-            title: self.title?,
-            note: self.note,
-            labels: self.labels,
-            markers: self.markers,
-            image: self.image,
-            children: Vec::new(),
-        })
-    }
-}
-
-#[derive(Clone, Debug, Deserialize, Serialize)]
-struct TopicTreeImageInputDto {
-    path: Option<String>,
-    asset_id: Option<String>,
-    alt: Option<String>,
-    title: Option<String>,
-}
-
-#[derive(Debug, Serialize)]
-struct PatchDryRunResultDto {
-    will_change: bool,
-    summary: SummaryDto,
-    operations: Vec<PatchOperationDto>,
-    diff: Vec<DiffEventDto>,
 }
 
 #[derive(Debug, Serialize)]
@@ -4787,13 +3835,6 @@ struct SummaryDto {
     updated: usize,
     deleted: usize,
     moved: usize,
-}
-
-#[derive(Debug, Serialize)]
-struct PatchOperationDto {
-    index: usize,
-    op: String,
-    status: &'static str,
 }
 
 #[derive(Debug, Serialize)]
@@ -5246,7 +4287,7 @@ fn render_tree_text(topic: &TreeTopicDto, indent: usize) {
     }
 }
 
-fn find_topic_by_path<'a>(root: &'a Topic, path: &TopicPath) -> Option<&'a Topic> {
+pub(super) fn find_topic_by_path<'a>(root: &'a Topic, path: &TopicPath) -> Option<&'a Topic> {
     if path.is_root() {
         return Some(root);
     }
@@ -5262,18 +4303,18 @@ fn find_topic_by_path<'a>(root: &'a Topic, path: &TopicPath) -> Option<&'a Topic
     Some(current)
 }
 
-struct ResolvedTopic<'a> {
-    topic: &'a Topic,
-    path: TopicPath,
+pub(super) struct ResolvedTopic<'a> {
+    pub(super) topic: &'a Topic,
+    pub(super) path: TopicPath,
 }
 
-enum ResolveOne<'a> {
+pub(super) enum ResolveOne<'a> {
     Found(ResolvedTopic<'a>),
     NotFound,
     Ambiguous(Vec<ResolvedTopic<'a>>),
 }
 
-fn resolve_topic<'a>(root: &'a Topic, selector: &Selector) -> ResolveOne<'a> {
+pub(super) fn resolve_topic<'a>(root: &'a Topic, selector: &Selector) -> ResolveOne<'a> {
     match selector {
         Selector::Root => ResolveOne::Found(ResolvedTopic {
             topic: root,
@@ -5399,7 +4440,10 @@ fn collect_find_matches(
     }
 }
 
-fn collect_added_paths(parent_path: &TopicPath, tree: &TopicTreeInputDto) -> Vec<String> {
+pub(in crate::app) fn collect_added_paths(
+    parent_path: &TopicPath,
+    tree: &TopicTreeInputDto,
+) -> Vec<String> {
     let root_path = parent_path.join(tree.title.clone());
     let mut paths = vec![root_path.to_selector_value()];
 
@@ -5540,7 +4584,7 @@ fn render_backup_error(invocation: Invocation, json: bool, error: BackupError) -
     render_error(invocation, json, error)
 }
 
-fn render_error(invocation: Invocation, json: bool, error: CliErrorBody) -> i32 {
+pub(super) fn render_error(invocation: Invocation, json: bool, error: CliErrorBody) -> i32 {
     let exit_code = error.exit_code;
 
     if json {

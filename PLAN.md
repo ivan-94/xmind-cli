@@ -305,7 +305,7 @@ Implement a Rust CLI named `xmind` that satisfies the documented product, comman
 - [x] Implement patch `add`.
 - [x] Implement patch `add_tree`.
 - [x] Implement patch `set`.
-- [ ] Refactor `src/app/mod.rs` into focused app modules so patch engine, tree input, Markdown parsing, and command renderers live in appropriate files without changing CLI behavior.
+- [x] Refactor first pass for `src/app/mod.rs`: move patch dry-run planning, tree input, and Markdown parsing into focused app modules without changing CLI behavior.
 - [ ] Implement patch `replace_tree`.
 - [ ] Implement patch `merge_tree`.
 - [ ] Implement patch `delete`.

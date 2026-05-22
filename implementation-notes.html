@@ -116,8 +116,9 @@
       <ul>
         <li>
           <code>src/app/mod.rs</code> 仍然过大。已开始将 patch 文件读取拆到
-          <code>src/app/patch.rs</code>，下一步应优先拆 tree input / Markdown
-          input / patch planning，避免继续在单文件堆叠。
+          <code>src/app/patch.rs</code>，并将 tree input / Markdown parsing
+          拆到 <code>src/app/tree_input.rs</code>。后续应继续拆其他命令
+          renderer，避免继续在单文件堆叠。
         </li>
         <li>
           Patch engine 后续多个 PLAN 项高度相关。可以合并成小 slice，但每个
@@ -172,6 +173,11 @@
           Patch <code>set</code> 当前实现 dry-run 规划：校验 node 和 fields，
           支持 title/note/labels/markers/hyperlink/image 字段类型检查，并输出
           <code>updated</code> diff；实际写入仍等待 patch apply slice。
+        </li>
+        <li>
+          <code>src/app/mod.rs</code> 重构 first pass 已将 patch dry-run planning
+          与 tree input / Markdown parsing 移出主模块；CLI 行为由
+          <code>add_tree_test</code> 和 <code>patch_test</code> 做回归保护。
         </li>
       </ul>
     </section>
