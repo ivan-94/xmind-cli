@@ -2245,10 +2245,11 @@ fn render_copy(
     }
 
     let new_id = format!("{}-copy", source.topic.id.0);
-    let copied_path = destination
-        .path
-        .join(copied_title.clone())
-        .to_selector_value();
+    let copied_paths = collect_copied_paths(source.topic, &destination.path, &copied_title);
+    let copied_path = copied_paths
+        .first()
+        .expect("copied paths include copied root")
+        .clone();
     let added = count_topics(source.topic);
     let mut result = CopyDryRunResultDto {
         will_change: true,
@@ -2263,10 +2264,13 @@ fn render_copy(
             deleted: 0,
             moved: 0,
         },
-        diff: vec![DiffEventDto {
-            event: "added",
-            path: copied_path,
-        }],
+        diff: copied_paths
+            .into_iter()
+            .map(|path| DiffEventDto {
+                event: "added",
+                path,
+            })
+            .collect(),
         backup_path: None,
     };
 
@@ -4425,6 +4429,20 @@ fn collect_descendant_paths(topic: &Topic, path: &TopicPath) -> Vec<String> {
         paths.extend(collect_deleted_paths(
             child,
             &path.join(child.title.clone()),
+        ));
+    }
+
+    paths
+}
+
+fn collect_copied_paths(topic: &Topic, parent_path: &TopicPath, copied_title: &str) -> Vec<String> {
+    let copied_root_path = parent_path.join(copied_title.to_owned());
+    let mut paths = vec![copied_root_path.to_selector_value()];
+
+    for child in &topic.children {
+        paths.extend(collect_deleted_paths(
+            child,
+            &copied_root_path.join(child.title.clone()),
         ));
     }
 

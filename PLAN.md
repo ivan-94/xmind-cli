@@ -269,7 +269,7 @@ Implement a Rust CLI named `xmind` that satisfies the documented product, comman
 - [x] Implement `--create-missing-path`.
 - [x] Implement intermediate topic defaults.
 - [x] Reject unsupported root operations.
-- [ ] Add CLI tests for each mutation.
+- [x] Add CLI tests for each mutation.
 - [ ] Add JSON dry-run snapshots.
 - [x] Add applied write tests.
 

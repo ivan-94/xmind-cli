@@ -3661,5 +3661,47 @@
         </li>
       </ul>
     </section>
+    <section class="entry">
+      <h2>2026-05-22 - mutation CLI coverage</h2>
+      <h3>Design Decisions</h3>
+      <ul>
+        <li>
+          Added copy dry-run CLI coverage for subtree copies. The test verifies
+          that dry-run does not write the workbook and that the diff lists every
+          added topic path in the copied subtree, not only the copied root.
+        </li>
+        <li>
+          The copy result summary already counted the whole subtree, so the
+          implementation now uses the same subtree walk to produce matching
+          added diff events.
+        </li>
+      </ul>
+
+      <h3>Deviations</h3>
+      <ul>
+        <li>
+          This PLAN item covers the Phase 9 single-topic mutation commands:
+          <code>add</code>, <code>set</code>, <code>delete</code>,
+          <code>move</code>, and <code>copy</code>. Tree input and patch
+          mutation variants remain in later phases.
+        </li>
+      </ul>
+
+      <h3>Tradeoffs</h3>
+      <ul>
+        <li>
+          I kept the copy diff path-focused instead of adding copied descendant
+          id details because the current documented diff events identify added
+          topics by path.
+        </li>
+      </ul>
+
+      <h3>Open Questions</h3>
+      <ul>
+        <li>
+          None for this slice.
+        </li>
+      </ul>
+    </section>
   </body>
 </html>

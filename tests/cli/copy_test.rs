@@ -3,6 +3,68 @@ use serde_json::Value;
 use std::fs;
 
 #[test]
+fn copy_dry_run_reports_subtree_diff_without_writing() {
+    let output = Command::cargo_bin("xmind")
+        .expect("xmind binary is built for CLI tests")
+        .args([
+            "copy",
+            "tests/fixtures/xmind/duplicate-titles.xmind",
+            "--node",
+            "id:topic-q1",
+            "--to",
+            "id:topic-q2",
+            "--title",
+            "Q1 Copy",
+            "--dry-run",
+            "--json",
+        ])
+        .output()
+        .expect("copy command runs");
+
+    assert_eq!(output.status.code(), Some(0));
+    assert!(
+        output.stderr.is_empty(),
+        "json copy output should not emit stderr diagnostics: {}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+
+    let body: Value = serde_json::from_slice(&output.stdout).expect("stdout is JSON");
+    assert_eq!(body["ok"], true);
+    assert_eq!(body["command"], "copy");
+    assert_eq!(body["dry_run"], true);
+    assert_eq!(body["applied"], false);
+    assert_eq!(body["result"]["will_change"], true);
+    assert_eq!(body["result"]["copied_root"]["source_id"], "topic-q1");
+    assert_eq!(body["result"]["copied_root"]["new_id"], "topic-q1-copy");
+    assert_eq!(body["result"]["copied_root"]["path"], "/Q2/Q1 Copy");
+    assert_eq!(body["result"]["summary"]["added"], 2);
+    assert_eq!(body["result"]["diff"][0]["event"], "added");
+    assert_eq!(body["result"]["diff"][0]["path"], "/Q2/Q1 Copy");
+    assert_eq!(body["result"]["diff"][1]["event"], "added");
+    assert_eq!(body["result"]["diff"][1]["path"], "/Q2/Q1 Copy/Payment");
+
+    let tree_output = Command::cargo_bin("xmind")
+        .expect("xmind binary is built for CLI tests")
+        .args([
+            "tree",
+            "tests/fixtures/xmind/duplicate-titles.xmind",
+            "--json",
+            "--depth",
+            "2",
+        ])
+        .output()
+        .expect("tree command runs after dry run");
+    let tree: Value = serde_json::from_slice(&tree_output.stdout).expect("tree stdout is JSON");
+    assert_eq!(
+        tree["result"]["root"]["children"][1]["children"]
+            .as_array()
+            .expect("Q2 children is an array")
+            .len(),
+        1
+    );
+}
+
+#[test]
 fn copy_apply_copies_topic_to_destination_parent_with_new_id() {
     let temp_dir = tempfile::tempdir().expect("temp dir is created");
     let workbook = temp_dir.path().join("apply-copy.xmind");
