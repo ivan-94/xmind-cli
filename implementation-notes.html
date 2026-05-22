@@ -287,6 +287,10 @@
           Patch dry-run 已加入快照回归覆盖，当前重点固定多 op working-copy
           JSON 输出结构，防止 summary、operations 与 diff envelope 发生无意漂移。
         </li>
+        <li>
+          Patch idempotency 已开始落到行为测试：<code>set</code>
+          写入与当前主题相同的字段值时不再产生 <code>updated</code> diff。
+        </li>
       </ul>
     </section>
   </body>

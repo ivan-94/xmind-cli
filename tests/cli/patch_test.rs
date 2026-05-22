@@ -207,6 +207,51 @@ ops:
 }
 
 #[test]
+fn patch_dry_run_set_same_value_is_idempotent() {
+    let temp_dir = tempfile::tempdir().expect("temp dir is created");
+    let ops = temp_dir.path().join("set-same-title.yaml");
+    std::fs::write(
+        &ops,
+        r#"
+ops:
+  - op: set
+    node: path:/Q2/Payment
+    fields:
+      title: Payment
+"#,
+    )
+    .expect("patch fixture is written");
+    let ops_arg = ops.to_string_lossy().into_owned();
+
+    let output = Command::cargo_bin("xmind")
+        .expect("xmind binary is built for CLI tests")
+        .args([
+            "patch",
+            "tests/fixtures/xmind/minimal.xmind",
+            "--ops",
+            &ops_arg,
+            "--dry-run",
+            "--json",
+        ])
+        .output()
+        .expect("patch command runs");
+
+    assert_eq!(output.status.code(), Some(0));
+    let body: Value = serde_json::from_slice(&output.stdout).expect("stdout is JSON");
+    assert_eq!(body["ok"], true);
+    assert_eq!(body["result"]["will_change"], false);
+    assert_eq!(body["result"]["summary"]["updated"], 0);
+    assert_eq!(body["result"]["operations"][0]["op"], "set");
+    assert_eq!(
+        body["result"]["diff"]
+            .as_array()
+            .expect("diff is array")
+            .len(),
+        0
+    );
+}
+
+#[test]
 fn patch_dry_run_replace_tree_reports_deleted_and_added_diff() {
     let temp_dir = tempfile::tempdir().expect("temp dir is created");
     let ops = temp_dir.path().join("replace-tree.yaml");

@@ -326,7 +326,7 @@ Implement a Rust CLI named `xmind` that satisfies the documented product, comman
 - [x] Add conflict detection.
 - [x] Add all-or-nothing working copy semantics.
 - [x] Add dry-run patch snapshots.
-- [ ] Add idempotent patch tests.
+- [x] Add idempotent patch tests.
 
 ## Phase 12: Import and Export
 

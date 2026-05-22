@@ -162,7 +162,9 @@ pub(super) fn render_patch(invocation: Invocation, json: bool, ops_path: &Path) 
         } else if op_name == "set" {
             match plan_patch_set(invocation.clone(), json, &working_sheet, index, op_name, op) {
                 Ok(path) => {
-                    diff.push(PatchDiffEventDto::path_event("updated", path));
+                    if let Some(path) = path {
+                        diff.push(PatchDiffEventDto::path_event("updated", path));
+                    }
                     apply_patch_set_to_working_root(&mut working_sheet.root, op);
                     operations.push(PatchOperationDto {
                         index,
@@ -1128,7 +1130,7 @@ fn plan_patch_set(
     index: usize,
     op_name: &str,
     op: &PatchOpDto,
-) -> Result<String, i32> {
+) -> Result<Option<String>, i32> {
     let Some(node) = &op.node else {
         let error = CliErrorBody::new(
             ErrorCode::InvalidPatch,
@@ -1214,12 +1216,16 @@ fn plan_patch_set(
         }
     };
 
-    let path = fields
-        .get("title")
-        .and_then(|title| title.as_str())
-        .map(|title| renamed_path(&resolved.path, title))
-        .unwrap_or_else(|| resolved.path.to_selector_value());
-    Ok(path)
+    if patch_set_changes_topic(resolved.topic, fields) {
+        let path = fields
+            .get("title")
+            .and_then(|title| title.as_str())
+            .map(|title| renamed_path(&resolved.path, title))
+            .unwrap_or_else(|| resolved.path.to_selector_value());
+        Ok(Some(path))
+    } else {
+        Ok(None)
+    }
 }
 
 fn plan_patch_replace_tree(
@@ -2490,6 +2496,41 @@ fn validate_patch_set_fields(
     }
 
     Ok(())
+}
+
+fn patch_set_changes_topic(topic: &Topic, fields: &serde_json::Map<String, Value>) -> bool {
+    fields.iter().any(|(field, value)| match field.as_str() {
+        "title" => value.as_str() != Some(topic.title.as_str()),
+        "note" => value.as_str() != topic.note.as_deref(),
+        "hyperlink" => value.as_str() != topic.hyperlink.as_deref(),
+        "labels" => {
+            value
+                .as_array()
+                .map(|labels| {
+                    labels
+                        .iter()
+                        .filter_map(|label| label.as_str().map(str::to_owned))
+                        .collect::<Vec<_>>()
+                })
+                .unwrap_or_default()
+                != topic.labels
+        }
+        "markers" => {
+            value
+                .as_array()
+                .map(|markers| {
+                    markers
+                        .iter()
+                        .filter_map(|marker| marker.as_str().map(str::to_owned))
+                        .collect::<Vec<_>>()
+                })
+                .unwrap_or_default()
+                != topic.markers
+        }
+        "image" if value.is_null() => topic.image.is_some(),
+        "image" => true,
+        _ => false,
+    })
 }
 
 fn render_patch_assert_operation(
