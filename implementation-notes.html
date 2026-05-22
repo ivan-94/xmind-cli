@@ -2550,5 +2550,46 @@
         <li>None.</li>
       </ul>
     </section>
+
+    <section class="entry">
+      <h2>2026-05-22 - backup-dir option</h2>
+      <h3>Design Decisions</h3>
+      <ul>
+        <li>
+          Added <code>xmind backup --backup-dir &lt;dir&gt; --json</code> support
+          and a CLI regression test that verifies the backup file is written to
+          the requested directory.
+        </li>
+        <li>
+          Extended the backup writer with a custom-directory entrypoint while
+          keeping the default <code>.xmind-backups</code> helper.
+        </li>
+      </ul>
+
+      <h3>Deviations</h3>
+      <ul>
+        <li>
+          Backup filenames currently use Unix seconds as the timestamp token
+          instead of the human-formatted <code>YYYYMMDD-HHMMSS</code> shown in
+          the command reference.
+        </li>
+      </ul>
+
+      <h3>Tradeoffs</h3>
+      <ul>
+        <li>
+          Unix seconds avoid adding a date-time dependency while keeping backup
+          names deterministic enough to avoid collisions in normal command use.
+        </li>
+      </ul>
+
+      <h3>Open Questions</h3>
+      <ul>
+        <li>
+          Decide whether to add a date-time dependency or local formatter before
+          final command-reference alignment.
+        </li>
+      </ul>
+    </section>
   </body>
 </html>

@@ -1,5 +1,6 @@
 use std::fs;
 use std::path::Path;
+use std::time::{SystemTime, UNIX_EPOCH};
 
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -13,6 +14,7 @@ use crate::domain::query::QueryExpr;
 use crate::domain::selector::Selector;
 use crate::domain::sheet::Sheet;
 use crate::domain::topic::Topic;
+use crate::infra::fs::backup::create_backup_in_dir;
 use crate::render::diff::render_human_outline;
 
 pub fn run(cli: Cli) -> i32 {
@@ -94,6 +96,10 @@ pub fn run(cli: Cli) -> i32 {
             render_get(invocation, json, &node, depth, &fields, compact_json)
         }
         Action::Validate { strict } => render_validate(invocation, json, strict),
+        Action::Backup { ref backup_dir } => {
+            let backup_dir = backup_dir.clone();
+            render_backup(invocation, json, backup_dir)
+        }
         Action::Patch { ref ops } => {
             let ops = ops.clone();
             render_patch(invocation, json, &ops)
@@ -219,6 +225,9 @@ enum Action {
     Validate {
         strict: bool,
     },
+    Backup {
+        backup_dir: Option<std::path::PathBuf>,
+    },
     Noop,
 }
 
@@ -329,9 +338,13 @@ impl Invocation {
             Command::Export(command) => {
                 Some(Self::read("export", command.workbook, sheet_selection))
             }
-            Command::Backup(command) => {
-                Some(Self::read("backup", command.workbook, sheet_selection))
-            }
+            Command::Backup(command) => Some(
+                Self::read("backup", command.workbook, sheet_selection).with_action(
+                    Action::Backup {
+                        backup_dir: command.backup_dir,
+                    },
+                ),
+            ),
             Command::Tree(command) => Some(Self::tree(
                 command.workbook,
                 command.depth,
@@ -935,6 +948,64 @@ fn render_validate(invocation: Invocation, json: bool, strict: bool) -> i32 {
     }
 
     0
+}
+
+fn render_backup(
+    invocation: Invocation,
+    json: bool,
+    backup_dir: Option<std::path::PathBuf>,
+) -> i32 {
+    let backup_dir = backup_dir.unwrap_or_else(|| {
+        invocation
+            .workbook
+            .parent()
+            .unwrap_or_else(|| Path::new("."))
+            .join(".xmind-backups")
+    });
+    let timestamp = backup_timestamp();
+
+    let backup = match create_backup_in_dir(&invocation.workbook, &backup_dir, timestamp) {
+        Ok(backup) => backup,
+        Err(error) => {
+            let error = CliErrorBody::new(
+                ErrorCode::WriteFailed,
+                format!("Backup could not be written: {error}"),
+                true,
+                "Check backup directory permissions and retry.",
+            )
+            .with_path(backup_dir.display().to_string());
+            return render_error(invocation, json, error);
+        }
+    };
+
+    let result = BackupResultDto {
+        backup_path: backup.path.display().to_string(),
+    };
+
+    if json {
+        let envelope = CommandEnvelope {
+            ok: true,
+            command: Some(invocation.command),
+            workbook: Some(invocation.workbook.display().to_string()),
+            dry_run: false,
+            applied: false,
+            result: Some(result),
+            error: None,
+            warnings: Vec::new(),
+        };
+        crate::cli::render_json_envelope(&envelope);
+    } else if !invocation.quiet {
+        println!("{}", result.backup_path);
+    }
+
+    0
+}
+
+fn backup_timestamp() -> String {
+    SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map(|duration| duration.as_secs().to_string())
+        .unwrap_or_else(|_| "0".to_owned())
 }
 
 fn render_add(invocation: Invocation, json: bool, parent: &str, title: &str) -> i32 {
@@ -1774,6 +1845,11 @@ struct ValidateResultDto {
     valid: bool,
     warnings: Vec<String>,
     errors: Vec<String>,
+}
+
+#[derive(Debug, Serialize)]
+struct BackupResultDto {
+    backup_path: String,
 }
 
 fn render_patch(invocation: Invocation, json: bool, ops_path: &Path) -> i32 {

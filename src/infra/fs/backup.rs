@@ -15,7 +15,15 @@ pub fn create_backup(
         .parent()
         .unwrap_or_else(|| Path::new("."))
         .join(".xmind-backups");
-    fs::create_dir_all(&backup_dir)?;
+    create_backup_in_dir(workbook_path, &backup_dir, timestamp)
+}
+
+pub fn create_backup_in_dir(
+    workbook_path: &Path,
+    backup_dir: &Path,
+    timestamp: impl AsRef<str>,
+) -> Result<BackupMetadata, BackupError> {
+    fs::create_dir_all(backup_dir)?;
 
     let stem = workbook_path
         .file_stem()
