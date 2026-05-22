@@ -4153,5 +4153,43 @@
         </li>
       </ul>
     </section>
+    <section class="entry">
+      <h2>2026-05-22 - Markdown note mapping</h2>
+      <h3>Design Decisions</h3>
+      <ul>
+        <li>
+          Non-empty Markdown paragraph lines now append to the current topic's
+          <code>note</code> while parsing heading/list outlines.
+        </li>
+        <li>
+          Multiple paragraph lines for the same topic are joined with newline
+          separators.
+        </li>
+      </ul>
+
+      <h3>Deviations</h3>
+      <ul>
+        <li>
+          The current parser maps plain text lines only; richer Markdown blocks
+          and exact paragraph-boundary diagnostics remain out of scope for this
+          slice.
+        </li>
+      </ul>
+
+      <h3>Tradeoffs</h3>
+      <ul>
+        <li>
+          Notes are exposed for the add-tree dry-run root so parser behavior is
+          observable before write support exists.
+        </li>
+      </ul>
+
+      <h3>Open Questions</h3>
+      <ul>
+        <li>
+          None for this slice.
+        </li>
+      </ul>
+    </section>
   </body>
 </html>

@@ -1658,6 +1658,7 @@ fn render_add_tree(
             id: tree.id.clone(),
             path: created_root_path,
             title: tree.title.clone(),
+            note: tree.note.clone(),
             labels: tree.labels.clone(),
             markers: tree.markers.clone(),
             image: tree.image.clone(),
@@ -1773,6 +1774,9 @@ fn parse_markdown_outline(content: &str) -> Result<Option<TopicTreeInputDto>, St
         } else if let Some((relative_level, node)) = parse_markdown_list_item(line) {
             Some((current_heading_level + relative_level, node))
         } else {
+            if let Some((_, current)) = stack.last_mut() {
+                append_markdown_note(current, line);
+            }
             None
         };
         let Some((level, node)) = item else {
@@ -1806,6 +1810,20 @@ fn parse_markdown_outline(content: &str) -> Result<Option<TopicTreeInputDto>, St
         0 => Ok(None),
         1 => Ok(roots.pop()),
         _ => Err("Markdown outline must contain one top-level root.".to_owned()),
+    }
+}
+
+fn append_markdown_note(topic: &mut TopicTreeInputDto, line: &str) {
+    let line = line.trim();
+    if line.is_empty() {
+        return;
+    }
+
+    if let Some(note) = &mut topic.note {
+        note.push('\n');
+        note.push_str(line);
+    } else {
+        topic.note = Some(line.to_owned());
     }
 }
 
@@ -1877,6 +1895,9 @@ fn parse_markdown_heading(line: &str) -> Option<(usize, String)> {
 fn apply_topic_tree_defaults(tree: &mut TopicTreeInputDto, defaults: TopicTreeDefaultsDto) {
     if tree.id.is_none() {
         tree.id = defaults.id;
+    }
+    if tree.note.is_none() {
+        tree.note = defaults.note;
     }
     if tree.labels.is_empty() {
         tree.labels = defaults.labels;
@@ -4073,6 +4094,7 @@ struct PatchOpDto {
 struct TopicTreeInputDto {
     id: Option<String>,
     title: String,
+    note: Option<String>,
     #[serde(default)]
     labels: Vec<String>,
     #[serde(default)]
@@ -4088,6 +4110,7 @@ impl TopicTreeInputDto {
         Self {
             id: None,
             title,
+            note: None,
             labels: Vec::new(),
             markers: Vec::new(),
             image: None,
@@ -4100,6 +4123,7 @@ impl TopicTreeInputDto {
 struct TopicTreeDefaultsDto {
     id: Option<String>,
     title: Option<String>,
+    note: Option<String>,
     #[serde(default)]
     labels: Vec<String>,
     #[serde(default)]
@@ -4112,6 +4136,7 @@ impl TopicTreeDefaultsDto {
         Some(TopicTreeInputDto {
             id: self.id,
             title: self.title?,
+            note: self.note,
             labels: self.labels,
             markers: self.markers,
             image: self.image,
@@ -4235,6 +4260,8 @@ struct AddTreeCreatedTopicDto {
     id: Option<String>,
     path: String,
     title: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    note: Option<String>,
     #[serde(skip_serializing_if = "Vec::is_empty")]
     labels: Vec<String>,
     #[serde(skip_serializing_if = "Vec::is_empty")]

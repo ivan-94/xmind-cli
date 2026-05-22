@@ -548,3 +548,46 @@ fn add_tree_markdown_heading_list_hybrid_dry_run_reports_tree_diff() {
         "/Q2/Roadmap/Q2/Member Capability"
     );
 }
+
+#[test]
+fn add_tree_markdown_heading_paragraph_maps_to_note() {
+    let temp_dir = tempfile::tempdir().expect("temp dir is created");
+    let input = temp_dir.path().join("heading-notes.md");
+    fs::write(
+        &input,
+        r#"# Payment Capability
+
+Q2 core delivery scope.
+
+## Checkout
+
+Checkout scope.
+"#,
+    )
+    .expect("markdown fixture is written");
+    let input_arg = input.to_string_lossy().into_owned();
+
+    let output = Command::cargo_bin("xmind")
+        .expect("xmind binary is built for CLI tests")
+        .args([
+            "add-tree",
+            "tests/fixtures/xmind/minimal.xmind",
+            "--parent",
+            "path:/Q2",
+            "--from-markdown",
+            &input_arg,
+            "--dry-run",
+            "--json",
+        ])
+        .output()
+        .expect("add-tree command runs");
+
+    assert_eq!(output.status.code(), Some(0));
+    let body: Value = serde_json::from_slice(&output.stdout).expect("stdout is JSON");
+    assert_eq!(body["ok"], true);
+    assert_eq!(
+        body["result"]["created_root"]["note"],
+        "Q2 core delivery scope."
+    );
+    assert_eq!(body["result"]["summary"]["added"], 2);
+}
