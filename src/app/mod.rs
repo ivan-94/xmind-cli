@@ -1099,8 +1099,13 @@ fn render_export(invocation: Invocation, json: bool, format: &OutputFormat) -> i
                 print!("{content}");
             }
         }
-        OutputFormat::Outline => {
+        OutputFormat::Text | OutputFormat::Outline => {
             let content = render_export_outline(&sheet.root);
+            let format_name = if format == &OutputFormat::Text {
+                "text"
+            } else {
+                "outline"
+            };
             if json {
                 let envelope = CommandEnvelope {
                     ok: true,
@@ -1109,7 +1114,7 @@ fn render_export(invocation: Invocation, json: bool, format: &OutputFormat) -> i
                     dry_run: false,
                     applied: false,
                     result: Some(serde_json::json!({
-                        "format": "outline",
+                        "format": format_name,
                         "content": content,
                     })),
                     error: None,
