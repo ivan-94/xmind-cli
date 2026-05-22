@@ -204,6 +204,12 @@
           position 解析和“不能移动到自身/后代”冲突规则复用现有
           <code>xmind move</code> 行为。
         </li>
+        <li>
+          Patch <code>copy</code> 当前实现默认复制子树的 dry-run
+          规划，输出 copied subtree 的 <code>added</code> diff；
+          <code>preserve_ids: true</code> 沿用现有同 workbook duplicate-id
+          冲突规则，返回 <code>patch_conflict</code>。
+        </li>
       </ul>
     </section>
   </body>

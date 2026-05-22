@@ -4482,7 +4482,11 @@ fn collect_descendant_paths(topic: &Topic, path: &TopicPath) -> Vec<String> {
     paths
 }
 
-fn collect_copied_paths(topic: &Topic, parent_path: &TopicPath, copied_title: &str) -> Vec<String> {
+pub(in crate::app) fn collect_copied_paths(
+    topic: &Topic,
+    parent_path: &TopicPath,
+    copied_title: &str,
+) -> Vec<String> {
     let copied_root_path = parent_path.join(copied_title.to_owned());
     let mut paths = vec![copied_root_path.to_selector_value()];
 

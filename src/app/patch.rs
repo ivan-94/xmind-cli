@@ -11,9 +11,10 @@ use crate::domain::sheet::Sheet;
 use crate::domain::topic::Topic;
 
 use super::{
-    collect_added_paths, collect_deleted_paths, find_topic_by_path, insert_position_from_spec,
-    parse_insert_position, read_workbook_or_render_error, renamed_path, render_error,
-    resolve_topic, select_sheet_or_render_error, Invocation, ResolveOne, TopicTreeInputDto,
+    collect_added_paths, collect_copied_paths, collect_deleted_paths, find_topic_by_path,
+    insert_position_from_spec, parse_insert_position, read_workbook_or_render_error, renamed_path,
+    render_error, resolve_topic, select_sheet_or_render_error, Invocation, ResolveOne,
+    TopicTreeInputDto,
 };
 
 #[derive(Debug, Deserialize)]
@@ -36,6 +37,7 @@ pub(super) struct PatchOpDto {
     pub(super) prune: Option<bool>,
     pub(super) children_only: Option<bool>,
     pub(super) promote_children: Option<bool>,
+    pub(super) preserve_ids: Option<bool>,
 }
 
 impl PatchOpDto {
@@ -210,6 +212,23 @@ pub(super) fn render_patch(invocation: Invocation, json: bool, ops_path: &Path) 
             match plan_patch_move(invocation.clone(), json, sheet, index, op_name, op) {
                 Ok((from, to)) => {
                     diff.push(PatchDiffEventDto::moved(from, to));
+                    operations.push(PatchOperationDto {
+                        index,
+                        op: op_name.to_owned(),
+                        status: "planned",
+                    });
+                    continue;
+                }
+                Err(exit_code) => return exit_code,
+            }
+        } else if op_name == "copy" {
+            match plan_patch_copy(invocation.clone(), json, sheet, index, op_name, op) {
+                Ok(added_paths) => {
+                    diff.extend(
+                        added_paths
+                            .into_iter()
+                            .map(|path| PatchDiffEventDto::path_event("added", path)),
+                    );
                     operations.push(PatchOperationDto {
                         index,
                         op: op_name.to_owned(),
@@ -1118,6 +1137,204 @@ fn plan_patch_move(
             .path
             .join(source.topic.title.clone())
             .to_selector_value(),
+    ))
+}
+
+fn plan_patch_copy(
+    invocation: Invocation,
+    json: bool,
+    sheet: &Sheet,
+    index: usize,
+    op_name: &str,
+    op: &PatchOpDto,
+) -> Result<Vec<String>, i32> {
+    if op.preserve_ids.unwrap_or(false) {
+        let error = CliErrorBody::new(
+            ErrorCode::PatchConflict,
+            "copy preserve_ids would create duplicate topic ids in the same workbook.",
+            true,
+            "Omit preserve_ids or set preserve_ids: false.",
+        )
+        .with_operation_context(index, op_name.to_owned())
+        .with_field_path("preserve_ids");
+        return Err(render_error(invocation, json, error));
+    }
+
+    let position = match parse_insert_position(op.position.clone()) {
+        Ok(position) => position,
+        Err(error) => {
+            return Err(render_error(
+                invocation,
+                json,
+                error.with_operation_context(index, op_name.to_owned()),
+            ));
+        }
+    };
+
+    let Some(node) = &op.node else {
+        let error = CliErrorBody::new(
+            ErrorCode::InvalidPatch,
+            "copy operation is missing node.",
+            true,
+            "Add a node selector like node: path:/Q2/Payment.",
+        )
+        .with_operation_context(index, op_name.to_owned());
+        return Err(render_error(invocation, json, error));
+    };
+    let Some(destination) = &op.to else {
+        let error = CliErrorBody::new(
+            ErrorCode::InvalidPatch,
+            "copy operation is missing to.",
+            true,
+            "Add a destination selector like to: path:/Q3.",
+        )
+        .with_operation_context(index, op_name.to_owned());
+        return Err(render_error(invocation, json, error));
+    };
+
+    let selector = match Selector::parse(node) {
+        Ok(selector) => selector,
+        Err(error) => {
+            let error = CliErrorBody::new(
+                ErrorCode::InvalidPatch,
+                format!("copy node selector is invalid: {error}"),
+                true,
+                "Use a valid selector such as id:<topic-id>, path:/Q2, or title:Payment.",
+            )
+            .with_operation_context(index, op_name.to_owned());
+            return Err(render_error(invocation, json, error));
+        }
+    };
+    let destination_selector = match Selector::parse(destination) {
+        Ok(selector) => selector,
+        Err(error) => {
+            let error = CliErrorBody::new(
+                ErrorCode::InvalidPatch,
+                format!("copy destination selector is invalid: {error}"),
+                true,
+                "Use a valid destination selector such as root, id:<topic-id>, or path:/Q2.",
+            )
+            .with_operation_context(index, op_name.to_owned());
+            return Err(render_error(invocation, json, error));
+        }
+    };
+
+    let source = match resolve_topic(&sheet.root, &selector) {
+        ResolveOne::Found(resolved) => resolved,
+        ResolveOne::NotFound => {
+            let error = CliErrorBody::new(
+                ErrorCode::NotFound,
+                format!("copy selector did not match a topic: {}", selector.render()),
+                true,
+                "Run tree or find to rediscover the selector, then retry.",
+            )
+            .with_operation_context(index, op_name.to_owned())
+            .with_selector(selector.render());
+            return Err(render_error(invocation, json, error));
+        }
+        ResolveOne::Ambiguous(candidates) => {
+            let error = CliErrorBody::new(
+                ErrorCode::AmbiguousSelector,
+                "copy selector matched multiple topics.",
+                true,
+                "Retry with a selector that resolves to exactly one topic.",
+            )
+            .with_operation_context(index, op_name.to_owned())
+            .with_selector(selector.render())
+            .with_candidates(
+                candidates
+                    .into_iter()
+                    .map(|candidate| CandidateDto {
+                        id: candidate.topic.id.0.clone(),
+                        path: candidate.path.to_selector_value(),
+                        title: candidate.topic.title.clone(),
+                        sheet: Some(sheet.title.clone()),
+                    })
+                    .collect(),
+            );
+            return Err(render_error(invocation, json, error));
+        }
+    };
+    if source.path.is_root() {
+        let error = CliErrorBody::new(
+            ErrorCode::RootOperationNotAllowed,
+            "Copying the root topic is not allowed.",
+            true,
+            "Use a non-root node selector.",
+        )
+        .with_operation_context(index, op_name.to_owned())
+        .with_selector(selector.render());
+        return Err(render_error(invocation, json, error));
+    }
+
+    let destination = match resolve_topic(&sheet.root, &destination_selector) {
+        ResolveOne::Found(resolved) => resolved,
+        ResolveOne::NotFound => {
+            let error = CliErrorBody::new(
+                ErrorCode::NotFound,
+                format!(
+                    "copy destination selector did not match a topic: {}",
+                    destination_selector.render()
+                ),
+                true,
+                "Run tree or find to rediscover the destination selector, then retry.",
+            )
+            .with_operation_context(index, op_name.to_owned())
+            .with_selector(destination_selector.render());
+            return Err(render_error(invocation, json, error));
+        }
+        ResolveOne::Ambiguous(candidates) => {
+            let error = CliErrorBody::new(
+                ErrorCode::AmbiguousSelector,
+                "copy destination selector matched multiple topics.",
+                true,
+                "Retry with a selector that resolves to exactly one topic.",
+            )
+            .with_operation_context(index, op_name.to_owned())
+            .with_selector(destination_selector.render())
+            .with_candidates(
+                candidates
+                    .into_iter()
+                    .map(|candidate| CandidateDto {
+                        id: candidate.topic.id.0.clone(),
+                        path: candidate.path.to_selector_value(),
+                        title: candidate.topic.title.clone(),
+                        sheet: Some(sheet.title.clone()),
+                    })
+                    .collect(),
+            );
+            return Err(render_error(invocation, json, error));
+        }
+    };
+
+    if let Err(error) = insert_position_from_spec(position, &destination, &sheet.root) {
+        return Err(render_error(
+            invocation,
+            json,
+            error.with_operation_context(index, op_name.to_owned()),
+        ));
+    }
+
+    let copied_title = op
+        .title
+        .clone()
+        .unwrap_or_else(|| source.topic.title.clone());
+    if copied_title.is_empty() {
+        let error = CliErrorBody::new(
+            ErrorCode::InvalidPatch,
+            "copy title cannot be empty.",
+            true,
+            "Omit title or provide a non-empty title.",
+        )
+        .with_operation_context(index, op_name.to_owned())
+        .with_field_path("title");
+        return Err(render_error(invocation, json, error));
+    }
+
+    Ok(collect_copied_paths(
+        source.topic,
+        &destination.path,
+        &copied_title,
     ))
 }
 

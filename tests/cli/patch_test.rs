@@ -405,6 +405,68 @@ ops:
 }
 
 #[test]
+fn patch_dry_run_copy_reports_added_subtree_diff_without_writing() {
+    let temp_dir = tempfile::tempdir().expect("temp dir is created");
+    let ops = temp_dir.path().join("copy.yaml");
+    std::fs::write(
+        &ops,
+        r#"
+ops:
+  - op: copy
+    node: id:topic-q1
+    to: id:topic-q2
+    title: Q1 Copy
+"#,
+    )
+    .expect("patch fixture is written");
+    let ops_arg = ops.to_string_lossy().into_owned();
+
+    let output = Command::cargo_bin("xmind")
+        .expect("xmind binary is built for CLI tests")
+        .args([
+            "patch",
+            "tests/fixtures/xmind/duplicate-titles.xmind",
+            "--ops",
+            &ops_arg,
+            "--dry-run",
+            "--json",
+        ])
+        .output()
+        .expect("patch command runs");
+
+    assert_eq!(output.status.code(), Some(0));
+    let body: Value = serde_json::from_slice(&output.stdout).expect("stdout is JSON");
+    assert_eq!(body["ok"], true);
+    assert_eq!(body["result"]["summary"]["added"], 2);
+    assert_eq!(body["result"]["operations"][0]["op"], "copy");
+    assert_eq!(body["result"]["operations"][0]["status"], "planned");
+    assert_eq!(body["result"]["diff"][0]["event"], "added");
+    assert_eq!(body["result"]["diff"][0]["path"], "/Q2/Q1 Copy");
+    assert_eq!(body["result"]["diff"][1]["event"], "added");
+    assert_eq!(body["result"]["diff"][1]["path"], "/Q2/Q1 Copy/Payment");
+
+    let tree_output = Command::cargo_bin("xmind")
+        .expect("xmind binary is built for CLI tests")
+        .args([
+            "tree",
+            "tests/fixtures/xmind/duplicate-titles.xmind",
+            "--json",
+            "--depth",
+            "2",
+        ])
+        .output()
+        .expect("tree command runs after dry run");
+    let tree: Value = serde_json::from_slice(&tree_output.stdout).expect("tree stdout is JSON");
+    assert_eq!(
+        tree["result"]["root"]["children"][1]["children"]
+            .as_array()
+            .expect("Q2 children is an array")
+            .len(),
+        1
+    );
+}
+
+#[test]
 fn patch_replace_tree_rejects_root_target() {
     let temp_dir = tempfile::tempdir().expect("temp dir is created");
     let ops = temp_dir.path().join("replace-root.yaml");
@@ -532,7 +594,7 @@ fn patch_legacy_aliases_are_normalized_before_operation_diagnostics() {
     let cases = [
         ("delete_tree", "delete", "delete operation is missing node."),
         ("move_tree", "move", "move operation is missing node."),
-        ("clone_tree", "copy", "Unsupported patch operation: copy"),
+        ("clone_tree", "copy", "copy operation is missing node."),
     ];
 
     for (alias, canonical, expected_message) in cases {
