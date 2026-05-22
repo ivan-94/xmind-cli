@@ -9,6 +9,7 @@ Options:
       --output <OUTPUT>                
       --into <WORKBOOK>                
       --parent <PARENT>                
+      --overwrite                      
       --markdown-mode <MARKDOWN_MODE>  [possible values: heading, list, hybrid, auto]
       --dry-run                        
       --apply                          

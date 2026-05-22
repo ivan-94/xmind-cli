@@ -334,6 +334,11 @@
           <code>--parent</code> 选择器下；未传 <code>--parent</code> 时默认使用
           <code>root</code>。当前采用 append-last 语义，尚未暴露 position 选项。
         </li>
+        <li>
+          <code>import --overwrite</code> 目前作用于 <code>--output</code>
+          创建新 workbook 的路径：默认拒绝覆盖既有文件，显式传入时替换目标。
+          对 <code>--into</code> 导入既有 workbook 的场景不改变语义。
+        </li>
       </ul>
     </section>
   </body>

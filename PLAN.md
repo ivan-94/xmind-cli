@@ -340,7 +340,7 @@ Implement a Rust CLI named `xmind` that satisfies the documented product, comman
 - [x] Implement `export --json` wrapping payload in envelope.
 - [x] Implement `import --output`.
 - [x] Implement `import --into`.
-- [ ] Implement `import --overwrite`.
+- [x] Implement `import --overwrite`.
 - [ ] Implement `import --dry-run` no-file behavior.
 - [ ] Implement creation diff from empty workbook.
 - [ ] Add import/export round-trip tests.

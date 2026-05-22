@@ -121,6 +121,9 @@ pub struct ImportCommand {
     #[arg(long)]
     pub parent: Option<String>,
 
+    #[arg(long)]
+    pub overwrite: bool,
+
     #[arg(long, value_enum)]
     pub markdown_mode: Option<MarkdownMode>,
 

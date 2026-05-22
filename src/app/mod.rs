@@ -120,9 +120,10 @@ pub fn run(cli: Cli) -> i32 {
         Action::ImportOutput {
             ref input,
             markdown_mode,
+            overwrite,
         } => {
             let input = input.clone();
-            render_import_output(invocation, json, &input, markdown_mode)
+            render_import_output(invocation, json, &input, markdown_mode, overwrite)
         }
         Action::ImportInto {
             ref input,
@@ -441,6 +442,7 @@ enum Action {
     ImportOutput {
         input: PathBuf,
         markdown_mode: Option<MarkdownMode>,
+        overwrite: bool,
     },
     ImportInto {
         input: PathBuf,
@@ -755,6 +757,7 @@ impl Invocation {
                     .with_action(Action::ImportOutput {
                         input: command.input,
                         markdown_mode: command.markdown_mode,
+                        overwrite: command.overwrite,
                     })
                 } else {
                     Self::mutation(
@@ -1323,6 +1326,7 @@ fn render_import_output(
     json: bool,
     input: &Path,
     markdown_mode: Option<MarkdownMode>,
+    overwrite: bool,
 ) -> i32 {
     if invocation.dry_run {
         let error = CliErrorBody::new(
@@ -1334,7 +1338,7 @@ fn render_import_output(
         return render_error(invocation, json, error);
     }
 
-    if invocation.workbook.exists() {
+    if invocation.workbook.exists() && !overwrite {
         let error = CliErrorBody::new(
             ErrorCode::WriteFailed,
             format!(
@@ -1342,7 +1346,7 @@ fn render_import_output(
                 invocation.workbook.display()
             ),
             false,
-            "Choose a different output path, or use --overwrite once that option is available.",
+            "Choose a different output path, or pass --overwrite to replace the existing file.",
         )
         .with_path(invocation.workbook.display().to_string());
         return render_error(invocation, json, error);
