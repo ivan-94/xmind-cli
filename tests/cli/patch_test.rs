@@ -291,6 +291,63 @@ ops:
 }
 
 #[test]
+fn patch_dry_run_delete_reports_deleted_subtree_diff_without_writing() {
+    let temp_dir = tempfile::tempdir().expect("temp dir is created");
+    let ops = temp_dir.path().join("delete.yaml");
+    std::fs::write(
+        &ops,
+        r#"
+ops:
+  - op: delete
+    node: path:/Q2
+"#,
+    )
+    .expect("patch fixture is written");
+    let ops_arg = ops.to_string_lossy().into_owned();
+
+    let output = Command::cargo_bin("xmind")
+        .expect("xmind binary is built for CLI tests")
+        .args([
+            "patch",
+            "tests/fixtures/xmind/minimal.xmind",
+            "--ops",
+            &ops_arg,
+            "--dry-run",
+            "--json",
+        ])
+        .output()
+        .expect("patch command runs");
+
+    assert_eq!(output.status.code(), Some(0));
+    let body: Value = serde_json::from_slice(&output.stdout).expect("stdout is JSON");
+    assert_eq!(body["ok"], true);
+    assert_eq!(body["result"]["summary"]["deleted"], 2);
+    assert_eq!(body["result"]["operations"][0]["op"], "delete");
+    assert_eq!(body["result"]["operations"][0]["status"], "planned");
+    assert_eq!(body["result"]["diff"][0]["event"], "deleted");
+    assert_eq!(body["result"]["diff"][0]["path"], "/Q2");
+    assert_eq!(body["result"]["diff"][1]["event"], "deleted");
+    assert_eq!(body["result"]["diff"][1]["path"], "/Q2/Payment");
+
+    let tree_output = Command::cargo_bin("xmind")
+        .expect("xmind binary is built for CLI tests")
+        .args([
+            "tree",
+            "tests/fixtures/xmind/minimal.xmind",
+            "--json",
+            "--depth",
+            "2",
+        ])
+        .output()
+        .expect("tree command runs after dry run");
+    let tree: Value = serde_json::from_slice(&tree_output.stdout).expect("tree stdout is JSON");
+    assert_eq!(
+        tree["result"]["root"]["children"][0]["children"][0]["title"],
+        "Payment"
+    );
+}
+
+#[test]
 fn patch_replace_tree_rejects_root_target() {
     let temp_dir = tempfile::tempdir().expect("temp dir is created");
     let ops = temp_dir.path().join("replace-root.yaml");
@@ -416,12 +473,12 @@ fn patch_invalid_operation_reports_operation_index() {
 fn patch_legacy_aliases_are_normalized_before_operation_diagnostics() {
     let temp_dir = tempfile::tempdir().expect("temp dir is created");
     let cases = [
-        ("delete_tree", "delete"),
-        ("move_tree", "move"),
-        ("clone_tree", "copy"),
+        ("delete_tree", "delete", "delete operation is missing node."),
+        ("move_tree", "move", "Unsupported patch operation: move"),
+        ("clone_tree", "copy", "Unsupported patch operation: copy"),
     ];
 
-    for (alias, canonical) in cases {
+    for (alias, canonical, expected_message) in cases {
         let ops = temp_dir.path().join(format!("{alias}.yaml"));
         std::fs::write(
             &ops,
@@ -454,10 +511,7 @@ ops:
         assert_eq!(body["error"]["code"], "invalid_patch");
         assert_eq!(body["error"]["operation_index"], 0);
         assert_eq!(body["error"]["operation"], canonical);
-        assert_eq!(
-            body["error"]["message"],
-            format!("Unsupported patch operation: {canonical}")
-        );
+        assert_eq!(body["error"]["message"], expected_message);
     }
 }
 

@@ -192,6 +192,12 @@
           <code>match_by</code> 策略仍按 PLAN 后续任务处理，当前会返回
           <code>invalid_patch</code>，避免生成不准确计划。
         </li>
+        <li>
+          Patch <code>delete</code> 当前实现默认删除子树的 dry-run
+          规划，并输出每个被删除主题的 <code>deleted</code> diff；
+          <code>children_only</code> 与 <code>promote_children</code>
+          仍按 PLAN 后续任务处理，当前会返回 <code>invalid_patch</code>。
+        </li>
       </ul>
     </section>
   </body>

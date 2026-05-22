@@ -32,6 +32,8 @@ pub(super) struct PatchOpDto {
     pub(super) tree: Option<TopicTreeInputDto>,
     pub(super) match_by: Option<String>,
     pub(super) prune: Option<bool>,
+    pub(super) children_only: Option<bool>,
+    pub(super) promote_children: Option<bool>,
 }
 
 impl PatchOpDto {
@@ -176,6 +178,22 @@ pub(super) fn render_patch(invocation: Invocation, json: bool, ops_path: &Path) 
                     }));
                     diff.extend(added_paths.into_iter().map(|path| PatchDiffEventDto {
                         event: "added",
+                        path,
+                    }));
+                    operations.push(PatchOperationDto {
+                        index,
+                        op: op_name.to_owned(),
+                        status: "planned",
+                    });
+                    continue;
+                }
+                Err(exit_code) => return exit_code,
+            }
+        } else if op_name == "delete" {
+            match plan_patch_delete(invocation.clone(), json, sheet, index, op_name, op) {
+                Ok(deleted_paths) => {
+                    diff.extend(deleted_paths.into_iter().map(|path| PatchDiffEventDto {
+                        event: "deleted",
                         path,
                     }));
                     operations.push(PatchOperationDto {
@@ -763,6 +781,116 @@ fn plan_patch_merge_tree(
     );
 
     Ok((updated_paths, added_paths))
+}
+
+fn plan_patch_delete(
+    invocation: Invocation,
+    json: bool,
+    sheet: &Sheet,
+    index: usize,
+    op_name: &str,
+    op: &PatchOpDto,
+) -> Result<Vec<String>, i32> {
+    if op.children_only.unwrap_or(false) {
+        let error = CliErrorBody::new(
+            ErrorCode::InvalidPatch,
+            "delete children_only is not implemented in this patch slice.",
+            true,
+            "Omit children_only or set children_only: false.",
+        )
+        .with_operation_context(index, op_name.to_owned())
+        .with_field_path("children_only");
+        return Err(render_error(invocation, json, error));
+    }
+    if op.promote_children.unwrap_or(false) {
+        let error = CliErrorBody::new(
+            ErrorCode::InvalidPatch,
+            "delete promote_children is not implemented in this patch slice.",
+            true,
+            "Omit promote_children or set promote_children: false.",
+        )
+        .with_operation_context(index, op_name.to_owned())
+        .with_field_path("promote_children");
+        return Err(render_error(invocation, json, error));
+    }
+
+    let Some(node) = &op.node else {
+        let error = CliErrorBody::new(
+            ErrorCode::InvalidPatch,
+            "delete operation is missing node.",
+            true,
+            "Add a node selector like node: path:/Q2/Payment.",
+        )
+        .with_operation_context(index, op_name.to_owned());
+        return Err(render_error(invocation, json, error));
+    };
+
+    let selector = match Selector::parse(node) {
+        Ok(selector) => selector,
+        Err(error) => {
+            let error = CliErrorBody::new(
+                ErrorCode::InvalidPatch,
+                format!("delete node selector is invalid: {error}"),
+                true,
+                "Use a valid selector such as root, id:<topic-id>, path:/Q2, or title:Payment.",
+            )
+            .with_operation_context(index, op_name.to_owned());
+            return Err(render_error(invocation, json, error));
+        }
+    };
+
+    let resolved = match resolve_topic(&sheet.root, &selector) {
+        ResolveOne::Found(resolved) => resolved,
+        ResolveOne::NotFound => {
+            let error = CliErrorBody::new(
+                ErrorCode::NotFound,
+                format!(
+                    "delete selector did not match a topic: {}",
+                    selector.render()
+                ),
+                true,
+                "Run tree or find to rediscover the selector, then retry.",
+            )
+            .with_operation_context(index, op_name.to_owned())
+            .with_selector(selector.render());
+            return Err(render_error(invocation, json, error));
+        }
+        ResolveOne::Ambiguous(candidates) => {
+            let error = CliErrorBody::new(
+                ErrorCode::AmbiguousSelector,
+                "delete selector matched multiple topics.",
+                true,
+                "Retry with a selector that resolves to exactly one topic.",
+            )
+            .with_operation_context(index, op_name.to_owned())
+            .with_selector(selector.render())
+            .with_candidates(
+                candidates
+                    .into_iter()
+                    .map(|candidate| CandidateDto {
+                        id: candidate.topic.id.0.clone(),
+                        path: candidate.path.to_selector_value(),
+                        title: candidate.topic.title.clone(),
+                        sheet: Some(sheet.title.clone()),
+                    })
+                    .collect(),
+            );
+            return Err(render_error(invocation, json, error));
+        }
+    };
+    if resolved.path.is_root() {
+        let error = CliErrorBody::new(
+            ErrorCode::RootOperationNotAllowed,
+            "Deleting the root topic is not allowed.",
+            true,
+            "Use a non-root node selector.",
+        )
+        .with_operation_context(index, op_name.to_owned())
+        .with_selector(selector.render());
+        return Err(render_error(invocation, json, error));
+    }
+
+    Ok(collect_deleted_paths(resolved.topic, &resolved.path))
 }
 
 fn collect_merge_tree_diff(

@@ -308,7 +308,7 @@ Implement a Rust CLI named `xmind` that satisfies the documented product, comman
 - [x] Refactor first pass for `src/app/mod.rs`: move patch dry-run planning, tree input, and Markdown parsing into focused app modules without changing CLI behavior.
 - [x] Implement patch `replace_tree`.
 - [x] Implement patch `merge_tree`.
-- [ ] Implement patch `delete`.
+- [x] Implement patch `delete`.
 - [ ] Implement patch `move`.
 - [ ] Implement patch `copy`.
 - [ ] Implement patch `ensure_path`.
