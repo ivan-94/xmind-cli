@@ -375,7 +375,7 @@ Implement a Rust CLI named `xmind` that satisfies the documented product, comman
 - [x] Test `validation_failed`.
 - [x] Test `write_failed`.
 - [x] Test `unsupported_asset_type`.
-- [ ] Test `root_operation_not_allowed`.
+- [x] Test `root_operation_not_allowed`.
 - [ ] Verify every error includes:
   - [ ] `code`
   - [ ] `message`
