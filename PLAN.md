@@ -149,7 +149,7 @@ Implement a Rust CLI named `xmind` that satisfies the documented product, comman
   - [x] `exists`
 - [ ] Implement query precedence:
   - [ ] parentheses,
-  - [ ] `not`,
+  - [x] `not`,
   - [x] `and`,
   - [x] `or`.
 - [ ] Implement query string escaping.

@@ -6,6 +6,7 @@ pub enum QueryExpr {
     Comparison(QueryComparison),
     And(Box<QueryExpr>, Box<QueryExpr>),
     Or(Box<QueryExpr>, Box<QueryExpr>),
+    Not(Box<QueryExpr>),
 }
 
 impl QueryExpr {
@@ -25,6 +26,7 @@ impl QueryExpr {
             Self::Or(left, right) => {
                 left.matches_topic(topic, path, depth) || right.matches_topic(topic, path, depth)
             }
+            Self::Not(expr) => !expr.matches_topic(topic, path, depth),
         }
     }
 }
@@ -157,14 +159,22 @@ impl<'a> QueryParser<'a> {
     }
 
     fn parse_and_expr(&mut self) -> Result<QueryExpr, QueryParseError> {
-        let mut expr = QueryExpr::Comparison(self.parse_comparison()?);
+        let mut expr = self.parse_not_expr()?;
 
         while self.consume_keyword("and") {
-            let right = QueryExpr::Comparison(self.parse_comparison()?);
+            let right = self.parse_not_expr()?;
             expr = QueryExpr::And(Box::new(expr), Box::new(right));
         }
 
         Ok(expr)
+    }
+
+    fn parse_not_expr(&mut self) -> Result<QueryExpr, QueryParseError> {
+        if self.consume_keyword("not") {
+            return Ok(QueryExpr::Not(Box::new(self.parse_not_expr()?)));
+        }
+
+        Ok(QueryExpr::Comparison(self.parse_comparison()?))
     }
 
     fn parse_comparison(&mut self) -> Result<QueryComparison, QueryParseError> {
@@ -552,6 +562,19 @@ mod tests {
         };
 
         assert!(expr.matches_topic(&topic, &TopicPath::root(), 0));
+    }
+
+    #[test]
+    fn not_inverts_matching_result() {
+        let expr = QueryExpr::parse(r#"not title = "Payment""#).expect("query parses");
+        let topic = Topic {
+            id: TopicId("topic-payment".to_owned()),
+            title: "Payment".to_owned(),
+            note: None,
+            children: Vec::new(),
+        };
+
+        assert!(!expr.matches_topic(&topic, &TopicPath::root(), 0));
     }
 
     #[test]
