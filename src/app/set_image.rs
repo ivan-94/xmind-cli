@@ -4,7 +4,8 @@ use std::path::Path;
 use crate::cli::{CandidateDto, CliErrorBody, CommandEnvelope, ErrorCode};
 use crate::domain::diff::{Diff, DiffEvent, FieldChange};
 use crate::domain::selector::Selector;
-use crate::infra::xmind::assets::detect_supported_image_media_type;
+use crate::domain::workbook::ResourceIndex;
+use crate::infra::xmind::assets::{detect_supported_image_media_type, image_checksum};
 use crate::render::diff::render_human_outline;
 
 use super::{
@@ -31,8 +32,6 @@ pub(super) fn render_set_image(
         .with_path(image.display().to_string());
         return render_error(invocation, json, error);
     };
-    let asset_entry_name = format!("resources/{file_name}");
-    let asset_id = format!("xap:{asset_entry_name}");
     let image_bytes = match fs::read(image) {
         Ok(bytes) => bytes,
         Err(error) => {
@@ -114,6 +113,17 @@ pub(super) fn render_set_image(
             return render_error(invocation, json, error);
         }
     };
+    let asset_entry_name = choose_asset_entry_name(
+        file_name,
+        &image_bytes,
+        resolved
+            .topic
+            .image
+            .as_ref()
+            .map(|image| image.asset_id.as_str()),
+        &workbook.resources,
+    );
+    let asset_id = format!("xap:{asset_entry_name}");
 
     let path = resolved.path.to_selector_value();
     let human_diff = Diff::from_events(vec![DiffEvent::Updated {
@@ -181,4 +191,26 @@ pub(super) fn render_set_image(
     }
 
     0
+}
+
+fn choose_asset_entry_name(
+    file_name: &str,
+    image_bytes: &[u8],
+    current_topic_asset_id: Option<&str>,
+    resources: &ResourceIndex,
+) -> String {
+    let preferred_entry_name = format!("resources/{file_name}");
+    let preferred_asset_id = format!("xap:{preferred_entry_name}");
+    let resource_ids = resources.asset_ids();
+    if current_topic_asset_id == Some(preferred_asset_id.as_str())
+        || !resource_ids.contains(&preferred_asset_id)
+    {
+        return preferred_entry_name;
+    }
+
+    let checksum = image_checksum(image_bytes);
+    let checksum = checksum
+        .strip_prefix("sha256:")
+        .expect("image checksum uses sha256 prefix");
+    format!("resources/{checksum}-{file_name}")
 }

@@ -1,6 +1,8 @@
 use assert_cmd::Command;
 use serde_json::Value;
-use std::fs;
+use std::fs::{self, File};
+use std::io::{Read, Write};
+use std::path::Path;
 
 #[test]
 fn set_title_dry_run_reports_updated_topic_without_writing() {
@@ -826,6 +828,74 @@ fn set_clear_image_apply_removes_topic_image_reference_without_removing_asset() 
 }
 
 #[test]
+fn set_image_apply_preserves_unrelated_resource_with_same_file_name() {
+    let temp_dir = tempfile::tempdir().expect("temp dir is created");
+    let workbook = temp_dir.path().join("unrelated-resource.xmind");
+    write_xmind_with_resource_entry(&workbook, "resources/payment.png", b"original-resource");
+    let image = temp_dir.path().join("payment.png");
+    fs::write(&image, b"\x89PNG\r\n\x1a\nreplacement-image").expect("image is written");
+    let workbook_arg = workbook.to_string_lossy().into_owned();
+    let image_arg = image.to_string_lossy().into_owned();
+
+    let output = Command::cargo_bin("xmind")
+        .expect("xmind binary is built for CLI tests")
+        .args([
+            "set",
+            &workbook_arg,
+            "--node",
+            "path:/Q2/Payment",
+            "--image",
+            &image_arg,
+            "--apply",
+            "--json",
+        ])
+        .output()
+        .expect("set command runs");
+
+    assert_eq!(output.status.code(), Some(0));
+
+    let get_output = Command::cargo_bin("xmind")
+        .expect("xmind binary is built for CLI tests")
+        .args([
+            "get",
+            &workbook_arg,
+            "--node",
+            "path:/Q2/Payment",
+            "--include-assets",
+            "--json",
+        ])
+        .output()
+        .expect("get command runs");
+    let get_body: Value = serde_json::from_slice(&get_output.stdout).expect("stdout is JSON");
+    let image_asset_id = get_body["result"]["topic"]["image"]["asset_id"]
+        .as_str()
+        .expect("image asset id is a string");
+    assert_ne!(image_asset_id, "xap:resources/payment.png");
+    assert!(image_asset_id.starts_with("xap:resources/"));
+    assert!(image_asset_id.ends_with("-payment.png"));
+
+    assert_eq!(
+        read_package_entry(&workbook, "resources/payment.png"),
+        b"original-resource"
+    );
+
+    let assets_output = Command::cargo_bin("xmind")
+        .expect("xmind binary is built for CLI tests")
+        .args(["export", &workbook_arg, "--format", "assets"])
+        .output()
+        .expect("export assets command runs");
+    let assets_body: Value = serde_json::from_slice(&assets_output.stdout).expect("stdout is JSON");
+    let asset_ids: Vec<&str> = assets_body["assets"]
+        .as_array()
+        .expect("assets is an array")
+        .iter()
+        .map(|asset| asset["asset_id"].as_str().expect("asset id is a string"))
+        .collect();
+    assert!(asset_ids.contains(&"xap:resources/payment.png"));
+    assert!(asset_ids.contains(&image_asset_id));
+}
+
+#[test]
 fn set_hyperlink_apply_writes_topic_hyperlink() {
     let temp_dir = tempfile::tempdir().expect("temp dir is created");
     let workbook = temp_dir.path().join("apply-set-hyperlink.xmind");
@@ -1021,4 +1091,34 @@ fn set_append_note_apply_writes_appended_topic_note() {
         topic["result"]["topic"]["note"],
         "Supports card payments and refund workflows. Extra context."
     );
+}
+
+fn write_xmind_with_resource_entry(path: &Path, entry_name: &str, entry_bytes: &[u8]) {
+    let content =
+        fs::read_to_string("tests/fixtures/xmind/minimal-content.json").expect("fixture readable");
+    let file = File::create(path).expect("workbook fixture is created");
+    let mut zip = zip::ZipWriter::new(file);
+    let options = zip::write::FileOptions::default();
+
+    zip.start_file("content.json", options)
+        .expect("content entry starts");
+    zip.write_all(content.as_bytes())
+        .expect("content entry is written");
+    zip.start_file(entry_name, options)
+        .expect("resource entry starts");
+    zip.write_all(entry_bytes)
+        .expect("resource entry is written");
+    zip.finish().expect("workbook fixture is finalized");
+}
+
+fn read_package_entry(path: &Path, entry_name: &str) -> Vec<u8> {
+    let file = File::open(path).expect("workbook is readable");
+    let mut archive = zip::ZipArchive::new(file).expect("workbook is a zip archive");
+    let mut bytes = Vec::new();
+    archive
+        .by_name(entry_name)
+        .expect("package entry exists")
+        .read_to_end(&mut bytes)
+        .expect("package entry is readable");
+    bytes
 }

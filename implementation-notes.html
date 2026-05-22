@@ -382,6 +382,11 @@
           语义：只移除 topic 上的 image 引用，不删除 workbook 中已有的
           <code>resources/</code> 条目。
         </li>
+        <li>
+          当本地图片文件名与 workbook 中未关联资源同名时，新的 topic image 会使用
+          <code>sha256</code> 前缀生成不冲突的 <code>resources/</code> 路径，避免覆盖无关资源。
+          只有目标 topic 原本就引用同一 asset id 时，才允许同名资源替换。
+        </li>
       </ul>
     </section>
   </body>
