@@ -4007,5 +4007,41 @@
         </li>
       </ul>
     </section>
+    <section class="entry">
+      <h2>2026-05-22 - Markdown list outline parser</h2>
+      <h3>Design Decisions</h3>
+      <ul>
+        <li>
+          <code>add-tree --from-markdown</code> now parses simple unordered
+          <code>-</code> list outlines into topic trees.
+        </li>
+        <li>
+          Two leading spaces define one child level for this initial list parser.
+        </li>
+      </ul>
+
+      <h3>Deviations</h3>
+      <ul>
+        <li>
+          Ordered lists, task lists, and hybrid heading/list structures remain
+          separate PLAN items.
+        </li>
+      </ul>
+
+      <h3>Tradeoffs</h3>
+      <ul>
+        <li>
+          Inconsistent indentation diagnostics are deferred to the invalid
+          Markdown diagnostics task; this slice handles the documented happy path.
+        </li>
+      </ul>
+
+      <h3>Open Questions</h3>
+      <ul>
+        <li>
+          None for this slice.
+        </li>
+      </ul>
+    </section>
   </body>
 </html>

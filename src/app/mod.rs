@@ -1741,6 +1741,10 @@ fn read_markdown_tree_input(input: &Path) -> Result<TopicTreeInputDto, String> {
         apply_topic_tree_defaults(&mut tree, defaults);
         return Ok(tree);
     }
+    if let Some(mut tree) = parse_markdown_list_outline(body)? {
+        apply_topic_tree_defaults(&mut tree, defaults);
+        return Ok(tree);
+    }
 
     defaults.into_topic_tree().ok_or_else(|| {
         "Markdown input must include frontmatter title or a heading outline.".to_owned()
@@ -1799,6 +1803,61 @@ fn parse_markdown_heading_outline(content: &str) -> Result<Option<TopicTreeInput
         1 => Ok(roots.pop()),
         _ => Err("Markdown heading outline must contain one top-level root.".to_owned()),
     }
+}
+
+fn parse_markdown_list_outline(content: &str) -> Result<Option<TopicTreeInputDto>, String> {
+    let mut stack = Vec::<(usize, TopicTreeInputDto)>::new();
+    let mut roots = Vec::<TopicTreeInputDto>::new();
+
+    for line in content.lines() {
+        let Some((level, title)) = parse_markdown_list_item(line) else {
+            continue;
+        };
+        let node = TopicTreeInputDto::new(title);
+
+        while stack
+            .last()
+            .is_some_and(|(stack_level, _)| *stack_level >= level)
+        {
+            let (_, completed) = stack.pop().expect("stack is not empty");
+            if let Some((_, parent)) = stack.last_mut() {
+                parent.children.push(completed);
+            } else {
+                roots.push(completed);
+            }
+        }
+
+        stack.push((level, node));
+    }
+
+    while let Some((_, completed)) = stack.pop() {
+        if let Some((_, parent)) = stack.last_mut() {
+            parent.children.push(completed);
+        } else {
+            roots.push(completed);
+        }
+    }
+
+    match roots.len() {
+        0 => Ok(None),
+        1 => Ok(roots.pop()),
+        _ => Err("Markdown list outline must contain one top-level root.".to_owned()),
+    }
+}
+
+fn parse_markdown_list_item(line: &str) -> Option<(usize, String)> {
+    let indent = line
+        .chars()
+        .take_while(|character| *character == ' ')
+        .count();
+    let trimmed = line.trim_start();
+    let title = trimmed.strip_prefix("- ")?;
+    let title = title.trim();
+    if title.is_empty() {
+        return None;
+    }
+
+    Some((indent / 2 + 1, title.to_owned()))
 }
 
 fn parse_markdown_heading(line: &str) -> Option<(usize, String)> {
