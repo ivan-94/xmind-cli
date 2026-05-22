@@ -1626,9 +1626,10 @@ fn render_add_tree(invocation: Invocation, json: bool, parent: &str, input: &Pat
             path: parent.path.to_selector_value(),
             title: parent.topic.title.clone(),
         },
-        created_root: CreatedTopicDto {
+        created_root: AddTreeCreatedTopicDto {
+            id: tree.id.clone(),
             path: created_root_path,
-            title: tree.title,
+            title: tree.title.clone(),
         },
         summary: SummaryDto {
             added: added_paths.len(),
@@ -3863,6 +3864,7 @@ struct PatchOpDto {
 
 #[derive(Debug, Deserialize)]
 struct TopicTreeInputDto {
+    id: Option<String>,
     title: String,
 
     #[serde(default)]
@@ -3881,7 +3883,7 @@ struct PatchDryRunResultDto {
 struct AddTreeDryRunResultDto {
     will_change: bool,
     parent: TopicRefDto,
-    created_root: CreatedTopicDto,
+    created_root: AddTreeCreatedTopicDto,
     summary: SummaryDto,
     diff: Vec<DiffEventDto>,
 }
@@ -3966,6 +3968,14 @@ struct TopicRefDto {
 
 #[derive(Debug, Serialize)]
 struct CreatedTopicDto {
+    path: String,
+    title: String,
+}
+
+#[derive(Debug, Serialize)]
+struct AddTreeCreatedTopicDto {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    id: Option<String>,
     path: String,
     title: String,
 }

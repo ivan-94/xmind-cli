@@ -161,3 +161,49 @@ children:
     assert_eq!(body["error"]["code"], "invalid_tree_input");
     assert_eq!(body["error"]["field_path"], "children[0].title");
 }
+
+#[test]
+fn add_tree_preserves_optional_input_id_in_dry_run() {
+    let temp_dir = tempfile::tempdir().expect("temp dir is created");
+    let input = temp_dir.path().join("id-tree.yaml");
+    fs::write(
+        &input,
+        r#"
+id: topic-payment-capability
+title: Payment Capability
+children:
+  - id: topic-checkout
+    title: Checkout
+"#,
+    )
+    .expect("id tree fixture is written");
+    let input_arg = input.to_string_lossy().into_owned();
+
+    let output = Command::cargo_bin("xmind")
+        .expect("xmind binary is built for CLI tests")
+        .args([
+            "add-tree",
+            "tests/fixtures/xmind/minimal.xmind",
+            "--parent",
+            "path:/Q2",
+            "--input",
+            &input_arg,
+            "--dry-run",
+            "--json",
+        ])
+        .output()
+        .expect("add-tree command runs");
+
+    assert_eq!(output.status.code(), Some(0));
+    let body: Value = serde_json::from_slice(&output.stdout).expect("stdout is JSON");
+    assert_eq!(body["ok"], true);
+    assert_eq!(
+        body["result"]["created_root"]["id"],
+        "topic-payment-capability"
+    );
+    assert_eq!(
+        body["result"]["created_root"]["path"],
+        "/Q2/Payment Capability"
+    );
+    assert_eq!(body["result"]["summary"]["added"], 2);
+}

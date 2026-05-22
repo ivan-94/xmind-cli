@@ -3852,5 +3852,40 @@
         </li>
       </ul>
     </section>
+    <section class="entry">
+      <h2>2026-05-22 - optional input ids</h2>
+      <h3>Design Decisions</h3>
+      <ul>
+        <li>
+          Topic tree input now preserves optional <code>id</code> fields during
+          parsing. <code>add-tree</code> dry-run exposes the root input id on
+          <code>created_root.id</code> when provided.
+        </li>
+      </ul>
+
+      <h3>Deviations</h3>
+      <ul>
+        <li>
+          This slice preserves ids in parsed input but does not yet implement
+          id-based merge or apply semantics. Those remain separate PLAN items.
+        </li>
+      </ul>
+
+      <h3>Tradeoffs</h3>
+      <ul>
+        <li>
+          Only the created root id is exposed in the current dry-run DTO because
+          existing diff events are path-based. Child ids are retained in the
+          parsed tree for later merge/write slices.
+        </li>
+      </ul>
+
+      <h3>Open Questions</h3>
+      <ul>
+        <li>
+          None for this slice.
+        </li>
+      </ul>
+    </section>
   </body>
 </html>
