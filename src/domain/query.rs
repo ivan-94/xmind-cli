@@ -4,19 +4,23 @@ use super::topic::Topic;
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum QueryExpr {
     Comparison(QueryComparison),
+    And(Box<QueryExpr>, Box<QueryExpr>),
 }
 
 impl QueryExpr {
     pub fn parse(input: &str) -> Result<Self, QueryParseError> {
         let mut parser = QueryParser::new(input);
-        let expr = parser.parse_comparison()?;
+        let expr = parser.parse_and_expr()?;
         parser.expect_end()?;
-        Ok(Self::Comparison(expr))
+        Ok(expr)
     }
 
     pub fn matches_topic(&self, topic: &Topic, path: &TopicPath, depth: usize) -> bool {
         match self {
             Self::Comparison(comparison) => comparison.matches_topic(topic, path, depth),
+            Self::And(left, right) => {
+                left.matches_topic(topic, path, depth) && right.matches_topic(topic, path, depth)
+            }
         }
     }
 }
@@ -135,6 +139,17 @@ struct QueryParser<'a> {
 impl<'a> QueryParser<'a> {
     fn new(input: &'a str) -> Self {
         Self { input, position: 0 }
+    }
+
+    fn parse_and_expr(&mut self) -> Result<QueryExpr, QueryParseError> {
+        let mut expr = QueryExpr::Comparison(self.parse_comparison()?);
+
+        while self.consume_keyword("and") {
+            let right = QueryExpr::Comparison(self.parse_comparison()?);
+            expr = QueryExpr::And(Box::new(expr), Box::new(right));
+        }
+
+        Ok(expr)
     }
 
     fn parse_comparison(&mut self) -> Result<QueryComparison, QueryParseError> {
@@ -336,6 +351,27 @@ impl<'a> QueryParser<'a> {
         }
     }
 
+    fn consume_keyword(&mut self, expected: &str) -> bool {
+        self.skip_whitespace();
+
+        if !self.input[self.position..].starts_with(expected) {
+            return false;
+        }
+
+        let end = self.position + expected.len();
+        let next_is_boundary = self.input[end..]
+            .chars()
+            .next()
+            .map_or(true, |character| !is_identifier_character(character));
+
+        if next_is_boundary {
+            self.position = end;
+            true
+        } else {
+            false
+        }
+    }
+
     fn peek_char(&self) -> Option<char> {
         self.input[self.position..].chars().next()
     }
@@ -345,6 +381,10 @@ impl<'a> QueryParser<'a> {
         self.position += character.len_utf8();
         Some(character)
     }
+}
+
+fn is_identifier_character(character: char) -> bool {
+    character.is_ascii_alphanumeric() || character == '_'
 }
 
 #[cfg(test)]
@@ -469,6 +509,20 @@ mod tests {
         };
 
         assert!(expr.matches_topic(&topic, &TopicPath::root(), 2));
+    }
+
+    #[test]
+    fn and_requires_both_sides_to_match() {
+        let expr = QueryExpr::parse(r#"title = "Payment" and depth = 2"#).expect("query parses");
+        let topic = Topic {
+            id: TopicId("topic-payment".to_owned()),
+            title: "Payment".to_owned(),
+            note: None,
+            children: Vec::new(),
+        };
+
+        assert!(expr.matches_topic(&topic, &TopicPath::root(), 2));
+        assert!(!expr.matches_topic(&topic, &TopicPath::root(), 1));
     }
 
     #[test]
