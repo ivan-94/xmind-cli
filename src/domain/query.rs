@@ -41,6 +41,9 @@ pub struct QueryComparison {
 impl QueryComparison {
     fn matches_topic(&self, topic: &Topic, path: &TopicPath, depth: usize) -> bool {
         match (&self.field, &self.operator, &self.value) {
+            (QueryField::Id, QueryOperator::Eq, QueryValue::String(expected)) => {
+                topic.id.0 == *expected
+            }
             (QueryField::Title, QueryOperator::Eq, QueryValue::String(expected)) => {
                 topic.title == *expected
             }
@@ -108,6 +111,7 @@ impl QueryComparison {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 enum QueryField {
+    Id,
     Title,
     Path,
     Note,
@@ -247,6 +251,7 @@ impl<'a> QueryParser<'a> {
         };
 
         match identifier {
+            "id" => Ok(QueryField::Id),
             "title" => Ok(QueryField::Title),
             "path" => Ok(QueryField::Path),
             "note" => Ok(QueryField::Note),
