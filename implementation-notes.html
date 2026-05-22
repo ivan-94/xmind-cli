@@ -359,11 +359,18 @@
       <ul>
         <li>
           已建立 topic image 支持类型检测：当前按内容识别 PNG、JPEG、GIF
-          和 SVG。该检测模块会在后续 attach/replace 切片接入 CLI。
+          和 SVG，并已接入 <code>set --image</code>。
         </li>
         <li>
           图片 checksum 采用 <code>sha256:&lt;hex&gt;</code> 形状，作为后续
           asset metadata 与导出清单的稳定标识。
+        </li>
+        <li>
+          <code>set --image</code> 已可将本地 PNG/JPEG/GIF/SVG 作为 topic image
+          写入 <code>resources/</code> 并更新 topic 引用；当前 asset id 采用
+          <code>xap:resources/&lt;file-name&gt;</code>，同名资源会被替换。命令编排放在
+          <code>src/app/set_image.rs</code>，避免继续扩大
+          <code>src/app/mod.rs</code>。
         </li>
       </ul>
     </section>

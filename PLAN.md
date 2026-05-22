@@ -306,6 +306,7 @@ Implement a Rust CLI named `xmind` that satisfies the documented product, comman
 - [x] Implement patch `add_tree`.
 - [x] Implement patch `set`.
 - [x] Refactor first pass for `src/app/mod.rs`: move patch dry-run planning, tree input, and Markdown parsing into focused app modules without changing CLI behavior.
+- [ ] Refactor second pass for `src/app/mod.rs`: move `set` and mutation renderers into focused app modules so features live with their command-specific code.
 - [x] Implement patch `replace_tree`.
 - [x] Implement patch `merge_tree`.
 - [x] Implement patch `delete`.
@@ -350,7 +351,7 @@ Implement a Rust CLI named `xmind` that satisfies the documented product, comman
 
 - [x] Detect supported image media types.
 - [x] Implement image checksum.
-- [ ] Implement topic image attach.
+- [x] Implement topic image attach.
 - [ ] Implement topic image replace.
 - [ ] Implement topic image clear.
 - [ ] Preserve unrelated assets.

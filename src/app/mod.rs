@@ -1,4 +1,5 @@
 mod patch;
+mod set_image;
 mod tree_input;
 
 use std::fs;
@@ -25,6 +26,7 @@ use crate::infra::xmind::encode::{InsertPosition, TopicClearField, XMindWriteErr
 use crate::render::diff::render_human_outline;
 
 use self::patch::render_patch;
+use self::set_image::render_set_image;
 use self::tree_input::{
     read_tree_input, validate_topic_tree_input, TopicTreeImageInputDto, TopicTreeInputDto,
 };
@@ -256,6 +258,18 @@ pub fn run(cli: Cli) -> i32 {
             let hyperlink = hyperlink.clone();
             render_set_hyperlink(invocation, json, &node, &hyperlink)
         }
+        Action::SetImage {
+            ref node,
+            ref image,
+            ref alt,
+            ref title,
+        } => {
+            let node = node.clone();
+            let image = image.clone();
+            let alt = alt.clone();
+            let title = title.clone();
+            render_set_image(invocation, json, &node, &image, alt, title)
+        }
         Action::SetClear {
             ref node,
             ref fields,
@@ -409,6 +423,12 @@ enum Action {
     SetHyperlink {
         node: String,
         hyperlink: String,
+    },
+    SetImage {
+        node: String,
+        image: PathBuf,
+        alt: Option<String>,
+        title: Option<String>,
     },
     SetClear {
         node: String,
@@ -621,74 +641,84 @@ impl Invocation {
                     markdown_mode: command.markdown_mode,
                 }),
             ),
-            Command::Set(command) => Some(
-                Self::mutation(
-                    "set",
-                    command.workbook,
-                    command.mode.apply_mode.dry_run,
-                    command.mode.backup,
-                    sheet_selection,
-                    quiet,
+            Command::Set(command) => {
+                let command = *command;
+                Some(
+                    Self::mutation(
+                        "set",
+                        command.workbook,
+                        command.mode.apply_mode.dry_run,
+                        command.mode.backup,
+                        sheet_selection,
+                        quiet,
+                    )
+                    .with_action(if let Some(title) = command.title {
+                        Action::SetTitle {
+                            node: command.node,
+                            title,
+                        }
+                    } else if let Some(note) = command.note {
+                        Action::SetNote {
+                            node: command.node,
+                            note,
+                        }
+                    } else if let Some(append_note) = command.append_note {
+                        Action::SetAppendNote {
+                            node: command.node,
+                            append_note,
+                        }
+                    } else if let Some(labels) = command.set_labels {
+                        Action::SetLabels {
+                            node: command.node,
+                            labels: parse_csv_values(&labels),
+                        }
+                    } else if let Some(label) = command.add_label {
+                        Action::SetAddLabel {
+                            node: command.node,
+                            label,
+                        }
+                    } else if let Some(label) = command.remove_label {
+                        Action::SetRemoveLabel {
+                            node: command.node,
+                            label,
+                        }
+                    } else if let Some(markers) = command.set_markers {
+                        Action::SetMarkers {
+                            node: command.node,
+                            markers: parse_csv_values(&markers),
+                        }
+                    } else if let Some(marker) = command.add_marker {
+                        Action::SetAddMarker {
+                            node: command.node,
+                            marker,
+                        }
+                    } else if let Some(marker) = command.remove_marker {
+                        Action::SetRemoveMarker {
+                            node: command.node,
+                            marker,
+                        }
+                    } else if let Some(hyperlink) = command.hyperlink {
+                        Action::SetHyperlink {
+                            node: command.node,
+                            hyperlink,
+                        }
+                    } else if let Some(image) = command.image {
+                        Action::SetImage {
+                            node: command.node,
+                            image,
+                            alt: command.image_alt,
+                            title: command.image_title,
+                        }
+                    } else if !command.clear.is_empty() {
+                        Action::SetClear {
+                            node: command.node,
+                            fields: command.clear,
+                        }
+                    } else {
+                        Action::Noop
+                    }),
                 )
-                .with_action(if let Some(title) = command.title {
-                    Action::SetTitle {
-                        node: command.node,
-                        title,
-                    }
-                } else if let Some(note) = command.note {
-                    Action::SetNote {
-                        node: command.node,
-                        note,
-                    }
-                } else if let Some(append_note) = command.append_note {
-                    Action::SetAppendNote {
-                        node: command.node,
-                        append_note,
-                    }
-                } else if let Some(labels) = command.set_labels {
-                    Action::SetLabels {
-                        node: command.node,
-                        labels: parse_csv_values(&labels),
-                    }
-                } else if let Some(label) = command.add_label {
-                    Action::SetAddLabel {
-                        node: command.node,
-                        label,
-                    }
-                } else if let Some(label) = command.remove_label {
-                    Action::SetRemoveLabel {
-                        node: command.node,
-                        label,
-                    }
-                } else if let Some(markers) = command.set_markers {
-                    Action::SetMarkers {
-                        node: command.node,
-                        markers: parse_csv_values(&markers),
-                    }
-                } else if let Some(marker) = command.add_marker {
-                    Action::SetAddMarker {
-                        node: command.node,
-                        marker,
-                    }
-                } else if let Some(marker) = command.remove_marker {
-                    Action::SetRemoveMarker {
-                        node: command.node,
-                        marker,
-                    }
-                } else if let Some(hyperlink) = command.hyperlink {
-                    Action::SetHyperlink {
-                        node: command.node,
-                        hyperlink,
-                    }
-                } else if !command.clear.is_empty() {
-                    Action::SetClear {
-                        node: command.node,
-                        fields: command.clear,
-                    }
-                } else {
-                    Action::Noop
-                }),
-            ),
+            }
             Command::Delete(command) => Some(
                 Self::mutation(
                     "delete",
@@ -4427,47 +4457,47 @@ struct AddTreeCreatedTopicDto {
 }
 
 #[derive(Debug, Serialize)]
-struct SetTitleDryRunResultDto {
-    will_change: bool,
-    updated: UpdatedTopicDto,
-    summary: SummaryDto,
-    diff: Vec<DiffEventDto>,
+pub(super) struct SetTitleDryRunResultDto {
+    pub(super) will_change: bool,
+    pub(super) updated: UpdatedTopicDto,
+    pub(super) summary: SummaryDto,
+    pub(super) diff: Vec<DiffEventDto>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    backup_path: Option<String>,
+    pub(super) backup_path: Option<String>,
 }
 
 #[derive(Debug, Serialize)]
-struct UpdatedTopicDto {
-    id: String,
+pub(super) struct UpdatedTopicDto {
+    pub(super) id: String,
     #[serde(skip_serializing_if = "Option::is_none")]
-    path: Option<String>,
+    pub(super) path: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    old_path: Option<String>,
+    pub(super) old_path: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    new_path: Option<String>,
+    pub(super) new_path: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    new_note: Option<String>,
+    pub(super) new_note: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    new_labels: Option<Vec<String>>,
+    pub(super) new_labels: Option<Vec<String>>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    new_markers: Option<Vec<String>>,
+    pub(super) new_markers: Option<Vec<String>>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    new_hyperlink: Option<String>,
-    changed_fields: Vec<&'static str>,
+    pub(super) new_hyperlink: Option<String>,
+    pub(super) changed_fields: Vec<&'static str>,
 }
 
 #[derive(Debug, Serialize)]
-struct SummaryDto {
-    added: usize,
-    updated: usize,
-    deleted: usize,
-    moved: usize,
+pub(super) struct SummaryDto {
+    pub(super) added: usize,
+    pub(super) updated: usize,
+    pub(super) deleted: usize,
+    pub(super) moved: usize,
 }
 
 #[derive(Debug, Serialize)]
-struct DiffEventDto {
-    event: &'static str,
-    path: String,
+pub(super) struct DiffEventDto {
+    pub(super) event: &'static str,
+    pub(super) path: String,
 }
 
 #[derive(Debug, Serialize)]
@@ -5171,7 +5201,11 @@ fn missing_path_segments<'a>(
     None
 }
 
-fn render_workbook_write_error(invocation: Invocation, json: bool, error: XMindWriteError) -> i32 {
+pub(super) fn render_workbook_write_error(
+    invocation: Invocation,
+    json: bool,
+    error: XMindWriteError,
+) -> i32 {
     let error = workbook_write_error_body(&invocation.workbook, error);
     render_error(invocation, json, error)
 }
@@ -5195,7 +5229,9 @@ fn workbook_write_error_body(workbook: &Path, error: XMindWriteError) -> CliErro
     }
 }
 
-fn create_mutation_backup(invocation: &Invocation) -> Result<Option<String>, BackupError> {
+pub(super) fn create_mutation_backup(
+    invocation: &Invocation,
+) -> Result<Option<String>, BackupError> {
     if invocation.dry_run || !invocation.backup {
         return Ok(None);
     }
@@ -5204,7 +5240,7 @@ fn create_mutation_backup(invocation: &Invocation) -> Result<Option<String>, Bac
         .map(|backup| Some(backup.path.display().to_string()))
 }
 
-fn render_backup_error(invocation: Invocation, json: bool, error: BackupError) -> i32 {
+pub(super) fn render_backup_error(invocation: Invocation, json: bool, error: BackupError) -> i32 {
     let error = CliErrorBody::new(
         ErrorCode::WriteFailed,
         format!("Backup could not be written: {error}"),

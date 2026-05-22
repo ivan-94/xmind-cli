@@ -19,6 +19,9 @@ Options:
       --add-marker <ADD_MARKER>        
       --remove-marker <REMOVE_MARKER>  
       --hyperlink <HYPERLINK>          
+      --image <IMAGE>                  
+      --image-alt <IMAGE_ALT>          
+      --image-title <IMAGE_TITLE>      
       --clear <FIELD>                  
       --dry-run                        
       --apply                          

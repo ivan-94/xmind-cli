@@ -367,6 +367,49 @@ pub fn set_topic_hyperlink(
     Ok(())
 }
 
+pub fn set_topic_image(
+    workbook_path: &Path,
+    topic_id: &str,
+    asset_id: &str,
+    alt: Option<&str>,
+    title: Option<&str>,
+    asset_entry_name: &str,
+    asset_bytes: Vec<u8>,
+) -> Result<(), XMindWriteError> {
+    let file = File::open(workbook_path)?;
+    let mut archive = zip::ZipArchive::new(file)?;
+    let mut entries = Vec::new();
+    let mut content_json = None;
+
+    for index in 0..archive.len() {
+        let mut entry = archive.by_index(index)?;
+        let name = entry.name().to_owned();
+        let mut bytes = Vec::new();
+        entry.read_to_end(&mut bytes)?;
+
+        if name == "content.json" {
+            let mut content: Value = serde_json::from_slice(&bytes)?;
+            if !set_topic_image_in_content(&mut content, topic_id, asset_id, alt, title) {
+                return Err(XMindWriteError::TopicNotFound(topic_id.to_owned()));
+            }
+            content_json = Some(serde_json::to_vec_pretty(&content)?);
+        } else if name != asset_entry_name {
+            entries.push((name, bytes));
+        }
+    }
+
+    let Some(content_json) = content_json else {
+        return Err(XMindWriteError::MissingContent);
+    };
+
+    entries.push((asset_entry_name.to_owned(), asset_bytes));
+    let temp_path = temp_workbook_path(workbook_path);
+    write_package(&temp_path, content_json, entries)?;
+    replace_with_validated_candidate(workbook_path, &temp_path, validate_candidate_package)?;
+
+    Ok(())
+}
+
 pub fn clear_topic_fields(
     workbook_path: &Path,
     topic_id: &str,
@@ -691,6 +734,24 @@ fn set_topic_hyperlink_in_content(content: &mut Value, topic_id: &str, hyperlink
     })
 }
 
+fn set_topic_image_in_content(
+    content: &mut Value,
+    topic_id: &str,
+    asset_id: &str,
+    alt: Option<&str>,
+    title: Option<&str>,
+) -> bool {
+    let Some(sheets) = content.as_array_mut() else {
+        return false;
+    };
+
+    sheets.iter_mut().any(|sheet| {
+        sheet
+            .get_mut("rootTopic")
+            .is_some_and(|root| set_topic_image_in_topic(root, topic_id, asset_id, alt, title))
+    })
+}
+
 fn clear_topic_fields_in_content(
     content: &mut Value,
     topic_id: &str,
@@ -866,6 +927,39 @@ fn set_topic_hyperlink_in_topic(topic: &mut Value, topic_id: &str, hyperlink: &s
             children
                 .iter_mut()
                 .any(|child| set_topic_hyperlink_in_topic(child, topic_id, hyperlink))
+        })
+}
+
+fn set_topic_image_in_topic(
+    topic: &mut Value,
+    topic_id: &str,
+    asset_id: &str,
+    alt: Option<&str>,
+    title: Option<&str>,
+) -> bool {
+    if topic.get("id").and_then(Value::as_str) == Some(topic_id) {
+        if let Some(object) = topic.as_object_mut() {
+            let mut image = json!({ "src": asset_id });
+            if let Some(alt) = alt {
+                image["alt"] = Value::String(alt.to_owned());
+            }
+            if let Some(title) = title {
+                image["title"] = Value::String(title.to_owned());
+            }
+            object.insert("image".to_owned(), image);
+            return true;
+        }
+        return false;
+    }
+
+    topic
+        .get_mut("children")
+        .and_then(|children| children.get_mut("attached"))
+        .and_then(Value::as_array_mut)
+        .is_some_and(|children| {
+            children
+                .iter_mut()
+                .any(|child| set_topic_image_in_topic(child, topic_id, asset_id, alt, title))
         })
 }
 

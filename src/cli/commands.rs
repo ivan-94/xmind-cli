@@ -13,7 +13,7 @@ pub enum Command {
     Get(GetCommand),
     Add(AddCommand),
     AddTree(AddTreeCommand),
-    Set(SetCommand),
+    Set(Box<SetCommand>),
     Delete(DeleteCommand),
     Move(MoveCommand),
     Copy(CopyCommand),
@@ -234,6 +234,15 @@ pub struct SetCommand {
 
     #[arg(long)]
     pub hyperlink: Option<String>,
+
+    #[arg(long)]
+    pub image: Option<PathBuf>,
+
+    #[arg(long)]
+    pub image_alt: Option<String>,
+
+    #[arg(long)]
+    pub image_title: Option<String>,
 
     #[arg(long, value_name = "FIELD")]
     pub clear: Vec<String>,
