@@ -49,6 +49,7 @@ impl QueryComparison {
             (QueryField::Title, QueryOperator::In, QueryValue::StringList(expected)) => {
                 expected.iter().any(|value| topic.title == *value)
             }
+            (QueryField::Note, QueryOperator::Exists, QueryValue::None) => topic.note.is_some(),
             _ => false,
         }
     }
@@ -57,6 +58,7 @@ impl QueryComparison {
 #[derive(Clone, Debug, Eq, PartialEq)]
 enum QueryField {
     Title,
+    Note,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -67,12 +69,14 @@ enum QueryOperator {
     StartsWith,
     EndsWith,
     In,
+    Exists,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 enum QueryValue {
     String(String),
     StringList(Vec<String>),
+    None,
 }
 
 #[derive(Debug, Eq, PartialEq, thiserror::Error)]
@@ -115,7 +119,9 @@ impl<'a> QueryParser<'a> {
     fn parse_comparison(&mut self) -> Result<QueryComparison, QueryParseError> {
         let field = self.parse_field()?;
         let operator = self.parse_operator()?;
-        let value = if operator == QueryOperator::In {
+        let value = if operator == QueryOperator::Exists {
+            QueryValue::None
+        } else if operator == QueryOperator::In {
             self.parse_string_list_value()?
         } else {
             self.parse_string_value()?
@@ -135,6 +141,7 @@ impl<'a> QueryParser<'a> {
 
         match identifier {
             "title" => Ok(QueryField::Title),
+            "note" => Ok(QueryField::Note),
             other => Err(QueryParseError::UnsupportedField(other.to_owned())),
         }
     }
@@ -153,6 +160,7 @@ impl<'a> QueryParser<'a> {
             "starts_with" => Ok(QueryOperator::StartsWith),
             "ends_with" => Ok(QueryOperator::EndsWith),
             "in" => Ok(QueryOperator::In),
+            "exists" => Ok(QueryOperator::Exists),
             other => Err(QueryParseError::UnsupportedOperator(other.to_owned())),
         }
     }
@@ -368,6 +376,19 @@ mod tests {
             id: TopicId("topic-payment".to_owned()),
             title: "Payment".to_owned(),
             note: None,
+            children: Vec::new(),
+        };
+
+        assert!(expr.matches_topic(&topic, &TopicPath::root(), 0));
+    }
+
+    #[test]
+    fn note_exists_matches_present_note() {
+        let expr = QueryExpr::parse("note exists").expect("query parses");
+        let topic = Topic {
+            id: TopicId("topic-payment".to_owned()),
+            title: "Payment".to_owned(),
+            note: Some("Refund details".to_owned()),
             children: Vec::new(),
         };
 
