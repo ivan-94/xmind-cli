@@ -3403,5 +3403,39 @@
         </li>
       </ul>
     </section>
+
+    <section class="entry">
+      <h2>2026-05-22 - position last</h2>
+      <h3>Design Decisions</h3>
+      <ul>
+        <li>
+          Added explicit <code>--position last</code> support as an alias for the
+          existing default last-child insertion behavior.
+        </li>
+      </ul>
+
+      <h3>Deviations</h3>
+      <ul>
+        <li>
+          Index and selector-relative positions remain unavailable until their
+          dedicated PLAN items.
+        </li>
+      </ul>
+
+      <h3>Tradeoffs</h3>
+      <ul>
+        <li>
+          Keeping omitted position and explicit <code>last</code> on the same
+          writer path avoids two subtly different append behaviors.
+        </li>
+      </ul>
+
+      <h3>Open Questions</h3>
+      <ul>
+        <li>
+          None for this slice.
+        </li>
+      </ul>
+    </section>
   </body>
 </html>

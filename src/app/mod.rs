@@ -1443,11 +1443,12 @@ fn parse_insert_position(position: Option<String>) -> Result<InsertPosition, Cli
     match position.as_deref() {
         None => Ok(InsertPosition::Last),
         Some("first") => Ok(InsertPosition::First),
+        Some("last") => Ok(InsertPosition::Last),
         Some(other) => Err(CliErrorBody::new(
             ErrorCode::InvalidUsage,
             format!("Unsupported position: {other}"),
             true,
-            "Only --position first is implemented in this slice.",
+            "Use --position first or --position last.",
         )),
     }
 }
