@@ -116,8 +116,13 @@ path = "tests/cli/import_test.rs"
 name = "doc_examples_test"
 path = "tests/cli/doc_examples_test.rs"
 
+[[test]]
+name = "completion_test"
+path = "tests/cli/completion_test.rs"
+
 [dependencies]
 clap = { version = "=4.5.4", features = ["derive"] }
+clap_complete = "=4.5.2"
 serde = { version = "=1.0.203", features = ["derive"] }
 serde_json = "=1.0.117"
 serde_yaml = "=0.9.34"

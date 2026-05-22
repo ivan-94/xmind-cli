@@ -1,8 +1,25 @@
 use assert_cmd::Command;
 
 const SUBCOMMANDS: &[&str] = &[
-    "inspect", "sheets", "tree", "find", "get", "add", "add-tree", "set", "delete", "move", "copy",
-    "patch", "diff", "validate", "export", "import", "backup", "restore",
+    "inspect",
+    "sheets",
+    "tree",
+    "find",
+    "get",
+    "add",
+    "add-tree",
+    "set",
+    "delete",
+    "move",
+    "copy",
+    "patch",
+    "diff",
+    "validate",
+    "export",
+    "import",
+    "backup",
+    "restore",
+    "completion",
 ];
 
 #[test]

@@ -4,9 +4,12 @@ mod set_image;
 mod tree_input;
 
 use std::fs;
+use std::io;
 use std::path::{Path, PathBuf};
 use std::time::{SystemTime, UNIX_EPOCH};
 
+use clap::CommandFactory;
+use clap_complete::{generate, Shell};
 use serde::Serialize;
 use serde_json::Value;
 
@@ -56,6 +59,10 @@ pub fn run(cli: Cli) -> i32 {
         id: sheet_id,
         index: sheet_index,
     };
+
+    if let Some(Command::Completion(command)) = command {
+        return render_completion(command.shell);
+    }
 
     let Some(invocation) = Invocation::from_command(command, sheet_selection, quiet, format)
         .map(|invocation| invocation.with_no_color(no_color))
@@ -325,6 +332,12 @@ pub fn run(cli: Cli) -> i32 {
         }
         Action::Noop => 0,
     }
+}
+
+fn render_completion(shell: Shell) -> i32 {
+    let mut command = Cli::command();
+    generate(shell, &mut command, "xmind", &mut io::stdout());
+    0
 }
 
 #[derive(Clone)]
@@ -819,6 +832,7 @@ impl Invocation {
                 sheet_selection,
                 quiet,
             )),
+            Command::Completion(_) => None,
         }
     }
 

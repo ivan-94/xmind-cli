@@ -1,6 +1,7 @@
 use std::path::PathBuf;
 
 use clap::{Args, Subcommand};
+use clap_complete::Shell;
 
 use super::args::MarkdownMode;
 
@@ -24,6 +25,7 @@ pub enum Command {
     Import(ImportCommand),
     Backup(BackupCommand),
     Restore(MutationCommand),
+    Completion(CompletionCommand),
 }
 
 #[derive(Debug, Args)]
@@ -317,4 +319,9 @@ pub struct PatchCommand {
 
     #[command(flatten)]
     pub mode: MutationMode,
+}
+
+#[derive(Debug, Args)]
+pub struct CompletionCommand {
+    pub shell: Shell,
 }

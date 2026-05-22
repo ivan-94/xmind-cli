@@ -406,7 +406,7 @@ Implement a Rust CLI named `xmind` that satisfies the documented product, comman
 - [x] Add `cargo audit`.
 - [x] Add `cargo deny check`.
 - [x] Add release build smoke test.
-- [ ] Add shell completion generation.
+- [x] Add shell completion generation.
 - [ ] Add installation instructions.
 - [ ] Add changelog.
 

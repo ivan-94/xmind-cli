@@ -1,0 +1,19 @@
+---
+source: tests/cli/help_snapshots_test.rs
+expression: "help_output(&[subcommand, \"--help\"])"
+---
+Usage: xmind completion [OPTIONS] <SHELL>
+
+Arguments:
+  <SHELL>  [possible values: bash, elvish, fish, powershell, zsh]
+
+Options:
+      --json                       
+      --format <FORMAT>            [default: text] [possible values: text, json, compact-json, markdown, outline, assets]
+      --fields <FIELDS>            
+      --quiet                      
+      --no-color                   
+      --sheet <SHEET>              
+      --sheet-id <SHEET_ID>        
+      --sheet-index <SHEET_INDEX>  
+  -h, --help                       Print help

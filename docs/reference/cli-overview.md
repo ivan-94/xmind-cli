@@ -44,6 +44,10 @@ xmind <command> <workbook.xmind> [options]
 - `backup`: create a backup.
 - `restore`: restore a backup.
 
+### Shell Integration
+
+- `completion`: generate shell completion scripts.
+
 ## Common Read Example
 
 ```bash
