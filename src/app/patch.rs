@@ -2,6 +2,7 @@ use std::fs;
 use std::path::Path;
 
 use serde::Deserialize;
+use serde_json::{Map, Value};
 
 use super::TopicTreeInputDto;
 
@@ -16,6 +17,7 @@ pub(super) struct PatchOpDto {
     pub(super) node: Option<String>,
     pub(super) parent: Option<String>,
     pub(super) title: Option<String>,
+    pub(super) fields: Option<Map<String, Value>>,
     pub(super) tree: Option<TopicTreeInputDto>,
 }
 

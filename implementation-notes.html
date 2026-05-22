@@ -168,6 +168,11 @@
           Patch <code>add</code> 当前实现 dry-run 规划：校验 parent path 和
           非空 title，输出单条 <code>added</code> diff，不写 workbook。
         </li>
+        <li>
+          Patch <code>set</code> 当前实现 dry-run 规划：校验 node 和 fields，
+          支持 title/note/labels/markers/hyperlink/image 字段类型检查，并输出
+          <code>updated</code> diff；实际写入仍等待 patch apply slice。
+        </li>
       </ul>
     </section>
   </body>

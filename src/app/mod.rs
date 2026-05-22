@@ -3966,6 +3966,22 @@ fn render_patch(invocation: Invocation, json: bool, ops_path: &Path) -> i32 {
                 }
                 Err(exit_code) => return exit_code,
             }
+        } else if op_name == "set" {
+            match plan_patch_set(invocation.clone(), json, sheet, index, op_name, op) {
+                Ok(path) => {
+                    diff.push(DiffEventDto {
+                        event: "updated",
+                        path,
+                    });
+                    operations.push(PatchOperationDto {
+                        index,
+                        op: op_name.to_owned(),
+                        status: "planned",
+                    });
+                    continue;
+                }
+                Err(exit_code) => return exit_code,
+            }
         } else if op_name != "add_tree" {
             let error = CliErrorBody::new(
                 ErrorCode::InvalidPatch,
@@ -4048,14 +4064,9 @@ fn render_patch(invocation: Invocation, json: bool, ops_path: &Path) -> i32 {
         });
     }
 
-    let summary = SummaryDto {
-        added: diff.len(),
-        updated: 0,
-        deleted: 0,
-        moved: 0,
-    };
+    let summary = summarize_patch_diff(&diff);
     let result = PatchDryRunResultDto {
-        will_change: summary.added > 0,
+        will_change: summary.added + summary.updated + summary.deleted + summary.moved > 0,
         summary,
         operations,
         diff,
@@ -4078,6 +4089,15 @@ fn render_patch(invocation: Invocation, json: bool, ops_path: &Path) -> i32 {
     }
 
     0
+}
+
+fn summarize_patch_diff(diff: &[DiffEventDto]) -> SummaryDto {
+    SummaryDto {
+        added: diff.iter().filter(|event| event.event == "added").count(),
+        updated: diff.iter().filter(|event| event.event == "updated").count(),
+        deleted: diff.iter().filter(|event| event.event == "deleted").count(),
+        moved: diff.iter().filter(|event| event.event == "moved").count(),
+    }
 }
 
 fn plan_patch_add(
@@ -4160,6 +4180,145 @@ fn plan_patch_add(
     }
 
     Ok(parent_path.join(title.trim()).to_selector_value())
+}
+
+fn plan_patch_set(
+    invocation: Invocation,
+    json: bool,
+    sheet: &Sheet,
+    index: usize,
+    op_name: &str,
+    op: &PatchOpDto,
+) -> Result<String, i32> {
+    let Some(node) = &op.node else {
+        let error = CliErrorBody::new(
+            ErrorCode::InvalidPatch,
+            "set operation is missing node.",
+            true,
+            "Add a node selector like node: path:/Q2.",
+        )
+        .with_operation_context(index, op_name.to_owned());
+        return Err(render_error(invocation, json, error));
+    };
+
+    let Some(fields) = &op.fields else {
+        let error = CliErrorBody::new(
+            ErrorCode::InvalidPatch,
+            "set operation is missing fields.",
+            true,
+            "Add a fields object with at least one field.",
+        )
+        .with_operation_context(index, op_name.to_owned())
+        .with_field_path("fields");
+        return Err(render_error(invocation, json, error));
+    };
+    if fields.is_empty() {
+        let error = CliErrorBody::new(
+            ErrorCode::InvalidPatch,
+            "set operation fields must not be empty.",
+            true,
+            "Add at least one field to update.",
+        )
+        .with_operation_context(index, op_name.to_owned())
+        .with_field_path("fields");
+        return Err(render_error(invocation, json, error));
+    }
+
+    validate_patch_set_fields(invocation.clone(), json, index, op_name, fields)?;
+
+    let selector = match Selector::parse(node) {
+        Ok(selector) => selector,
+        Err(error) => {
+            let error = CliErrorBody::new(
+                ErrorCode::InvalidPatch,
+                format!("set node selector is invalid: {error}"),
+                true,
+                "Use a valid selector such as root, id:<topic-id>, path:/Q2, or title:Payment.",
+            )
+            .with_operation_context(index, op_name.to_owned());
+            return Err(render_error(invocation, json, error));
+        }
+    };
+
+    let resolved = match resolve_topic(&sheet.root, &selector) {
+        ResolveOne::Found(resolved) => resolved,
+        ResolveOne::NotFound => {
+            let error = CliErrorBody::new(
+                ErrorCode::NotFound,
+                format!("set selector did not match a topic: {}", selector.render()),
+                true,
+                "Run tree or find to rediscover the selector, then retry.",
+            )
+            .with_operation_context(index, op_name.to_owned())
+            .with_selector(selector.render());
+            return Err(render_error(invocation, json, error));
+        }
+        ResolveOne::Ambiguous(candidates) => {
+            let error = CliErrorBody::new(
+                ErrorCode::AmbiguousSelector,
+                "set selector matched multiple topics.",
+                true,
+                "Retry with a selector that resolves to exactly one topic.",
+            )
+            .with_operation_context(index, op_name.to_owned())
+            .with_selector(selector.render())
+            .with_candidates(
+                candidates
+                    .into_iter()
+                    .map(|candidate| CandidateDto {
+                        id: candidate.topic.id.0.clone(),
+                        path: candidate.path.to_selector_value(),
+                        title: candidate.topic.title.clone(),
+                        sheet: Some(sheet.title.clone()),
+                    })
+                    .collect(),
+            );
+            return Err(render_error(invocation, json, error));
+        }
+    };
+
+    let path = fields
+        .get("title")
+        .and_then(|title| title.as_str())
+        .map(|title| renamed_path(&resolved.path, title))
+        .unwrap_or_else(|| resolved.path.to_selector_value());
+    Ok(path)
+}
+
+fn validate_patch_set_fields(
+    invocation: Invocation,
+    json: bool,
+    index: usize,
+    op_name: &str,
+    fields: &serde_json::Map<String, Value>,
+) -> Result<(), i32> {
+    for (field, value) in fields {
+        let valid = match field.as_str() {
+            "title" => value.as_str().is_some_and(|title| !title.trim().is_empty()),
+            "note" | "hyperlink" => value.is_null() || value.is_string(),
+            "labels" | "markers" => {
+                value.is_null()
+                    || value
+                        .as_array()
+                        .is_some_and(|items| items.iter().all(|item| item.is_string()))
+            }
+            "image" => value.is_null() || value.is_object(),
+            _ => false,
+        };
+        if !valid {
+            let error = CliErrorBody::new(
+                ErrorCode::InvalidPatch,
+                format!("set operation field is invalid: {field}"),
+                true,
+                "Use supported fields with values of the documented type.",
+            )
+            .with_operation_context(index, op_name.to_owned())
+            .with_field_path(format!("fields.{field}"));
+            return Err(render_error(invocation, json, error));
+        }
+    }
+
+    Ok(())
 }
 
 fn render_patch_assert_operation(

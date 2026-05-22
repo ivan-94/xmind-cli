@@ -304,7 +304,8 @@ Implement a Rust CLI named `xmind` that satisfies the documented product, comman
 - [x] Implement `assert_not_exists`.
 - [x] Implement patch `add`.
 - [x] Implement patch `add_tree`.
-- [ ] Implement patch `set`.
+- [x] Implement patch `set`.
+- [ ] Refactor `src/app/mod.rs` into focused app modules so patch engine, tree input, Markdown parsing, and command renderers live in appropriate files without changing CLI behavior.
 - [ ] Implement patch `replace_tree`.
 - [ ] Implement patch `merge_tree`.
 - [ ] Implement patch `delete`.
