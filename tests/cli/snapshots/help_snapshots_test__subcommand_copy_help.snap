@@ -12,6 +12,7 @@ Options:
       --node <NODE>                
       --to <TO>                    
       --title <TITLE>              
+      --position <POSITION>        
       --preserve-ids               
       --dry-run                    
       --apply                      

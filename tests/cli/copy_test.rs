@@ -88,3 +88,44 @@ fn copy_preserve_ids_rejects_same_workbook_copy() {
         "Omit --preserve-ids when copying within the same workbook."
     );
 }
+
+#[test]
+fn copy_position_first_inserts_copy_as_first_destination_child() {
+    let temp_dir = tempfile::tempdir().expect("temp dir is created");
+    let workbook = temp_dir.path().join("copy-position-first.xmind");
+    fs::copy("tests/fixtures/xmind/duplicate-titles.xmind", &workbook).expect("fixture is copied");
+    let workbook_arg = workbook.to_string_lossy().into_owned();
+
+    let output = Command::cargo_bin("xmind")
+        .expect("xmind binary is built for CLI tests")
+        .args([
+            "copy",
+            &workbook_arg,
+            "--node",
+            "id:topic-payment-q1",
+            "--to",
+            "root",
+            "--position",
+            "first",
+            "--apply",
+            "--json",
+        ])
+        .output()
+        .expect("copy command runs");
+
+    assert_eq!(output.status.code(), Some(0));
+    let body: Value = serde_json::from_slice(&output.stdout).expect("stdout is JSON");
+    assert_eq!(body["ok"], true);
+    assert_eq!(body["result"]["copied_root"]["path"], "/Payment");
+
+    let tree_output = Command::cargo_bin("xmind")
+        .expect("xmind binary is built for CLI tests")
+        .args(["tree", &workbook_arg, "--json", "--depth", "1"])
+        .output()
+        .expect("tree command runs after apply");
+    let tree: Value = serde_json::from_slice(&tree_output.stdout).expect("tree stdout is JSON");
+    assert_eq!(
+        tree["result"]["root"]["children"][0]["id"],
+        "topic-payment-q1-copy"
+    );
+}

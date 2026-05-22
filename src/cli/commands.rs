@@ -130,6 +130,9 @@ pub struct AddCommand {
     #[arg(long)]
     pub title: String,
 
+    #[arg(long)]
+    pub position: Option<String>,
+
     #[command(flatten)]
     pub mode: MutationMode,
 }
@@ -205,6 +208,9 @@ pub struct MoveCommand {
     #[arg(long)]
     pub to: String,
 
+    #[arg(long)]
+    pub position: Option<String>,
+
     #[command(flatten)]
     pub mode: MutationMode,
 }
@@ -221,6 +227,9 @@ pub struct CopyCommand {
 
     #[arg(long)]
     pub title: Option<String>,
+
+    #[arg(long)]
+    pub position: Option<String>,
 
     #[arg(long)]
     pub preserve_ids: bool,

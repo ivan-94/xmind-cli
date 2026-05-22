@@ -3362,5 +3362,46 @@
         </li>
       </ul>
     </section>
+
+    <section class="entry">
+      <h2>2026-05-22 - position first</h2>
+      <h3>Design Decisions</h3>
+      <ul>
+        <li>
+          Added <code>--position first</code> to <code>add</code>,
+          <code>move</code>, and <code>copy</code>, inserting the new or moved
+          topic at the start of the destination children array.
+        </li>
+        <li>
+          Omitting <code>--position</code> preserves the existing default
+          last-child behavior.
+        </li>
+      </ul>
+
+      <h3>Deviations</h3>
+      <ul>
+        <li>
+          Other documented position values still return an invalid-usage
+          diagnostic until their dedicated PLAN items are implemented.
+        </li>
+      </ul>
+
+      <h3>Tradeoffs</h3>
+      <ul>
+        <li>
+          The writer uses a small shared insertion enum so later position modes
+          can extend the same add/move/copy path without changing command
+          outputs again.
+        </li>
+      </ul>
+
+      <h3>Open Questions</h3>
+      <ul>
+        <li>
+          Confirm whether dry-run JSON should expose the resolved numeric
+          insertion index after all position modes are implemented.
+        </li>
+      </ul>
+    </section>
   </body>
 </html>

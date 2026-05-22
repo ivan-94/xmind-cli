@@ -16,7 +16,7 @@ use crate::domain::selector::Selector;
 use crate::domain::sheet::Sheet;
 use crate::domain::topic::Topic;
 use crate::infra::fs::backup::{create_backup, create_backup_in_dir, BackupError};
-use crate::infra::xmind::encode::{TopicClearField, XMindWriteError};
+use crate::infra::xmind::encode::{InsertPosition, TopicClearField, XMindWriteError};
 use crate::render::diff::render_human_outline;
 
 pub fn run(cli: Cli) -> i32 {
@@ -109,10 +109,12 @@ pub fn run(cli: Cli) -> i32 {
         Action::Add {
             ref parent,
             ref title,
+            ref position,
         } => {
             let parent = parent.clone();
             let title = title.clone();
-            render_add(invocation, json, &parent, &title)
+            let position = position.clone();
+            render_add(invocation, json, &parent, &title, position)
         }
         Action::SetTitle {
             ref node,
@@ -210,21 +212,33 @@ pub fn run(cli: Cli) -> i32 {
         Action::Move {
             ref node,
             ref destination,
+            ref position,
         } => {
             let node = node.clone();
             let destination = destination.clone();
-            render_move(invocation, json, &node, &destination)
+            let position = position.clone();
+            render_move(invocation, json, &node, &destination, position)
         }
         Action::Copy {
             ref node,
             ref destination,
             ref title,
+            ref position,
             preserve_ids,
         } => {
             let node = node.clone();
             let destination = destination.clone();
             let title = title.clone();
-            render_copy(invocation, json, &node, &destination, title, preserve_ids)
+            let position = position.clone();
+            render_copy(
+                invocation,
+                json,
+                &node,
+                &destination,
+                title,
+                position,
+                preserve_ids,
+            )
         }
         Action::Noop => 0,
     }
@@ -284,6 +298,7 @@ enum Action {
     Add {
         parent: String,
         title: String,
+        position: Option<String>,
     },
     SetTitle {
         node: String,
@@ -337,11 +352,13 @@ enum Action {
     Move {
         node: String,
         destination: String,
+        position: Option<String>,
     },
     Copy {
         node: String,
         destination: String,
         title: Option<String>,
+        position: Option<String>,
         preserve_ids: bool,
     },
     Validate {
@@ -486,6 +503,7 @@ impl Invocation {
                 .with_action(Action::Add {
                     parent: command.parent,
                     title: command.title,
+                    position: command.position,
                 }),
             ),
             Command::AddTree(command) => Some(Self::mutation(
@@ -591,6 +609,7 @@ impl Invocation {
                 .with_action(Action::Move {
                     node: command.node,
                     destination: command.to,
+                    position: command.position,
                 }),
             ),
             Command::Copy(command) => Some(
@@ -606,6 +625,7 @@ impl Invocation {
                     node: command.node,
                     destination: command.to,
                     title: command.title,
+                    position: command.position,
                     preserve_ids: command.preserve_ids,
                 }),
             ),
@@ -1202,7 +1222,18 @@ fn backup_timestamp() -> String {
         .unwrap_or_else(|_| "0".to_owned())
 }
 
-fn render_add(invocation: Invocation, json: bool, parent: &str, title: &str) -> i32 {
+fn render_add(
+    invocation: Invocation,
+    json: bool,
+    parent: &str,
+    title: &str,
+    position: Option<String>,
+) -> i32 {
+    let position = match parse_insert_position(position) {
+        Ok(position) => position,
+        Err(error) => return render_error(invocation, json, error),
+    };
+
     let workbook = match read_workbook_or_render_error(&invocation, json) {
         Ok(workbook) => workbook,
         Err(exit_code) => return exit_code,
@@ -1307,6 +1338,7 @@ fn render_add(invocation: Invocation, json: bool, parent: &str, title: &str) -> 
             &plan.parent_id,
             &plan.title,
             &plan.new_topic_id,
+            position,
         ) {
             return render_workbook_write_error(invocation, json, error);
         }
@@ -1404,6 +1436,19 @@ fn clear_field_name(field: TopicClearField) -> &'static str {
         TopicClearField::Labels => "labels",
         TopicClearField::Markers => "markers",
         TopicClearField::Hyperlink => "hyperlink",
+    }
+}
+
+fn parse_insert_position(position: Option<String>) -> Result<InsertPosition, CliErrorBody> {
+    match position.as_deref() {
+        None => Ok(InsertPosition::Last),
+        Some("first") => Ok(InsertPosition::First),
+        Some(other) => Err(CliErrorBody::new(
+            ErrorCode::InvalidUsage,
+            format!("Unsupported position: {other}"),
+            true,
+            "Only --position first is implemented in this slice.",
+        )),
     }
 }
 
@@ -1571,7 +1616,18 @@ fn render_delete(
     0
 }
 
-fn render_move(invocation: Invocation, json: bool, node: &str, destination: &str) -> i32 {
+fn render_move(
+    invocation: Invocation,
+    json: bool,
+    node: &str,
+    destination: &str,
+    position: Option<String>,
+) -> i32 {
+    let position = match parse_insert_position(position) {
+        Ok(position) => position,
+        Err(error) => return render_error(invocation, json, error),
+    };
+
     let workbook = match read_workbook_or_render_error(&invocation, json) {
         Ok(workbook) => workbook,
         Err(exit_code) => return exit_code,
@@ -1741,6 +1797,7 @@ fn render_move(invocation: Invocation, json: bool, node: &str, destination: &str
             &invocation.workbook,
             &source.topic.id.0,
             &destination.topic.id.0,
+            position,
         ) {
             return render_workbook_write_error(invocation, json, error);
         }
@@ -1773,6 +1830,7 @@ fn render_copy(
     node: &str,
     destination: &str,
     title: Option<String>,
+    position: Option<String>,
     preserve_ids: bool,
 ) -> i32 {
     if preserve_ids {
@@ -1784,6 +1842,11 @@ fn render_copy(
         );
         return render_error(invocation, json, error);
     }
+
+    let position = match parse_insert_position(position) {
+        Ok(position) => position,
+        Err(error) => return render_error(invocation, json, error),
+    };
 
     let workbook = match read_workbook_or_render_error(&invocation, json) {
         Ok(workbook) => workbook,
@@ -1952,6 +2015,7 @@ fn render_copy(
             &destination.topic.id.0,
             &new_id,
             &copied_title,
+            position,
         ) {
             return render_workbook_write_error(invocation, json, error);
         }

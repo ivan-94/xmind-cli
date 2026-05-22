@@ -261,7 +261,7 @@ Implement a Rust CLI named `xmind` that satisfies the documented product, comman
 - [x] Implement `move`.
 - [x] Implement `copy`.
 - [x] Implement `copy --preserve-ids` guardrails.
-- [ ] Implement `--position first`.
+- [x] Implement `--position first`.
 - [ ] Implement `--position last`.
 - [ ] Implement `--position index:N`.
 - [ ] Implement `--position before:<selector>`.

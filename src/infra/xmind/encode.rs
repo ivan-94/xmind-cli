@@ -21,6 +21,12 @@ pub enum TopicClearField {
     Hyperlink,
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum InsertPosition {
+    First,
+    Last,
+}
+
 pub fn encode_workbook_content(workbook: &Workbook) -> Result<Vec<u8>, XMindWriteError> {
     let sheets = workbook
         .sheets
@@ -38,6 +44,7 @@ pub fn append_child_topic(
     parent_topic_id: &str,
     title: &str,
     new_topic_id: &str,
+    position: InsertPosition,
 ) -> Result<(), XMindWriteError> {
     let file = File::open(workbook_path)?;
     let mut archive = zip::ZipArchive::new(file)?;
@@ -52,7 +59,13 @@ pub fn append_child_topic(
 
         if name == "content.json" {
             let mut content: Value = serde_json::from_slice(&bytes)?;
-            if !append_topic_to_content(&mut content, parent_topic_id, title, new_topic_id) {
+            if !append_topic_to_content(
+                &mut content,
+                parent_topic_id,
+                title,
+                new_topic_id,
+                position,
+            ) {
                 return Err(XMindWriteError::ParentNotFound(parent_topic_id.to_owned()));
             }
             content_json = Some(serde_json::to_vec_pretty(&content)?);
@@ -409,6 +422,7 @@ pub fn move_topic(
     workbook_path: &Path,
     topic_id: &str,
     destination_topic_id: &str,
+    position: InsertPosition,
 ) -> Result<(), XMindWriteError> {
     let file = File::open(workbook_path)?;
     let mut archive = zip::ZipArchive::new(file)?;
@@ -426,7 +440,12 @@ pub fn move_topic(
             let Some(topic) = remove_topic_from_content(&mut content, topic_id) else {
                 return Err(XMindWriteError::TopicNotFound(topic_id.to_owned()));
             };
-            if !append_existing_topic_to_content(&mut content, destination_topic_id, topic) {
+            if !append_existing_topic_to_content(
+                &mut content,
+                destination_topic_id,
+                topic,
+                position,
+            ) {
                 return Err(XMindWriteError::TopicNotFound(
                     destination_topic_id.to_owned(),
                 ));
@@ -454,6 +473,7 @@ pub fn copy_topic(
     destination_topic_id: &str,
     new_root_topic_id: &str,
     new_root_title: &str,
+    position: InsertPosition,
 ) -> Result<(), XMindWriteError> {
     let file = File::open(workbook_path)?;
     let mut archive = zip::ZipArchive::new(file)?;
@@ -474,7 +494,12 @@ pub fn copy_topic(
             let mut copied = source.clone();
             rewrite_copied_topic_ids(&mut copied, new_root_topic_id, Some(new_root_title));
 
-            if !append_existing_topic_to_content(&mut content, destination_topic_id, copied) {
+            if !append_existing_topic_to_content(
+                &mut content,
+                destination_topic_id,
+                copied,
+                position,
+            ) {
                 return Err(XMindWriteError::TopicNotFound(
                     destination_topic_id.to_owned(),
                 ));
@@ -501,15 +526,16 @@ fn append_topic_to_content(
     parent_topic_id: &str,
     title: &str,
     new_topic_id: &str,
+    position: InsertPosition,
 ) -> bool {
     let Some(sheets) = content.as_array_mut() else {
         return false;
     };
 
     sheets.iter_mut().any(|sheet| {
-        sheet
-            .get_mut("rootTopic")
-            .is_some_and(|root| append_topic_to_topic(root, parent_topic_id, title, new_topic_id))
+        sheet.get_mut("rootTopic").is_some_and(|root| {
+            append_topic_to_topic(root, parent_topic_id, title, new_topic_id, position)
+        })
     })
 }
 
@@ -639,6 +665,7 @@ fn append_existing_topic_to_content(
     content: &mut Value,
     destination_topic_id: &str,
     topic: Value,
+    position: InsertPosition,
 ) -> bool {
     let Some(sheets) = content.as_array_mut() else {
         return false;
@@ -647,7 +674,7 @@ fn append_existing_topic_to_content(
     let mut topic = Some(topic);
     sheets.iter_mut().any(|sheet| {
         sheet.get_mut("rootTopic").is_some_and(|root| {
-            append_existing_topic_to_topic(root, destination_topic_id, &mut topic)
+            append_existing_topic_to_topic(root, destination_topic_id, &mut topic, position)
         })
     })
 }
@@ -888,6 +915,7 @@ fn append_existing_topic_to_topic(
     topic: &mut Value,
     destination_topic_id: &str,
     moved_topic: &mut Option<Value>,
+    position: InsertPosition,
 ) -> bool {
     if topic.get("id").and_then(Value::as_str) == Some(destination_topic_id) {
         if let Some(moved_topic) = moved_topic.take() {
@@ -902,7 +930,7 @@ fn append_existing_topic_to_topic(
                 .and_then(Value::as_array_mut);
 
             if let Some(attached) = attached {
-                attached.push(moved_topic);
+                insert_child(attached, moved_topic, position);
                 return true;
             }
         }
@@ -915,7 +943,7 @@ fn append_existing_topic_to_topic(
         .and_then(Value::as_array_mut)
         .is_some_and(|children| {
             children.iter_mut().any(|child| {
-                append_existing_topic_to_topic(child, destination_topic_id, moved_topic)
+                append_existing_topic_to_topic(child, destination_topic_id, moved_topic, position)
             })
         })
 }
@@ -997,6 +1025,7 @@ fn append_topic_to_topic(
     parent_topic_id: &str,
     title: &str,
     new_topic_id: &str,
+    position: InsertPosition,
 ) -> bool {
     if topic.get("id").and_then(Value::as_str) == Some(parent_topic_id) {
         let children = topic
@@ -1010,10 +1039,14 @@ fn append_topic_to_topic(
             .and_then(Value::as_array_mut);
 
         if let Some(attached) = attached {
-            attached.push(json!({
-                "id": new_topic_id,
-                "title": title,
-            }));
+            insert_child(
+                attached,
+                json!({
+                    "id": new_topic_id,
+                    "title": title,
+                }),
+                position,
+            );
             return true;
         }
 
@@ -1025,10 +1058,17 @@ fn append_topic_to_topic(
         .and_then(|children| children.get_mut("attached"))
         .and_then(Value::as_array_mut)
         .is_some_and(|children| {
-            children
-                .iter_mut()
-                .any(|child| append_topic_to_topic(child, parent_topic_id, title, new_topic_id))
+            children.iter_mut().any(|child| {
+                append_topic_to_topic(child, parent_topic_id, title, new_topic_id, position)
+            })
         })
+}
+
+fn insert_child(children: &mut Vec<Value>, child: Value, position: InsertPosition) {
+    match position {
+        InsertPosition::First => children.insert(0, child),
+        InsertPosition::Last => children.push(child),
+    }
 }
 
 fn write_package(
