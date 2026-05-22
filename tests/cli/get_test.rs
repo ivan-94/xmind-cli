@@ -200,6 +200,47 @@ fn get_compact_json_returns_topic_image_reference() {
 }
 
 #[test]
+fn image_fixture_exposes_topic_image_and_resource_metadata() {
+    let get_output = Command::cargo_bin("xmind")
+        .expect("xmind binary is built for CLI tests")
+        .args([
+            "get",
+            "tests/fixtures/xmind/topic-image.xmind",
+            "--node",
+            "id:topic-payment",
+            "--json",
+            "--format",
+            "compact-json",
+            "--fields",
+            "image",
+        ])
+        .output()
+        .expect("get command runs");
+
+    assert_eq!(get_output.status.code(), Some(0));
+    let get_body: Value = serde_json::from_slice(&get_output.stdout).expect("stdout is JSON");
+    assert_eq!(
+        get_body["result"]["topic"]["image"]["asset_id"],
+        "xap:resources/payment.png"
+    );
+
+    let inspect_output = Command::cargo_bin("xmind")
+        .expect("xmind binary is built for CLI tests")
+        .args([
+            "inspect",
+            "tests/fixtures/xmind/topic-image.xmind",
+            "--json",
+        ])
+        .output()
+        .expect("inspect command runs");
+
+    assert_eq!(inspect_output.status.code(), Some(0));
+    let inspect_body: Value =
+        serde_json::from_slice(&inspect_output.stdout).expect("stdout is JSON");
+    assert_eq!(inspect_body["result"]["resources_count"], 1);
+}
+
+#[test]
 fn get_json_missing_selector_returns_not_found_diagnostic() {
     let output = Command::cargo_bin("xmind")
         .expect("xmind binary is built for CLI tests")

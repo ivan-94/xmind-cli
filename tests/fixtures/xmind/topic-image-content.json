@@ -1,0 +1,31 @@
+[
+  {
+    "id": "sheet-roadmap",
+    "title": "Roadmap",
+    "rootTopic": {
+      "id": "topic-root",
+      "title": "Roadmap",
+      "children": {
+        "attached": [
+          {
+            "id": "topic-q2",
+            "title": "Q2",
+            "children": {
+              "attached": [
+                {
+                  "id": "topic-payment",
+                  "title": "Payment",
+                  "image": {
+                    "src": "xap:resources/payment.png",
+                    "alt": "Payment flow diagram",
+                    "title": "Payment flow"
+                  }
+                }
+              ]
+            }
+          }
+        ]
+      }
+    }
+  }
+]

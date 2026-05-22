@@ -1798,5 +1798,46 @@
         </li>
       </ul>
     </section>
+
+    <section class="entry">
+      <h2>2026-05-22 - topic image fixture</h2>
+      <h3>Design Decisions</h3>
+      <ul>
+        <li>
+          Added <code>topic-image.xmind</code> as a dedicated fixture with both
+          a topic-level image reference and a matching
+          <code>resources/payment.png</code> package entry.
+        </li>
+        <li>
+          The fixture is backed by <code>topic-image-content.json</code> so the
+          semantic topic tree stays reviewable in Git.
+        </li>
+      </ul>
+
+      <h3>Deviations</h3>
+      <ul>
+        <li>
+          The embedded resource bytes are a tiny deterministic placeholder, not
+          a visually valid PNG. The current reader only needs package resource
+          metadata and does not decode image pixels.
+        </li>
+      </ul>
+
+      <h3>Tradeoffs</h3>
+      <ul>
+        <li>
+          Keeping the resource bytes tiny makes the fixture cheap while still
+          exercising the zip entry and topic reference paths together.
+        </li>
+      </ul>
+
+      <h3>Open Questions</h3>
+      <ul>
+        <li>
+          Add a real PNG fixture later if media-type detection or image
+          validation starts reading bytes.
+        </li>
+      </ul>
+    </section>
   </body>
 </html>

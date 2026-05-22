@@ -18,3 +18,6 @@ contains two `Roadmap` sheets for ambiguous sheet selector tests.
 `metadata.xmind` is generated from `metadata-content.json` and contains a
 plain-text note, labels, markers, a hyperlink, and an image reference on the
 `Payment` topic for metadata read/search tests.
+
+`topic-image.xmind` is generated from `topic-image-content.json` and contains a
+topic image reference plus a `resources/payment.png` package entry.

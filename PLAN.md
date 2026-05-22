@@ -179,7 +179,7 @@ Implement a Rust CLI named `xmind` that satisfies the documented product, comman
 - [x] Add minimal `.xmind` fixture.
 - [x] Add multiple-sheet `.xmind` fixture.
 - [x] Add metadata `.xmind` fixture.
-- [ ] Add image `.xmind` fixture.
+- [x] Add image `.xmind` fixture.
 - [x] Add read fixture tests.
 
 ## Phase 6: Read Commands
