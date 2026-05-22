@@ -128,6 +128,9 @@ impl QueryComparison {
             (QueryField::ChildrenCount, QueryOperator::Gte, QueryValue::Number(expected)) => {
                 (topic.children.len() as i64) >= *expected
             }
+            (QueryField::ChildrenCount, QueryOperator::Lt, QueryValue::Number(expected)) => {
+                (topic.children.len() as i64) < *expected
+            }
             _ => false,
         }
     }
