@@ -393,7 +393,7 @@ Implement a Rust CLI named `xmind` that satisfies the documented product, comman
 - [x] Add generated or checked CLI help snapshots.
 - [x] Update docs if implementation constraints require contract changes.
 - [x] Keep `docs/reference/commands/*.md` aligned with clap options.
-- [ ] Keep `docs/schemas/*.md` aligned with serializable DTOs.
+- [x] Keep `docs/schemas/*.md` aligned with serializable DTOs.
 - [ ] Keep `docs/technical/*.md` aligned with implemented modules.
 
 ## Phase 16: CI and Release Hardening

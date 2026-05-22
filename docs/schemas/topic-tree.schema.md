@@ -4,17 +4,17 @@
 
 - Conversation: XMind CLI product design discussion
 - Scope: Documentation schema for tree input objects
-- Last updated: 2026-05-21
+- Last updated: 2026-05-22
 
 ## Shape
 
 ```yaml
 id: string?
+path: string?
 title: string
 note: string?
 labels: string[]?
 markers: string[]?
-hyperlink: string?
 image: TopicImage?
 children: TopicTree[]?
 ```
@@ -24,11 +24,11 @@ children: TopicTree[]?
 | Field | Required | Type | Notes |
 | --- | --- | --- | --- |
 | `id` | no | string | Existing topic id for id-based merge inputs; ignored for normal creates |
+| `path` | no | string | Existing canonical path for path-based merge inputs |
 | `title` | yes | string | Must not be empty |
 | `note` | no | string | Plain text or Markdown-like text |
 | `labels` | no | string[] | Free-form labels |
 | `markers` | no | string[] | Marker ids or semantic marker names |
-| `hyperlink` | no | string | URL or supported link target |
 | `image` | no | object | Local image path or existing asset id |
 | `children` | no | TopicTree[] | Ordered child topics |
 

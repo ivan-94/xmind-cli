@@ -4,7 +4,7 @@
 
 - Conversation: XMind CLI product design discussion
 - Scope: Common JSON envelope for command outputs
-- Last updated: 2026-05-21
+- Last updated: 2026-05-22
 
 ## Success Envelope
 
@@ -58,11 +58,8 @@ Write command envelopes put `dry_run` and `applied` at the top level. Write comm
     "moved": 0
   },
   "diff": [],
-  "backup_path": ".xmind-backups/file.xmind",
-  "validation": {
-    "valid": true
-  }
+  "backup_path": ".xmind-backups/file.xmind"
 }
 ```
 
-Dry runs must use top-level `applied: false` and `dry_run: true`. Applied writes must use top-level `applied: true` and `dry_run: false`.
+Dry runs must use top-level `applied: false` and `dry_run: true`. Applied writes must use top-level `applied: true` and `dry_run: false`. Commands that do not create a backup omit `backup_path`.

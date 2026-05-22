@@ -4,7 +4,7 @@
 
 - Conversation: XMind CLI product design discussion
 - Scope: Documentation schema for patch files
-- Last updated: 2026-05-21
+- Last updated: 2026-05-22
 
 ## Top-Level Shape
 
@@ -23,15 +23,19 @@ ops:
 | `parent` | selector | Parent target |
 | `to` | selector | Destination target |
 | `path` | canonical path | Path value without selector prefix, used by `ensure_path` |
+| `title` | string | Single-topic title for `add` |
 | `position` | string | Child order |
 | `fields` | object | Explicit field updates for `set`; `null` clears a nullable field |
 | `tree` | TopicTree | Tree input |
-| `if_exists` | string | `error`, `skip`, `merge`, `replace`, `rename` |
 | `match_by` | string | `id`, `path`, `title`, `title_path` |
 | `children_only` | boolean | `delete` only |
 | `promote_children` | boolean | `delete` only |
 | `preserve_ids` | boolean | `copy` only; defaults to false |
 | `prune` | boolean | `merge_tree` only; defaults to false |
+| `by` | string | `sort_children` sort field |
+| `order` | string | `sort_children` order |
+| `recursive` | boolean | Recursive metadata or sort behavior where supported |
+| `add_labels` | string[] | `set_tree_metadata` labels to add |
 | `operation_index` | number | Returned in errors, not supplied by users |
 
 ## Operation Names

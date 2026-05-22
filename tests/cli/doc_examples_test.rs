@@ -142,3 +142,44 @@ fn docs_do_not_advertise_removed_cli_surface() {
         }
     }
 }
+
+#[test]
+fn schema_docs_track_serializable_contracts() {
+    let command_output = std::fs::read_to_string("docs/schemas/command-output.schema.md")
+        .expect("schema is readable");
+    assert!(
+        !command_output.contains("\"validation\""),
+        "command output schema should not document removed validation result payloads"
+    );
+
+    let error_schema =
+        std::fs::read_to_string("docs/schemas/error.schema.md").expect("schema is readable");
+    assert!(
+        error_schema.contains("`operation`"),
+        "error schema should document CliErrorBody.operation"
+    );
+
+    let patch_schema =
+        std::fs::read_to_string("docs/schemas/patch.schema.md").expect("schema is readable");
+    for field in ["`title`", "`by`", "`order`", "`recursive`", "`add_labels`"] {
+        assert!(
+            patch_schema.contains(field),
+            "patch schema should document PatchOpDto field {field}"
+        );
+    }
+    assert!(
+        !patch_schema.contains("`if_exists`"),
+        "patch schema should not document removed PatchOpDto.if_exists"
+    );
+
+    let topic_tree_schema =
+        std::fs::read_to_string("docs/schemas/topic-tree.schema.md").expect("schema is readable");
+    assert!(
+        topic_tree_schema.contains("path: string?"),
+        "topic tree schema should document TopicTreeInputDto.path"
+    );
+    assert!(
+        !topic_tree_schema.contains("hyperlink"),
+        "topic tree schema should not document unsupported TopicTreeInputDto.hyperlink"
+    );
+}

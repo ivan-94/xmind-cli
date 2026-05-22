@@ -4,7 +4,7 @@
 
 - Conversation: XMind CLI product design discussion
 - Scope: Common JSON error schema
-- Last updated: 2026-05-21
+- Last updated: 2026-05-22
 
 ## Shape
 
@@ -17,6 +17,7 @@
   "selector": "title:\"Payment\"",
   "candidates": [],
   "operation_index": 2,
+  "operation": "merge_tree",
   "field_path": null,
   "exit_code": 6,
   "details": {}
@@ -34,6 +35,7 @@
 | `selector` | no | string | Failed selector |
 | `candidates` | no | array | Candidate topics or sheets |
 | `operation_index` | no | number | Patch operation index |
+| `operation` | no | string | Canonical patch operation name |
 | `field_path` | no | string | Invalid input field path |
 | `path` | no | string | Related topic or filesystem path |
 | `exit_code` | no | number | Process exit code |
