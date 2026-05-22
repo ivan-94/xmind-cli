@@ -62,6 +62,9 @@ impl QueryComparison {
             (QueryField::Path, QueryOperator::Eq, QueryValue::String(expected)) => {
                 path.to_selector_value() == *expected
             }
+            (QueryField::Path, QueryOperator::Ne, QueryValue::String(expected)) => {
+                path.to_selector_value() != *expected
+            }
             (QueryField::Path, QueryOperator::Contains, QueryValue::String(needle)) => {
                 path.to_selector_value().contains(needle)
             }
