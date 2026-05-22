@@ -1,3 +1,5 @@
+mod patch;
+
 use std::fs;
 use std::path::Path;
 use std::time::{SystemTime, UNIX_EPOCH};
@@ -19,6 +21,8 @@ use crate::domain::topic::Topic;
 use crate::infra::fs::backup::{create_backup, create_backup_in_dir, BackupError};
 use crate::infra::xmind::encode::{InsertPosition, TopicClearField, XMindWriteError};
 use crate::render::diff::render_human_outline;
+
+use self::patch::read_patch_file;
 
 pub fn run(cli: Cli) -> i32 {
     let Cli {
@@ -4207,18 +4211,6 @@ struct SheetDto {
 }
 
 #[derive(Debug, Deserialize)]
-struct PatchFileDto {
-    ops: Vec<PatchOpDto>,
-}
-
-#[derive(Debug, Deserialize)]
-struct PatchOpDto {
-    op: String,
-    parent: Option<String>,
-    tree: Option<TopicTreeInputDto>,
-}
-
-#[derive(Debug, Deserialize)]
 struct TopicTreeInputDto {
     id: Option<String>,
     title: String,
@@ -4891,13 +4883,6 @@ fn render_tree_text(topic: &TreeTopicDto, indent: usize) {
             render_tree_text(child, indent + 1);
         }
     }
-}
-
-fn read_patch_file(path: &Path) -> Result<PatchFileDto, String> {
-    let content = fs::read_to_string(path)
-        .map_err(|error| format!("Patch file could not be read: {error}"))?;
-    serde_yaml::from_str(&content)
-        .map_err(|error| format!("Patch file could not be decoded: {error}"))
 }
 
 fn find_topic_by_path<'a>(root: &'a Topic, path: &TopicPath) -> Option<&'a Topic> {

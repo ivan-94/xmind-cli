@@ -294,7 +294,7 @@ Implement a Rust CLI named `xmind` that satisfies the documented product, comman
 ## Phase 11: Patch Engine
 
 - [x] Parse patch YAML.
-- [ ] Parse patch JSON.
+- [x] Parse patch JSON.
 - [x] Validate top-level `ops`.
 - [ ] Normalize aliases:
   - [ ] `delete_tree -> delete`
