@@ -138,7 +138,7 @@ Implement a Rust CLI named `xmind` that satisfies the documented product, comman
 - [ ] Implement query operators:
   - [x] `=`
   - [x] `!=`
-  - [ ] `>`
+  - [x] `>`
   - [ ] `>=`
   - [ ] `<`
   - [ ] `<=`

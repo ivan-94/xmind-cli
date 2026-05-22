@@ -29,7 +29,7 @@ pub struct QueryComparison {
 }
 
 impl QueryComparison {
-    fn matches_topic(&self, topic: &Topic, _path: &TopicPath, _depth: usize) -> bool {
+    fn matches_topic(&self, topic: &Topic, _path: &TopicPath, depth: usize) -> bool {
         match (&self.field, &self.operator, &self.value) {
             (QueryField::Title, QueryOperator::Eq, QueryValue::String(expected)) => {
                 topic.title == *expected
@@ -50,6 +50,9 @@ impl QueryComparison {
                 expected.iter().any(|value| topic.title == *value)
             }
             (QueryField::Note, QueryOperator::Exists, QueryValue::None) => topic.note.is_some(),
+            (QueryField::Depth, QueryOperator::Gt, QueryValue::Number(expected)) => {
+                (depth as i64) > *expected
+            }
             _ => false,
         }
     }
@@ -59,6 +62,7 @@ impl QueryComparison {
 enum QueryField {
     Title,
     Note,
+    Depth,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -70,12 +74,14 @@ enum QueryOperator {
     EndsWith,
     In,
     Exists,
+    Gt,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 enum QueryValue {
     String(String),
     StringList(Vec<String>),
+    Number(i64),
     None,
 }
 
@@ -123,6 +129,8 @@ impl<'a> QueryParser<'a> {
             QueryValue::None
         } else if operator == QueryOperator::In {
             self.parse_string_list_value()?
+        } else if field == QueryField::Depth {
+            self.parse_number_value()?
         } else {
             self.parse_string_value()?
         };
@@ -142,6 +150,7 @@ impl<'a> QueryParser<'a> {
         match identifier {
             "title" => Ok(QueryField::Title),
             "note" => Ok(QueryField::Note),
+            "depth" => Ok(QueryField::Depth),
             other => Err(QueryParseError::UnsupportedField(other.to_owned())),
         }
     }
@@ -161,6 +170,7 @@ impl<'a> QueryParser<'a> {
             "ends_with" => Ok(QueryOperator::EndsWith),
             "in" => Ok(QueryOperator::In),
             "exists" => Ok(QueryOperator::Exists),
+            ">" => Ok(QueryOperator::Gt),
             other => Err(QueryParseError::UnsupportedOperator(other.to_owned())),
         }
     }
@@ -227,6 +237,28 @@ impl<'a> QueryParser<'a> {
 
             return Err(QueryParseError::ExpectedStringValue);
         }
+    }
+
+    fn parse_number_value(&mut self) -> Result<QueryValue, QueryParseError> {
+        self.skip_whitespace();
+        let start = self.position;
+
+        while let Some(character) = self.peek_char() {
+            if character.is_ascii_digit() {
+                self.position += character.len_utf8();
+            } else {
+                break;
+            }
+        }
+
+        if self.position == start {
+            return Err(QueryParseError::ExpectedStringValue);
+        }
+
+        let value = self.input[start..self.position]
+            .parse::<i64>()
+            .map_err(|_| QueryParseError::ExpectedStringValue)?;
+        Ok(QueryValue::Number(value))
     }
 
     fn expect_end(&mut self) -> Result<(), QueryParseError> {
@@ -393,5 +425,18 @@ mod tests {
         };
 
         assert!(expr.matches_topic(&topic, &TopicPath::root(), 0));
+    }
+
+    #[test]
+    fn depth_greater_than_matches_deeper_topic() {
+        let expr = QueryExpr::parse("depth > 1").expect("query parses");
+        let topic = Topic {
+            id: TopicId("topic-payment".to_owned()),
+            title: "Payment".to_owned(),
+            note: None,
+            children: Vec::new(),
+        };
+
+        assert!(expr.matches_topic(&topic, &TopicPath::root(), 2));
     }
 }
