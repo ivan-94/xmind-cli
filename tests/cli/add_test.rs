@@ -1,6 +1,9 @@
 use assert_cmd::Command;
 use serde_json::Value;
 use std::fs;
+use std::fs::File;
+use std::io::Read;
+use std::path::Path;
 
 #[test]
 fn add_dry_run_reports_created_topic_without_writing() {
@@ -233,4 +236,69 @@ fn add_create_missing_path_apply_creates_intermediate_topics() {
     assert_eq!(q3["title"], "Q3");
     assert_eq!(q3["children"][0]["title"], "Payment");
     assert_eq!(q3["children"][0]["children"][0]["title"], "Refunds");
+}
+
+#[test]
+fn add_create_missing_path_applies_intermediate_topic_defaults() {
+    let temp_dir = tempfile::tempdir().expect("temp dir is created");
+    let workbook = temp_dir
+        .path()
+        .join("add-create-missing-path-defaults.xmind");
+    fs::copy("tests/fixtures/xmind/minimal.xmind", &workbook).expect("fixture is copied");
+    let workbook_arg = workbook.to_string_lossy().into_owned();
+
+    let output = Command::cargo_bin("xmind")
+        .expect("xmind binary is built for CLI tests")
+        .args([
+            "add",
+            &workbook_arg,
+            "--parent",
+            "path:/Q3/Payment",
+            "--title",
+            "Refunds",
+            "--create-missing-path",
+            "--apply",
+            "--json",
+        ])
+        .output()
+        .expect("add command runs");
+
+    assert_eq!(output.status.code(), Some(0));
+
+    let content = read_content_json(&workbook);
+    let q3 = topic_child_by_title(&content[0]["rootTopic"], "Q3");
+    assert_eq!(q3["labels"], serde_json::json!([]));
+    assert_eq!(q3["markers"], serde_json::json!([]));
+    assert!(q3.get("notes").is_none());
+    assert!(q3.get("href").is_none());
+    assert!(q3.get("image").is_none());
+
+    let payment = topic_child_by_title(q3, "Payment");
+    assert_eq!(payment["labels"], serde_json::json!([]));
+    assert_eq!(payment["markers"], serde_json::json!([]));
+    assert!(payment.get("notes").is_none());
+    assert!(payment.get("href").is_none());
+    assert!(payment.get("image").is_none());
+}
+
+fn read_content_json(workbook: &Path) -> Value {
+    let file = File::open(workbook).expect("workbook is readable");
+    let mut archive = zip::ZipArchive::new(file).expect("workbook is a zip archive");
+    let mut content = String::new();
+    archive
+        .by_name("content.json")
+        .expect("content.json exists")
+        .read_to_string(&mut content)
+        .expect("content.json is readable");
+
+    serde_json::from_str(&content).expect("content.json is JSON")
+}
+
+fn topic_child_by_title<'a>(topic: &'a Value, title: &str) -> &'a Value {
+    topic["children"]["attached"]
+        .as_array()
+        .expect("attached children exist")
+        .iter()
+        .find(|child| child["title"] == title)
+        .expect("child topic exists")
 }

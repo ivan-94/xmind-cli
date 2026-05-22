@@ -1119,6 +1119,8 @@ fn topic_chain_to_json(chain: &[(String, String)]) -> Value {
     for (title, id) in chain.iter().rev() {
         let mut topic = json!({
             "id": id,
+            "labels": [],
+            "markers": [],
             "title": title,
         });
         if let Some(child) = child {

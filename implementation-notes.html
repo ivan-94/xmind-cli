@@ -3589,5 +3589,40 @@
         </li>
       </ul>
     </section>
+    <section class="entry">
+      <h2>2026-05-22 - intermediate topic defaults</h2>
+      <h3>Design Decisions</h3>
+      <ul>
+        <li>
+          Topics created as missing path intermediates now write explicit empty
+          <code>labels</code> and <code>markers</code> arrays into
+          <code>content.json</code>. Notes, hyperlinks, and images remain absent,
+          matching the documented empty or absent defaults.
+        </li>
+      </ul>
+
+      <h3>Deviations</h3>
+      <ul>
+        <li>
+          None for this slice.
+        </li>
+      </ul>
+
+      <h3>Tradeoffs</h3>
+      <ul>
+        <li>
+          The regression test inspects the written XMind package because the CLI
+          read model normalizes missing and empty label/marker collections to the
+          same observable JSON payload.
+        </li>
+      </ul>
+
+      <h3>Open Questions</h3>
+      <ul>
+        <li>
+          None for this slice.
+        </li>
+      </ul>
+    </section>
   </body>
 </html>
