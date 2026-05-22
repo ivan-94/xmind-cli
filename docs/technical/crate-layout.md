@@ -25,6 +25,7 @@ src/
   app/
     mod.rs
     patch.rs
+    set.rs
     set_image.rs
     tree_input.rs
   domain/

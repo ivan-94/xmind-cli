@@ -114,6 +114,12 @@
           <code>technical_docs_track_implemented_modules</code> 会阻止旧 crate
           boundary、旧 app 文件、旧 fixture 名称和未采用依赖重新出现。
         </li>
+        <li>
+          <code>src/app/mod.rs</code> 第二轮拆分已将 <code>set</code>
+          mutation renderer 移到 <code>src/app/set.rs</code>；
+          <code>mod.rs</code> 仍保留共享 dispatch、read/export/import 和部分
+          mutation orchestration，后续 CI/release hardening 前不再扩大本轮重构。
+        </li>
       </ul>
     </section>
 

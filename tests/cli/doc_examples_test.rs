@@ -222,7 +222,7 @@ fn technical_docs_track_implemented_modules() {
 
     let crate_layout = std::fs::read_to_string("docs/technical/crate-layout.md")
         .expect("crate layout is readable");
-    for module in ["patch.rs", "set_image.rs", "tree_input.rs"] {
+    for module in ["patch.rs", "set.rs", "set_image.rs", "tree_input.rs"] {
         assert!(
             crate_layout.contains(module),
             "crate layout should document implemented app module `{module}`"
