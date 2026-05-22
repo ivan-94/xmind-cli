@@ -39,7 +39,7 @@ pub struct QueryComparison {
 }
 
 impl QueryComparison {
-    fn matches_topic(&self, topic: &Topic, _path: &TopicPath, depth: usize) -> bool {
+    fn matches_topic(&self, topic: &Topic, path: &TopicPath, depth: usize) -> bool {
         match (&self.field, &self.operator, &self.value) {
             (QueryField::Title, QueryOperator::Eq, QueryValue::String(expected)) => {
                 topic.title == *expected
@@ -58,6 +58,9 @@ impl QueryComparison {
             }
             (QueryField::Title, QueryOperator::In, QueryValue::StringList(expected)) => {
                 expected.iter().any(|value| topic.title == *value)
+            }
+            (QueryField::Path, QueryOperator::Eq, QueryValue::String(expected)) => {
+                path.to_selector_value() == *expected
             }
             (QueryField::Note, QueryOperator::Exists, QueryValue::None) => topic.note.is_some(),
             (QueryField::Depth, QueryOperator::Gt, QueryValue::Number(expected)) => {
@@ -83,6 +86,7 @@ impl QueryComparison {
 #[derive(Clone, Debug, Eq, PartialEq)]
 enum QueryField {
     Title,
+    Path,
     Note,
     Depth,
 }
@@ -221,6 +225,7 @@ impl<'a> QueryParser<'a> {
 
         match identifier {
             "title" => Ok(QueryField::Title),
+            "path" => Ok(QueryField::Path),
             "note" => Ok(QueryField::Note),
             "depth" => Ok(QueryField::Depth),
             other => Err(QueryParseError::UnsupportedField(other.to_owned())),
