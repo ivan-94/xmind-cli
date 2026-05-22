@@ -4265,5 +4265,47 @@
         </li>
       </ul>
     </section>
+    <section class="entry">
+      <h2>2026-05-22 - invalid Markdown diagnostics</h2>
+      <h3>Design Decisions</h3>
+      <ul>
+        <li>
+          Markdown outline validation now returns line-specific
+          <code>invalid_tree_input</code> messages for skipped heading levels,
+          inconsistent list indentation, empty list item titles, and multiple
+          top-level roots.
+        </li>
+        <li>
+          Task list markers are stripped before empty-title validation, so
+          <code>- [x]</code> is treated as an empty topic title instead of the
+          literal title <code>[x]</code>.
+        </li>
+      </ul>
+
+      <h3>Deviations</h3>
+      <ul>
+        <li>
+          Diagnostics are currently carried in the error message text. A
+          structured Markdown line/column field can be added later if the error
+          envelope grows a dedicated location shape.
+        </li>
+      </ul>
+
+      <h3>Tradeoffs</h3>
+      <ul>
+        <li>
+          The parser keeps the existing simple Markdown subset: unordered
+          lists use two-space indentation levels and ordered lists use
+          three-space indentation levels.
+        </li>
+      </ul>
+
+      <h3>Open Questions</h3>
+      <ul>
+        <li>
+          None for this slice.
+        </li>
+      </ul>
+    </section>
   </body>
 </html>

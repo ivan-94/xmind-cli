@@ -779,3 +779,134 @@ fn add_tree_markdown_accepts_all_documented_modes() {
         );
     }
 }
+
+#[test]
+fn add_tree_markdown_rejects_skipped_heading_level_with_line_diagnostic() {
+    let temp_dir = tempfile::tempdir().expect("temp dir is created");
+    let input = temp_dir.path().join("skipped-heading.md");
+    fs::write(&input, "# Payment Capability\n\n### Checkout\n")
+        .expect("markdown fixture is written");
+    let input_arg = input.to_string_lossy().into_owned();
+
+    let output = Command::cargo_bin("xmind")
+        .expect("xmind binary is built for CLI tests")
+        .args([
+            "add-tree",
+            "tests/fixtures/xmind/minimal.xmind",
+            "--parent",
+            "path:/Q2",
+            "--from-markdown",
+            &input_arg,
+            "--dry-run",
+            "--json",
+        ])
+        .output()
+        .expect("add-tree command runs");
+
+    assert_eq!(output.status.code(), Some(7));
+    let body: Value = serde_json::from_slice(&output.stdout).expect("stdout is JSON");
+    assert_eq!(body["ok"], false);
+    assert_eq!(body["error"]["code"], "invalid_tree_input");
+    assert_eq!(
+        body["error"]["message"],
+        "Markdown heading levels cannot skip from 1 to 3 at line 3."
+    );
+}
+
+#[test]
+fn add_tree_markdown_rejects_inconsistent_list_indent_with_line_diagnostic() {
+    let temp_dir = tempfile::tempdir().expect("temp dir is created");
+    let input = temp_dir.path().join("bad-list-indent.md");
+    fs::write(&input, "- Payment Capability\n   - Checkout\n")
+        .expect("markdown fixture is written");
+    let input_arg = input.to_string_lossy().into_owned();
+
+    let output = Command::cargo_bin("xmind")
+        .expect("xmind binary is built for CLI tests")
+        .args([
+            "add-tree",
+            "tests/fixtures/xmind/minimal.xmind",
+            "--parent",
+            "path:/Q2",
+            "--from-markdown",
+            &input_arg,
+            "--dry-run",
+            "--json",
+        ])
+        .output()
+        .expect("add-tree command runs");
+
+    assert_eq!(output.status.code(), Some(7));
+    let body: Value = serde_json::from_slice(&output.stdout).expect("stdout is JSON");
+    assert_eq!(body["ok"], false);
+    assert_eq!(body["error"]["code"], "invalid_tree_input");
+    assert_eq!(
+        body["error"]["message"],
+        "Markdown unordered list indentation must use multiples of 2 spaces at line 2."
+    );
+}
+
+#[test]
+fn add_tree_markdown_rejects_empty_list_title_with_line_diagnostic() {
+    let temp_dir = tempfile::tempdir().expect("temp dir is created");
+    let input = temp_dir.path().join("empty-list-title.md");
+    fs::write(&input, "- [x] \n").expect("markdown fixture is written");
+    let input_arg = input.to_string_lossy().into_owned();
+
+    let output = Command::cargo_bin("xmind")
+        .expect("xmind binary is built for CLI tests")
+        .args([
+            "add-tree",
+            "tests/fixtures/xmind/minimal.xmind",
+            "--parent",
+            "path:/Q2",
+            "--from-markdown",
+            &input_arg,
+            "--dry-run",
+            "--json",
+        ])
+        .output()
+        .expect("add-tree command runs");
+
+    assert_eq!(output.status.code(), Some(7));
+    let body: Value = serde_json::from_slice(&output.stdout).expect("stdout is JSON");
+    assert_eq!(body["ok"], false);
+    assert_eq!(body["error"]["code"], "invalid_tree_input");
+    assert_eq!(
+        body["error"]["message"],
+        "Markdown list item title is empty at line 1."
+    );
+}
+
+#[test]
+fn add_tree_markdown_rejects_multiple_roots_with_line_diagnostic() {
+    let temp_dir = tempfile::tempdir().expect("temp dir is created");
+    let input = temp_dir.path().join("multiple-roots.md");
+    fs::write(&input, "- Payment Capability\n- Member Capability\n")
+        .expect("markdown fixture is written");
+    let input_arg = input.to_string_lossy().into_owned();
+
+    let output = Command::cargo_bin("xmind")
+        .expect("xmind binary is built for CLI tests")
+        .args([
+            "add-tree",
+            "tests/fixtures/xmind/minimal.xmind",
+            "--parent",
+            "path:/Q2",
+            "--from-markdown",
+            &input_arg,
+            "--dry-run",
+            "--json",
+        ])
+        .output()
+        .expect("add-tree command runs");
+
+    assert_eq!(output.status.code(), Some(7));
+    let body: Value = serde_json::from_slice(&output.stdout).expect("stdout is JSON");
+    assert_eq!(body["ok"], false);
+    assert_eq!(body["error"]["code"], "invalid_tree_input");
+    assert_eq!(
+        body["error"]["message"],
+        "Markdown outline must contain one top-level root; second root starts at line 2."
+    );
+}

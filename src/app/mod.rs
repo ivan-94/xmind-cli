@@ -1812,18 +1812,27 @@ fn parse_markdown_heading_line(line: &str) -> bool {
 }
 
 fn parse_markdown_outline(content: &str) -> Result<Option<TopicTreeInputDto>, String> {
-    let mut stack = Vec::<(usize, TopicTreeInputDto)>::new();
-    let mut roots = Vec::<TopicTreeInputDto>::new();
+    let mut stack = Vec::<(usize, usize, TopicTreeInputDto)>::new();
+    let mut roots = Vec::<(usize, TopicTreeInputDto)>::new();
     let mut current_heading_level = 0;
 
-    for line in content.lines() {
+    for (line_index, line) in content.lines().enumerate() {
+        let line_number = line_index + 1;
+        validate_markdown_list_indent(line, line_index + 1)?;
+        validate_markdown_list_title(line, line_index + 1)?;
         let item = if let Some((level, title)) = parse_markdown_heading(line) {
+            if current_heading_level > 0 && level > current_heading_level + 1 {
+                return Err(format!(
+                    "Markdown heading levels cannot skip from {current_heading_level} to {level} at line {}.",
+                    line_index + 1
+                ));
+            }
             current_heading_level = level;
             Some((level, TopicTreeInputDto::new(title)))
         } else if let Some((relative_level, node)) = parse_markdown_list_item(line) {
             Some((current_heading_level + relative_level, node))
         } else {
-            if let Some((_, current)) = stack.last_mut() {
+            if let Some((_, _, current)) = stack.last_mut() {
                 append_markdown_note(current, line);
             }
             None
@@ -1834,32 +1843,102 @@ fn parse_markdown_outline(content: &str) -> Result<Option<TopicTreeInputDto>, St
 
         while stack
             .last()
-            .is_some_and(|(stack_level, _)| *stack_level >= level)
+            .is_some_and(|(stack_level, _, _)| *stack_level >= level)
         {
-            let (_, completed) = stack.pop().expect("stack is not empty");
-            if let Some((_, parent)) = stack.last_mut() {
+            let (_, completed_line, completed) = stack.pop().expect("stack is not empty");
+            if let Some((_, _, parent)) = stack.last_mut() {
                 parent.children.push(completed);
             } else {
-                roots.push(completed);
+                roots.push((completed_line, completed));
             }
         }
 
-        stack.push((level, node));
+        stack.push((level, line_number, node));
     }
 
-    while let Some((_, completed)) = stack.pop() {
-        if let Some((_, parent)) = stack.last_mut() {
+    while let Some((_, completed_line, completed)) = stack.pop() {
+        if let Some((_, _, parent)) = stack.last_mut() {
             parent.children.push(completed);
         } else {
-            roots.push(completed);
+            roots.push((completed_line, completed));
         }
     }
 
     match roots.len() {
         0 => Ok(None),
-        1 => Ok(roots.pop()),
-        _ => Err("Markdown outline must contain one top-level root.".to_owned()),
+        1 => Ok(roots.pop().map(|(_, root)| root)),
+        _ => Err(format!(
+            "Markdown outline must contain one top-level root; second root starts at line {}.",
+            roots[1].0
+        )),
     }
+}
+
+fn validate_markdown_list_indent(line: &str, line_number: usize) -> Result<(), String> {
+    let indent = line
+        .chars()
+        .take_while(|character| *character == ' ')
+        .count();
+    let trimmed = line.trim_start();
+    if trimmed.starts_with("- ") && indent % 2 != 0 {
+        return Err(format!(
+            "Markdown unordered list indentation must use multiples of 2 spaces at line {line_number}."
+        ));
+    }
+
+    if is_ordered_markdown_list_item(trimmed) && indent % 3 != 0 {
+        return Err(format!(
+            "Markdown ordered list indentation must use multiples of 3 spaces at line {line_number}."
+        ));
+    }
+
+    Ok(())
+}
+
+fn validate_markdown_list_title(line: &str, line_number: usize) -> Result<(), String> {
+    let trimmed = line.trim_start();
+    let Some(title) = markdown_list_title_text(trimmed) else {
+        return Ok(());
+    };
+    if strip_markdown_task_marker(title.trim()).trim().is_empty() {
+        return Err(format!(
+            "Markdown list item title is empty at line {line_number}."
+        ));
+    }
+
+    Ok(())
+}
+
+fn markdown_list_title_text(trimmed: &str) -> Option<&str> {
+    if let Some(title) = trimmed.strip_prefix("- ") {
+        return Some(title);
+    }
+
+    let dot_index = trimmed.find(". ")?;
+    if !is_ordered_markdown_list_item(trimmed) {
+        return None;
+    }
+
+    Some(&trimmed[dot_index + ". ".len()..])
+}
+
+fn strip_markdown_task_marker(title: &str) -> &str {
+    title
+        .strip_prefix("[ ]")
+        .or_else(|| title.strip_prefix("[x]"))
+        .or_else(|| title.strip_prefix("[X]"))
+        .unwrap_or(title)
+}
+
+fn is_ordered_markdown_list_item(trimmed: &str) -> bool {
+    let Some(dot_index) = trimmed.find(". ") else {
+        return false;
+    };
+
+    dot_index > 0
+        && trimmed[..dot_index]
+            .chars()
+            .all(|character| character.is_ascii_digit())
 }
 
 fn append_markdown_note(topic: &mut TopicTreeInputDto, line: &str) {
