@@ -113,6 +113,9 @@ impl QueryComparison {
             (QueryField::Depth, QueryOperator::Lte, QueryValue::Number(expected)) => {
                 (depth as i64) <= *expected
             }
+            (QueryField::Depth, QueryOperator::In, QueryValue::NumberList(expected)) => {
+                expected.iter().any(|value| (depth as i64) == *value)
+            }
             _ => false,
         }
     }
@@ -147,6 +150,7 @@ enum QueryValue {
     String(String),
     StringList(Vec<String>),
     Number(i64),
+    NumberList(Vec<i64>),
     None,
 }
 
@@ -239,6 +243,8 @@ impl<'a> QueryParser<'a> {
         let operator = self.parse_operator()?;
         let value = if operator == QueryOperator::Exists {
             QueryValue::None
+        } else if operator == QueryOperator::In && field == QueryField::Depth {
+            self.parse_number_list_value()?
         } else if operator == QueryOperator::In {
             self.parse_string_list_value()?
         } else if field == QueryField::Depth {
@@ -357,6 +363,40 @@ impl<'a> QueryParser<'a> {
     }
 
     fn parse_number_value(&mut self) -> Result<QueryValue, QueryParseError> {
+        Ok(QueryValue::Number(self.parse_number_literal()?))
+    }
+
+    fn parse_number_list_value(&mut self) -> Result<QueryValue, QueryParseError> {
+        self.skip_whitespace();
+
+        if !self.consume_char('[') {
+            return Err(QueryParseError::ExpectedStringValue);
+        }
+
+        let mut values = Vec::new();
+
+        loop {
+            self.skip_whitespace();
+            if self.consume_char(']') {
+                return Ok(QueryValue::NumberList(values));
+            }
+
+            values.push(self.parse_number_literal()?);
+
+            self.skip_whitespace();
+            if self.consume_char(',') {
+                continue;
+            }
+
+            if self.consume_char(']') {
+                return Ok(QueryValue::NumberList(values));
+            }
+
+            return Err(QueryParseError::ExpectedStringValue);
+        }
+    }
+
+    fn parse_number_literal(&mut self) -> Result<i64, QueryParseError> {
         self.skip_whitespace();
         let start = self.position;
 
@@ -375,7 +415,7 @@ impl<'a> QueryParser<'a> {
         let value = self.input[start..self.position]
             .parse::<i64>()
             .map_err(|_| QueryParseError::ExpectedStringValue)?;
-        Ok(QueryValue::Number(value))
+        Ok(value)
     }
 
     fn expect_end(&mut self) -> Result<(), QueryParseError> {
