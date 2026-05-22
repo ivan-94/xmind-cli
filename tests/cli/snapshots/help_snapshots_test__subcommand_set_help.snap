@@ -1,13 +1,16 @@
 ---
 source: tests/cli/help_snapshots_test.rs
+assertion_line: 16
 expression: "help_output(&[subcommand, \"--help\"])"
 ---
-Usage: xmind set [OPTIONS] <--dry-run|--apply> <WORKBOOK>
+Usage: xmind set [OPTIONS] --node <NODE> <--dry-run|--apply> <WORKBOOK>
 
 Arguments:
   <WORKBOOK>  
 
 Options:
+      --node <NODE>                
+      --title <TITLE>              
       --dry-run                    
       --apply                      
       --json                       
