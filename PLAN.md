@@ -348,7 +348,7 @@ Implement a Rust CLI named `xmind` that satisfies the documented product, comman
 
 ## Phase 13: Assets and Images
 
-- [ ] Detect supported image media types.
+- [x] Detect supported image media types.
 - [ ] Implement image checksum.
 - [ ] Implement topic image attach.
 - [ ] Implement topic image replace.
