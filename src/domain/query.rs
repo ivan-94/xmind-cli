@@ -62,6 +62,9 @@ impl QueryComparison {
             (QueryField::Path, QueryOperator::Eq, QueryValue::String(expected)) => {
                 path.to_selector_value() == *expected
             }
+            (QueryField::Path, QueryOperator::StartsWith, QueryValue::String(prefix)) => {
+                path.to_selector_value().starts_with(prefix)
+            }
             (QueryField::Note, QueryOperator::Exists, QueryValue::None) => topic.note.is_some(),
             (QueryField::Depth, QueryOperator::Gt, QueryValue::Number(expected)) => {
                 (depth as i64) > *expected
