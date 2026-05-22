@@ -2345,5 +2345,48 @@
         <li>None.</li>
       </ul>
     </section>
+
+    <section class="entry">
+      <h2>2026-05-22 - domain to storage DTO encoding</h2>
+      <h3>Design Decisions</h3>
+      <ul>
+        <li>
+          Added <code>encode_workbook_content</code> to map the domain
+          <code>Workbook</code> model back into supported XMind
+          <code>content.json</code> storage DTOs.
+        </li>
+        <li>
+          The encoder covers sheets, topics, notes, labels, markers, hyperlinks,
+          image references, and attached child trees.
+        </li>
+      </ul>
+
+      <h3>Deviations</h3>
+      <ul>
+        <li>
+          The new encoder is not yet wired into package writes; current mutation
+          commands still patch <code>content.json</code> directly. Writer
+          integration is left for the preservation and transaction tasks.
+        </li>
+      </ul>
+
+      <h3>Tradeoffs</h3>
+      <ul>
+        <li>
+          A temporary dead-code allowance remains on the encode module because
+          this slice creates the DTO encoder before replacing the existing
+          value-level writer path.
+        </li>
+      </ul>
+
+      <h3>Open Questions</h3>
+      <ul>
+        <li>
+          Decide during preservation merge whether empty
+          <code>children.attached</code> arrays should be omitted for leaf
+          topics or kept for deterministic output.
+        </li>
+      </ul>
+    </section>
   </body>
 </html>

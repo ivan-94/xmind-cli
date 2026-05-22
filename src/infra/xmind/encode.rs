@@ -1,10 +1,27 @@
+#![allow(dead_code)]
+
 use std::fs::{self, File};
 use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
 
+use serde::Serialize;
 use serde_json::{json, Value};
 use thiserror::Error;
 use zip::write::FileOptions;
+
+use crate::domain::sheet::Sheet;
+use crate::domain::topic::{Topic, TopicImageRef};
+use crate::domain::workbook::Workbook;
+
+pub fn encode_workbook_content(workbook: &Workbook) -> Result<Vec<u8>, XMindWriteError> {
+    let sheets = workbook
+        .sheets
+        .iter()
+        .map(StorageSheetDto::from_sheet)
+        .collect::<Vec<_>>();
+
+    Ok(serde_json::to_vec_pretty(&sheets)?)
+}
 
 pub fn append_child_topic(
     workbook_path: &Path,
@@ -277,6 +294,112 @@ fn temp_workbook_path(workbook_path: &Path) -> PathBuf {
     workbook_path.with_file_name(format!("{file_name}.tmp"))
 }
 
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct StorageSheetDto {
+    id: String,
+    title: String,
+    root_topic: StorageTopicDto,
+}
+
+impl StorageSheetDto {
+    fn from_sheet(sheet: &Sheet) -> Self {
+        Self {
+            id: sheet.id.0.clone(),
+            title: sheet.title.clone(),
+            root_topic: StorageTopicDto::from_topic(&sheet.root),
+        }
+    }
+}
+
+#[derive(Serialize)]
+struct StorageTopicDto {
+    id: String,
+    title: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    notes: Option<StorageNotesDto>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    href: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    image: Option<StorageImageDto>,
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    labels: Vec<String>,
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    markers: Vec<StorageMarkerDto>,
+    children: StorageChildrenDto,
+}
+
+impl StorageTopicDto {
+    fn from_topic(topic: &Topic) -> Self {
+        Self {
+            id: topic.id.0.clone(),
+            title: topic.title.clone(),
+            notes: topic.note.as_ref().map(|note| StorageNotesDto {
+                plain: StoragePlainNoteDto {
+                    content: note.clone(),
+                },
+            }),
+            href: topic.hyperlink.clone(),
+            image: topic.image.as_ref().map(StorageImageDto::from_topic_image),
+            labels: topic.labels.clone(),
+            markers: topic
+                .markers
+                .iter()
+                .map(|marker| StorageMarkerDto {
+                    marker_id: marker.clone(),
+                })
+                .collect(),
+            children: StorageChildrenDto {
+                attached: topic
+                    .children
+                    .iter()
+                    .map(StorageTopicDto::from_topic)
+                    .collect(),
+            },
+        }
+    }
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct StorageMarkerDto {
+    marker_id: String,
+}
+
+#[derive(Serialize)]
+struct StorageImageDto {
+    src: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    alt: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    title: Option<String>,
+}
+
+impl StorageImageDto {
+    fn from_topic_image(image: &TopicImageRef) -> Self {
+        Self {
+            src: image.asset_id.as_str().to_owned(),
+            alt: image.alt.clone(),
+            title: image.title.clone(),
+        }
+    }
+}
+
+#[derive(Serialize)]
+struct StorageNotesDto {
+    plain: StoragePlainNoteDto,
+}
+
+#[derive(Serialize)]
+struct StoragePlainNoteDto {
+    content: String,
+}
+
+#[derive(Serialize)]
+struct StorageChildrenDto {
+    attached: Vec<StorageTopicDto>,
+}
+
 #[derive(Debug, Error)]
 pub enum XMindWriteError {
     #[error("workbook package could not be read or written: {0}")]
@@ -296,4 +419,76 @@ pub enum XMindWriteError {
 
     #[error("topic was not found in content.json: {0}")]
     TopicNotFound(String),
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::domain::sheet::{Sheet, SheetId};
+    use crate::domain::topic::{AssetId, Topic, TopicId, TopicImageRef};
+    use crate::domain::workbook::{PreservationBag, ResourceIndex, Workbook};
+
+    use super::{encode_workbook_content, Value};
+
+    #[test]
+    fn encodes_domain_workbook_to_supported_storage_dtos() {
+        let workbook = Workbook {
+            sheets: vec![Sheet {
+                id: SheetId("sheet-roadmap".to_owned()),
+                title: "Roadmap".to_owned(),
+                root: Topic {
+                    id: TopicId("topic-root".to_owned()),
+                    title: "Roadmap".to_owned(),
+                    note: Some("Root note".to_owned()),
+                    labels: vec!["plan".to_owned()],
+                    markers: vec!["priority-1".to_owned()],
+                    hyperlink: Some("https://example.com".to_owned()),
+                    image: Some(TopicImageRef::new(
+                        AssetId::new("xap:resources/root.png"),
+                        Some("Root image".to_owned()),
+                        Some("Root".to_owned()),
+                    )),
+                    children: vec![Topic {
+                        id: TopicId("topic-payment".to_owned()),
+                        title: "Payment".to_owned(),
+                        note: None,
+                        labels: Vec::new(),
+                        markers: Vec::new(),
+                        hyperlink: None,
+                        image: None,
+                        children: Vec::new(),
+                    }],
+                },
+            }],
+            resources: ResourceIndex::default(),
+            preservation: PreservationBag::default(),
+        };
+
+        let content = encode_workbook_content(&workbook).expect("workbook encodes");
+        let value: Value = serde_json::from_slice(&content).expect("encoded content is JSON");
+
+        assert_eq!(value[0]["id"], "sheet-roadmap");
+        assert_eq!(value[0]["title"], "Roadmap");
+        assert_eq!(value[0]["rootTopic"]["id"], "topic-root");
+        assert_eq!(value[0]["rootTopic"]["title"], "Roadmap");
+        assert_eq!(
+            value[0]["rootTopic"]["notes"]["plain"]["content"],
+            "Root note"
+        );
+        assert_eq!(value[0]["rootTopic"]["labels"][0], "plan");
+        assert_eq!(
+            value[0]["rootTopic"]["markers"][0]["markerId"],
+            "priority-1"
+        );
+        assert_eq!(value[0]["rootTopic"]["href"], "https://example.com");
+        assert_eq!(
+            value[0]["rootTopic"]["image"]["src"],
+            "xap:resources/root.png"
+        );
+        assert_eq!(value[0]["rootTopic"]["image"]["alt"], "Root image");
+        assert_eq!(value[0]["rootTopic"]["image"]["title"], "Root");
+        assert_eq!(
+            value[0]["rootTopic"]["children"]["attached"][0]["id"],
+            "topic-payment"
+        );
+    }
 }

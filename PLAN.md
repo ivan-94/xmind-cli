@@ -225,7 +225,7 @@ Implement a Rust CLI named `xmind` that satisfies the documented product, comman
 ## Phase 8: Transactional Writer and Validation
 
 - [x] Implement package writer scaffold.
-- [ ] Encode domain model back into supported XMind storage DTOs.
+- [x] Encode domain model back into supported XMind storage DTOs.
 - [ ] Merge preserved unknown JSON fields.
 - [ ] Reuse preserved package entries.
 - [x] Write candidate package to temp file in destination directory.
