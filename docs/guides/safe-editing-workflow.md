@@ -21,7 +21,7 @@
 xmind inspect plan.xmind --json
 xmind find plan.xmind --title "Payment" --json
 xmind add-tree plan.xmind --parent "id:topic-123" --input payment.yaml --dry-run --json
-xmind add-tree plan.xmind --parent "id:topic-123" --input payment.yaml --apply --backup --validate-after --json
+xmind add-tree plan.xmind --parent "id:topic-123" --input payment.yaml --apply --backup --json
 xmind validate plan.xmind --json
 ```
 
@@ -30,5 +30,6 @@ xmind validate plan.xmind --json
 If the result is wrong:
 
 ```bash
-xmind restore .xmind-backups/plan.20260521-210000.xmind --output plan.xmind --apply --overwrite --validate-after
+xmind restore plan.xmind --apply --backup
+xmind validate plan.xmind --json
 ```

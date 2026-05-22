@@ -99,6 +99,11 @@
           <code>tests/cli/snapshots/help_snapshots_test__*.snap</code>
           持续检查，覆盖 top-level 与所有已注册 subcommands。
         </li>
+        <li>
+          文档契约测试会拒绝继续宣传已移除或未实现的 CLI surface，例如
+          <code>--validate-after</code>、dedicated asset 子命令、
+          <code>xmind tree --node</code> 和 <code>xmind restore --output</code>。
+        </li>
       </ul>
     </section>
 

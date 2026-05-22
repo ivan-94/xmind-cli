@@ -161,6 +161,5 @@ Do not implement broad XMind visual features before the read/patch/write safety 
 ```bash
 xmind tree file.xmind --json --depth 2
 xmind patch file.xmind --ops ops.yaml --dry-run --json
-xmind patch file.xmind --ops ops.yaml --apply --backup --validate-after --json
+xmind patch file.xmind --ops ops.yaml --apply --backup --json
 ```
-

@@ -20,7 +20,6 @@ Options use long kebab-case names:
 
 ```text
 --dry-run
---validate-after
 --create-missing-path
 ```
 
@@ -55,4 +54,3 @@ path:/A
 title:"A"
 query:title contains "A"
 ```
-

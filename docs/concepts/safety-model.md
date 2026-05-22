@@ -45,20 +45,21 @@ Default behavior is equivalent to:
 
 `delete` and `replace_tree` should produce clear diffs in dry-run mode. Interactive confirmation is not required for agents, but `--dry-run` examples should be prominent.
 
-### Validation Can Be Required
+### Validation Can Be Run Explicitly
 
-Commands support:
+Current commands expose validation as a separate read command:
 
 ```bash
---validate-after
+xmind validate plan.xmind --json
 ```
 
-If validation fails after a mutation, the command should not replace the original workbook.
+Write paths still use a write-then-validate-then-replace implementation internally where
+needed, but the public CLI no longer exposes a validation flag on write commands.
 
 ## Recommended Write Flow
 
 ```bash
 xmind patch plan.xmind --ops ops.yaml --dry-run --json
-xmind patch plan.xmind --ops ops.yaml --apply --backup --validate-after --json
+xmind patch plan.xmind --ops ops.yaml --apply --backup --json
 xmind validate plan.xmind --json
 ```

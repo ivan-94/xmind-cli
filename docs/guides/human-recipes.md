@@ -29,5 +29,5 @@ xmind set roadmap.xmind --node "path:/Q2/Payment" --title "Payments" --apply --b
 ## Export for Review
 
 ```bash
-xmind export roadmap.xmind --format markdown --include-notes --output roadmap.md
+xmind export roadmap.xmind --format markdown --output roadmap.md
 ```

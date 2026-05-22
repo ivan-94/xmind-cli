@@ -75,14 +75,8 @@ xmind set plan.xmind --node "id:topic-123" --clear image --apply
 xmind export plan.xmind --format assets --output ./assets
 ```
 
-Future dedicated commands may include:
-
-```bash
-xmind assets plan.xmind --json
-xmind asset-export plan.xmind --output ./assets
-```
-
-Those commands are deferred until the implementation needs stronger resource workflows.
+Dedicated asset subcommands are deferred until the implementation needs stronger
+resource workflows.
 
 ## JSON Shape
 
@@ -137,4 +131,3 @@ Example:
   "suggested_fix": "Convert the image to PNG or JPEG and retry."
 }
 ```
-

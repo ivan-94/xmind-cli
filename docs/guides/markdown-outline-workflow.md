@@ -9,7 +9,7 @@
 ## Export to Markdown
 
 ```bash
-xmind export roadmap.xmind --format markdown --include-notes --output roadmap.md
+xmind export roadmap.xmind --format markdown --output roadmap.md
 ```
 
 ## Edit Markdown
@@ -27,7 +27,8 @@ Payment scope.
 ## Import as a New Workbook
 
 ```bash
-xmind import --input roadmap.md --output roadmap.xmind --apply --validate-after
+xmind import --input roadmap.md --output roadmap.xmind --apply
+xmind validate roadmap.xmind --json
 ```
 
 ## Insert Markdown Under an Existing Node

@@ -25,14 +25,16 @@ xmind get roadmap.xmind --node "path:/Q2/Payment" --json
 
 ```bash
 xmind add roadmap.xmind --parent "path:/Q2" --title "Payment" --dry-run
-xmind add roadmap.xmind --parent "path:/Q2" --title "Payment" --apply --backup --validate-after
+xmind add roadmap.xmind --parent "path:/Q2" --title "Payment" --apply --backup
+xmind validate roadmap.xmind --json
 ```
 
 ## Batch Edit
 
 ```bash
 xmind patch roadmap.xmind --ops ops.yaml --dry-run --json
-xmind patch roadmap.xmind --ops ops.yaml --apply --backup --validate-after --json
+xmind patch roadmap.xmind --ops ops.yaml --apply --backup --json
+xmind validate roadmap.xmind --json
 ```
 
 ## Export

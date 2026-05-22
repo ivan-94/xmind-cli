@@ -31,7 +31,8 @@ Run:
 
 ```bash
 xmind patch roadmap.xmind --ops ops.yaml --dry-run --json
-xmind patch roadmap.xmind --ops ops.yaml --apply --backup --validate-after --json
+xmind patch roadmap.xmind --ops ops.yaml --apply --backup --json
+xmind validate roadmap.xmind --json
 ```
 
 ## Duplicate Handling
@@ -44,4 +45,3 @@ match_by: title_path
 ```
 
 Avoid `rename` in agent workflows unless duplicate topics are explicitly desired.
-

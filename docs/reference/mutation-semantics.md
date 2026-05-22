@@ -38,7 +38,6 @@ This applies to:
 - validate inputs,
 - compute the resulting paths and field changes,
 - compute a human-readable and JSON diff,
-- run validation if `--validate-after` is present,
 - leave the filesystem unchanged.
 
 ## Apply
@@ -49,13 +48,13 @@ This applies to:
 - write changes only after all preflight checks pass,
 - preserve unknown fields by default,
 - include a result summary,
-- include backup and validation results when requested.
+- include backup results when requested.
 
 Applied workbook writes must use a write-then-validate-then-atomic-replace flow:
 
 1. Load the original workbook.
 2. Build the changed workbook in memory or a temporary file.
-3. Run `--validate-after` against the changed workbook when requested.
+3. Validate the changed workbook when the command writes through the transactional writer.
 4. If validation fails, leave the original workbook path untouched.
 5. If validation passes, replace the original workbook atomically where the platform supports atomic rename.
 
@@ -69,12 +68,12 @@ Recommended agent pattern:
 
 ```bash
 xmind patch plan.xmind --ops ops.yaml --dry-run --json
-xmind patch plan.xmind --ops ops.yaml --apply --backup --validate-after --json
+xmind patch plan.xmind --ops ops.yaml --apply --backup --json
 ```
 
 ## Validation Failure
 
-If `--validate-after` fails, the original workbook must remain unchanged. The command returns `validation_failed` with diagnostics and, if relevant, the temporary output path.
+If transactional validation fails, the original workbook must remain unchanged. The command returns `validation_failed` with diagnostics and, if relevant, the temporary output path.
 
 ## Output Path
 

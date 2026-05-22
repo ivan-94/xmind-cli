@@ -47,11 +47,10 @@ An agent should be able to run this workflow without brittle assumptions:
 
 ```bash
 xmind find roadmap.xmind --title "支付" --json
-xmind tree roadmap.xmind --node "id:topic-123" --depth 3 --json
+xmind get roadmap.xmind --node "id:topic-123" --depth 3 --json
 xmind patch roadmap.xmind --ops payment.yaml --dry-run --json
 xmind patch roadmap.xmind --ops payment.yaml --apply --backup --json
 xmind validate roadmap.xmind --json
 ```
 
 The result should be deterministic enough that a later agent can continue from the JSON outputs and documented selectors.
-

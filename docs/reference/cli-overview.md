@@ -62,6 +62,6 @@ xmind add-tree roadmap.xmind \
 
 ## Agent Contract
 
-Every command should support `--json`. Every workbook-mutating command must receive exactly one of `--dry-run` or `--apply`, and should support `--backup` and `--validate-after` when it writes a workbook.
+Every command should support `--json`. Every workbook-mutating command must receive exactly one of `--dry-run` or `--apply`, and write commands should support `--backup` where in-place edits are possible. Run `xmind validate` explicitly when an acceptance flow needs a separate validation result.
 
 Detailed mutation behavior is defined in `mutation-semantics.md`. Patch operation behavior is defined in `patch-operations.md`.

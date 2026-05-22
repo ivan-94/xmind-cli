@@ -39,7 +39,6 @@ xmind add-tree plan.xmind \
   --input generated-tree.yaml \
   --apply \
   --backup \
-  --validate-after \
   --json
 ```
 
@@ -47,7 +46,8 @@ xmind add-tree plan.xmind \
 
 ```bash
 xmind patch plan.xmind --ops ops.yaml --dry-run --json
-xmind patch plan.xmind --ops ops.yaml --apply --backup --validate-after --json
+xmind patch plan.xmind --ops ops.yaml --apply --backup --json
+xmind validate plan.xmind --json
 ```
 
 ## Recover from Ambiguity

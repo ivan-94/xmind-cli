@@ -67,11 +67,10 @@ Dry run output always includes a structured diff. There is no separate `--diff` 
 
 ### Retry Safety
 
-Batch commands support idempotent options:
+Implemented batch commands keep retry safety in patch operation semantics rather than
+extra top-level flags:
 
 ```bash
---if-exists error|skip|merge|replace|rename
---match-by id|title|title_path|path
 --create-missing-path
 ```
 
