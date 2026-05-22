@@ -1755,5 +1755,48 @@
         </li>
       </ul>
     </section>
+
+    <section class="entry">
+      <h2>2026-05-22 - resource metadata loading</h2>
+      <h3>Design Decisions</h3>
+      <ul>
+        <li>
+          The XMind reader now treats non-directory zip entries under
+          <code>resources/</code> as workbook resources and adds them to
+          <code>ResourceIndex</code>.
+        </li>
+        <li>
+          Resource ids currently reuse the XMind reference form
+          <code>xap:resources/...</code>, matching topic image references until
+          a product-owned asset id scheme is introduced.
+        </li>
+      </ul>
+
+      <h3>Deviations</h3>
+      <ul>
+        <li>
+          This slice only loads enough metadata to count resources. Media type,
+          file name, byte size, checksum, and <code>used_by</code> output remain
+          future asset/indexing work.
+        </li>
+      </ul>
+
+      <h3>Tradeoffs</h3>
+      <ul>
+        <li>
+          Counting resource entries from the package keeps <code>inspect</code>
+          useful now without exposing raw package entries as public resource
+          DTOs prematurely.
+        </li>
+      </ul>
+
+      <h3>Open Questions</h3>
+      <ul>
+        <li>
+          Confirm whether resource ids should stay aligned with XMind
+          <code>xap:</code> refs or be remapped when asset export is built.
+        </li>
+      </ul>
+    </section>
   </body>
 </html>

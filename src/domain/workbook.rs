@@ -48,13 +48,17 @@ impl PreservationBag {
 }
 
 impl ResourceIndex {
+    pub fn insert_asset_id(&mut self, asset_id: AssetId) {
+        self.assets.insert(asset_id, ());
+    }
+
     pub fn len(&self) -> usize {
         self.assets.len()
     }
 
     #[cfg(test)]
-    fn insert_asset_id(&mut self, asset_id: AssetId) {
-        self.assets.insert(asset_id, ());
+    fn contains_asset_id(&self, asset_id: &AssetId) -> bool {
+        self.assets.contains_key(asset_id)
     }
 }
 
@@ -71,6 +75,7 @@ mod tests {
         index.insert_asset_id(AssetId::new("xap:resources/payment.png"));
 
         assert_eq!(index.len(), 1);
+        assert!(index.contains_asset_id(&AssetId::new("xap:resources/payment.png")));
     }
 
     #[test]

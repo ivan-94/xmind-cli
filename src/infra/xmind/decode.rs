@@ -18,11 +18,15 @@ pub fn read_workbook(path: &Path) -> Result<Workbook, XMindReadError> {
     }
 
     let mut preservation = PreservationBag::default();
+    let mut resources = ResourceIndex::default();
     for index in 0..archive.len() {
         let entry = archive.by_index(index)?;
         let name = entry.name();
         if name != "content.json" {
             preservation.preserve_package_entry(name.to_owned());
+        }
+        if is_resource_entry(name) {
+            resources.insert_asset_id(AssetId::new(format!("xap:{name}")));
         }
     }
 
@@ -39,9 +43,13 @@ pub fn read_workbook(path: &Path) -> Result<Workbook, XMindReadError> {
 
     Ok(Workbook {
         sheets: sheets.into_iter().map(Into::into).collect(),
-        resources: ResourceIndex::default(),
+        resources,
         preservation,
     })
+}
+
+fn is_resource_entry(name: &str) -> bool {
+    name.starts_with("resources/") && !name.ends_with('/')
 }
 
 #[derive(Debug, Error)]
