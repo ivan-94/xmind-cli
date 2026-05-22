@@ -362,7 +362,7 @@ Implement a Rust CLI named `xmind` that satisfies the documented product, comman
 
 ## Phase 14: Error Coverage
 
-- [ ] Test `invalid_usage`.
+- [x] Test `invalid_usage`.
 - [x] Test `file_not_found`.
 - [x] Test `parse_failed`.
 - [x] Test `sheet_not_found`.
