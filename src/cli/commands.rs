@@ -13,7 +13,7 @@ pub enum Command {
     AddTree(MutationCommand),
     Set(SetCommand),
     Delete(DeleteCommand),
-    Move(MutationCommand),
+    Move(MoveCommand),
     Copy(MutationCommand),
     Patch(PatchCommand),
     Diff(WorkbookCommand),
@@ -143,6 +143,20 @@ pub struct DeleteCommand {
 
     #[arg(long)]
     pub node: String,
+
+    #[command(flatten)]
+    pub mode: MutationMode,
+}
+
+#[derive(Debug, Args)]
+pub struct MoveCommand {
+    pub workbook: PathBuf,
+
+    #[arg(long)]
+    pub node: String,
+
+    #[arg(long)]
+    pub to: String,
 
     #[command(flatten)]
     pub mode: MutationMode,

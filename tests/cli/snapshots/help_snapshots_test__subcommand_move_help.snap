@@ -2,12 +2,14 @@
 source: tests/cli/help_snapshots_test.rs
 expression: "help_output(&[subcommand, \"--help\"])"
 ---
-Usage: xmind move [OPTIONS] <--dry-run|--apply> <WORKBOOK>
+Usage: xmind move [OPTIONS] --node <NODE> --to <TO> <--dry-run|--apply> <WORKBOOK>
 
 Arguments:
   <WORKBOOK>  
 
 Options:
+      --node <NODE>                
+      --to <TO>                    
       --dry-run                    
       --apply                      
       --json                       

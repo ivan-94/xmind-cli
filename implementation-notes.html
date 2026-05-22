@@ -2306,5 +2306,44 @@
         <li>None.</li>
       </ul>
     </section>
+
+    <section class="entry">
+      <h2>2026-05-22 - move diff tests</h2>
+      <h3>Design Decisions</h3>
+      <ul>
+        <li>
+          Added a CLI test for <code>move --dry-run --json</code> that verifies
+          moved topic metadata, summary counts, diff event shape, and no file
+          writes.
+        </li>
+        <li>
+          Added the minimal <code>--node</code> and <code>--to</code> move
+          command surface plus dry-run preview needed for move diff behavior.
+        </li>
+      </ul>
+
+      <h3>Deviations</h3>
+      <ul>
+        <li>
+          <code>move --apply</code>, <code>--position</code>, cycle/conflict
+          detection, and actual package writes remain unimplemented and are
+          still tracked by later Phase 9 tasks.
+        </li>
+      </ul>
+
+      <h3>Tradeoffs</h3>
+      <ul>
+        <li>
+          The dry-run preview computes the destination path by appending the
+          source topic title to the destination topic path, which is sufficient
+          for current diff coverage but does not model sibling positions yet.
+        </li>
+      </ul>
+
+      <h3>Open Questions</h3>
+      <ul>
+        <li>None.</li>
+      </ul>
+    </section>
   </body>
 </html>

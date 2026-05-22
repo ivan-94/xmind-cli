@@ -220,7 +220,7 @@ Implement a Rust CLI named `xmind` that satisfies the documented product, comman
 - [x] Add tests for add diff.
 - [x] Add tests for delete diff.
 - [x] Add tests for update diff.
-- [ ] Add tests for move diff.
+- [x] Add tests for move diff.
 
 ## Phase 8: Transactional Writer and Validation
 

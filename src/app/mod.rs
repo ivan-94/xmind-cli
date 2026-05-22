@@ -131,6 +131,14 @@ pub fn run(cli: Cli) -> i32 {
             let node = node.clone();
             render_delete(invocation, json, &node)
         }
+        Action::Move {
+            ref node,
+            ref destination,
+        } => {
+            let node = node.clone();
+            let destination = destination.clone();
+            render_move(invocation, json, &node, &destination)
+        }
         Action::Noop => 0,
     }
 }
@@ -203,6 +211,10 @@ enum Action {
     },
     Delete {
         node: String,
+    },
+    Move {
+        node: String,
+        destination: String,
     },
     Validate {
         strict: bool,
@@ -384,13 +396,19 @@ impl Invocation {
                 )
                 .with_action(Action::Delete { node: command.node }),
             ),
-            Command::Move(command) => Some(Self::mutation(
-                "move",
-                command.workbook,
-                command.mode.dry_run,
-                sheet_selection,
-                quiet,
-            )),
+            Command::Move(command) => Some(
+                Self::mutation(
+                    "move",
+                    command.workbook,
+                    command.mode.dry_run,
+                    sheet_selection,
+                    quiet,
+                )
+                .with_action(Action::Move {
+                    node: command.node,
+                    destination: command.to,
+                }),
+            ),
             Command::Copy(command) => Some(Self::mutation(
                 "copy",
                 command.workbook,
@@ -1183,6 +1201,182 @@ fn render_delete(invocation: Invocation, json: bool, node: &str) -> i32 {
     0
 }
 
+fn render_move(invocation: Invocation, json: bool, node: &str, destination: &str) -> i32 {
+    if !invocation.dry_run {
+        let error = CliErrorBody::new(
+            ErrorCode::InvalidUsage,
+            "Only move --dry-run is implemented in this slice.",
+            true,
+            "Retry with --dry-run, or wait for the move apply slice.",
+        );
+        return render_error(invocation, json, error);
+    }
+
+    let workbook = match read_workbook_or_render_error(&invocation, json) {
+        Ok(workbook) => workbook,
+        Err(exit_code) => return exit_code,
+    };
+
+    let sheet = match select_sheet_or_render_error(&workbook, &invocation, json) {
+        Ok(sheet) => sheet,
+        Err(exit_code) => return exit_code,
+    };
+
+    let selector = match Selector::parse(node) {
+        Ok(selector) => selector,
+        Err(error) => {
+            let error = CliErrorBody::new(
+                ErrorCode::InvalidUsage,
+                format!("Node selector is invalid: {error}"),
+                true,
+                "Use a valid selector such as id:<topic-id>, path:/Q2, or title:Payment.",
+            );
+            return render_error(invocation, json, error);
+        }
+    };
+    let destination_selector = match Selector::parse(destination) {
+        Ok(selector) => selector,
+        Err(error) => {
+            let error = CliErrorBody::new(
+                ErrorCode::InvalidUsage,
+                format!("Destination selector is invalid: {error}"),
+                true,
+                "Use a valid destination selector such as root, id:<topic-id>, or path:/Q2.",
+            );
+            return render_error(invocation, json, error);
+        }
+    };
+
+    let source = match resolve_topic(&sheet.root, &selector) {
+        ResolveOne::Found(resolved) => resolved,
+        ResolveOne::NotFound => {
+            let error = CliErrorBody::new(
+                ErrorCode::NotFound,
+                format!("Selector did not match a topic: {}", selector.render()),
+                true,
+                "Run tree or find to rediscover the topic selector, then retry.",
+            )
+            .with_selector(selector.render());
+            return render_error(invocation, json, error);
+        }
+        ResolveOne::Ambiguous(candidates) => {
+            let error = CliErrorBody::new(
+                ErrorCode::AmbiguousSelector,
+                "Selector matched multiple topics.",
+                true,
+                "Retry with one of the candidate ids.",
+            )
+            .with_selector(selector.render())
+            .with_candidates(
+                candidates
+                    .into_iter()
+                    .map(|candidate| CandidateDto {
+                        id: candidate.topic.id.0.clone(),
+                        path: candidate.path.to_selector_value(),
+                        title: candidate.topic.title.clone(),
+                        sheet: Some(sheet.title.clone()),
+                    })
+                    .collect(),
+            );
+            return render_error(invocation, json, error);
+        }
+    };
+
+    if source.path.is_root() {
+        let error = CliErrorBody::new(
+            ErrorCode::RootOperationNotAllowed,
+            "Moving the root topic is not allowed.",
+            true,
+            "Use a non-root node selector.",
+        )
+        .with_selector(selector.render());
+        return render_error(invocation, json, error);
+    }
+
+    let destination = match resolve_topic(&sheet.root, &destination_selector) {
+        ResolveOne::Found(resolved) => resolved,
+        ResolveOne::NotFound => {
+            let error = CliErrorBody::new(
+                ErrorCode::NotFound,
+                format!(
+                    "Destination selector did not match a topic: {}",
+                    destination_selector.render()
+                ),
+                true,
+                "Run tree or find to rediscover the destination selector, then retry.",
+            )
+            .with_selector(destination_selector.render());
+            return render_error(invocation, json, error);
+        }
+        ResolveOne::Ambiguous(candidates) => {
+            let error = CliErrorBody::new(
+                ErrorCode::AmbiguousSelector,
+                "Destination selector matched multiple topics.",
+                true,
+                "Retry with one of the candidate ids.",
+            )
+            .with_selector(destination_selector.render())
+            .with_candidates(
+                candidates
+                    .into_iter()
+                    .map(|candidate| CandidateDto {
+                        id: candidate.topic.id.0.clone(),
+                        path: candidate.path.to_selector_value(),
+                        title: candidate.topic.title.clone(),
+                        sheet: Some(sheet.title.clone()),
+                    })
+                    .collect(),
+            );
+            return render_error(invocation, json, error);
+        }
+    };
+
+    let from_path = source.path.to_selector_value();
+    let to_path = destination
+        .path
+        .join(source.topic.title.clone())
+        .to_selector_value();
+    let result = MoveDryRunResultDto {
+        will_change: from_path != to_path,
+        moved: MovedTopicDto {
+            id: source.topic.id.0.clone(),
+            from_path: from_path.clone(),
+            to_path: to_path.clone(),
+        },
+        summary: SummaryDto {
+            added: 0,
+            updated: 0,
+            deleted: 0,
+            moved: usize::from(from_path != to_path),
+        },
+        diff: vec![MoveDiffEventDto {
+            event: "moved",
+            from: from_path,
+            to: to_path,
+        }],
+    };
+
+    if json {
+        let envelope = CommandEnvelope {
+            ok: true,
+            command: Some(invocation.command),
+            workbook: Some(invocation.workbook.display().to_string()),
+            dry_run: invocation.dry_run,
+            applied: false,
+            result: Some(result),
+            error: None,
+            warnings: Vec::new(),
+        };
+        crate::cli::render_json_envelope(&envelope);
+    } else if !invocation.quiet {
+        for event in &result.diff {
+            println!("> {} -> {}", event.from, event.to);
+        }
+    }
+
+    0
+}
+
 fn render_set_title(invocation: Invocation, json: bool, node: &str, title: &str) -> i32 {
     if title.is_empty() {
         let error = CliErrorBody::new(
@@ -1938,6 +2132,28 @@ struct DeleteDryRunResultDto {
     deleted: Vec<String>,
     summary: SummaryDto,
     diff: Vec<DiffEventDto>,
+}
+
+#[derive(Debug, Serialize)]
+struct MoveDryRunResultDto {
+    will_change: bool,
+    moved: MovedTopicDto,
+    summary: SummaryDto,
+    diff: Vec<MoveDiffEventDto>,
+}
+
+#[derive(Debug, Serialize)]
+struct MovedTopicDto {
+    id: String,
+    from_path: String,
+    to_path: String,
+}
+
+#[derive(Debug, Serialize)]
+struct MoveDiffEventDto {
+    event: &'static str,
+    from: String,
+    to: String,
 }
 
 #[derive(Debug, Serialize)]
