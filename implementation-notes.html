@@ -1294,5 +1294,49 @@
         </li>
       </ul>
     </section>
+
+    <section class="entry">
+      <h2>2026-05-22 - topic hyperlink loading</h2>
+      <h3>Design Decisions</h3>
+      <ul>
+        <li>
+          Modern XMind topic hyperlinks are read from the topic-level
+          <code>href</code> field in <code>content.json</code>. The CLI domain
+          and JSON output expose this value as <code>hyperlink</code> to match
+          the documented semantic model.
+        </li>
+        <li>
+          Missing hyperlinks remain absent from full JSON topic output and are
+          omitted from compact field rendering unless a topic actually has a
+          hyperlink value.
+        </li>
+      </ul>
+
+      <h3>Deviations</h3>
+      <ul>
+        <li>
+          This slice only loads and renders hyperlink values. Hyperlink query
+          predicates and mutation semantics remain separate PLAN items.
+        </li>
+      </ul>
+
+      <h3>Tradeoffs</h3>
+      <ul>
+        <li>
+          I kept the domain field named <code>hyperlink</code> while mapping
+          from storage <code>href</code>, so callers do not need to know the
+          package field name.
+        </li>
+      </ul>
+
+      <h3>Open Questions</h3>
+      <ul>
+        <li>
+          Confirm whether future validation should reject non-URL hyperlink
+          targets or preserve supported XMind-internal link targets as opaque
+          strings.
+        </li>
+      </ul>
+    </section>
   </body>
 </html>

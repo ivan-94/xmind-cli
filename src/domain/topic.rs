@@ -5,6 +5,7 @@ pub struct Topic {
     pub note: Option<String>,
     pub labels: Vec<String>,
     pub markers: Vec<String>,
+    pub hyperlink: Option<String>,
     pub children: Vec<Topic>,
 }
 

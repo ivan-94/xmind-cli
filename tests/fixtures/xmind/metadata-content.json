@@ -28,7 +28,8 @@
                     {
                       "markerId": "task-start"
                     }
-                  ]
+                  ],
+                  "href": "https://example.com/payments"
                 }
               ]
             }

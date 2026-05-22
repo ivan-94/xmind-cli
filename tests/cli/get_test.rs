@@ -130,6 +130,37 @@ fn get_json_returns_topic_markers() {
 }
 
 #[test]
+fn get_json_returns_topic_hyperlink() {
+    let output = Command::cargo_bin("xmind")
+        .expect("xmind binary is built for CLI tests")
+        .args([
+            "get",
+            "tests/fixtures/xmind/metadata.xmind",
+            "--node",
+            "id:topic-payment",
+            "--json",
+        ])
+        .output()
+        .expect("get command runs");
+
+    assert_eq!(output.status.code(), Some(0));
+    assert!(
+        output.stderr.is_empty(),
+        "json get output should not emit stderr diagnostics: {}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+
+    let body: Value = serde_json::from_slice(&output.stdout).expect("stdout is JSON");
+    assert_eq!(body["ok"], true);
+    assert_eq!(body["command"], "get");
+    assert_eq!(body["result"]["topic"]["id"], "topic-payment");
+    assert_eq!(
+        body["result"]["topic"]["hyperlink"],
+        "https://example.com/payments"
+    );
+}
+
+#[test]
 fn get_json_missing_selector_returns_not_found_diagnostic() {
     let output = Command::cargo_bin("xmind")
         .expect("xmind binary is built for CLI tests")

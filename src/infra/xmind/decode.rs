@@ -70,6 +70,7 @@ struct StorageTopic {
     id: String,
     title: String,
     notes: Option<StorageNotes>,
+    href: Option<String>,
     #[serde(default)]
     labels: Vec<String>,
     #[serde(default)]
@@ -108,6 +109,7 @@ impl From<StorageTopic> for Topic {
                 .into_iter()
                 .map(|marker| marker.marker_id)
                 .collect(),
+            hyperlink: value.href,
             children: value
                 .children
                 .attached
