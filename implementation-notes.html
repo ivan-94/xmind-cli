@@ -392,6 +392,10 @@
           中的 <code>resources/</code> 原始文件，并保留资源目录结构；不带
           <code>--overwrite</code> 时仍拒绝覆盖已有输出路径。
         </li>
+        <li>
+          不支持的本地图片内容会返回 <code>unsupported_asset_type</code>，JSON
+          模式下保持标准错误 envelope，退出码为 11。
+        </li>
       </ul>
     </section>
   </body>

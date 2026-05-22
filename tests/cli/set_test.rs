@@ -896,6 +896,46 @@ fn set_image_apply_preserves_unrelated_resource_with_same_file_name() {
 }
 
 #[test]
+fn set_image_rejects_unsupported_asset_type_with_json_error() {
+    let temp_dir = tempfile::tempdir().expect("temp dir is created");
+    let workbook = temp_dir.path().join("roadmap.xmind");
+    fs::copy("tests/fixtures/xmind/minimal.xmind", &workbook).expect("fixture is copied");
+    let image = temp_dir.path().join("payment.txt");
+    fs::write(&image, b"not an image").expect("image is written");
+    let workbook_arg = workbook.to_string_lossy().into_owned();
+    let image_arg = image.to_string_lossy().into_owned();
+
+    let output = Command::cargo_bin("xmind")
+        .expect("xmind binary is built for CLI tests")
+        .args([
+            "set",
+            &workbook_arg,
+            "--node",
+            "path:/Q2/Payment",
+            "--image",
+            &image_arg,
+            "--apply",
+            "--json",
+        ])
+        .output()
+        .expect("set command runs");
+
+    assert_eq!(output.status.code(), Some(11));
+    assert!(
+        output.stderr.is_empty(),
+        "json set output should not emit stderr diagnostics: {}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    let body: Value = serde_json::from_slice(&output.stdout).expect("stdout is JSON");
+    assert_eq!(body["ok"], false);
+    assert_eq!(body["error"]["code"], "unsupported_asset_type");
+    assert_eq!(
+        body["error"]["suggested_fix"],
+        "Convert the image to PNG or JPEG and retry."
+    );
+}
+
+#[test]
 fn set_hyperlink_apply_writes_topic_hyperlink() {
     let temp_dir = tempfile::tempdir().expect("temp dir is created");
     let workbook = temp_dir.path().join("apply-set-hyperlink.xmind");
