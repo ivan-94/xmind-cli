@@ -179,6 +179,11 @@
           与 tree input / Markdown parsing 移出主模块；CLI 行为由
           <code>add_tree_test</code> 和 <code>patch_test</code> 做回归保护。
         </li>
+        <li>
+          Patch <code>replace_tree</code> 当前实现 dry-run 规划：非 root target
+          会输出旧子树 <code>deleted</code> diff 与新树 <code>added</code>
+          diff；root target 按 mutation root rule 返回 <code>invalid_patch</code>。
+        </li>
       </ul>
     </section>
   </body>

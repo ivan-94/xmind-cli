@@ -4454,7 +4454,7 @@ pub(in crate::app) fn collect_added_paths(
     paths
 }
 
-fn collect_deleted_paths(topic: &Topic, path: &TopicPath) -> Vec<String> {
+pub(in crate::app) fn collect_deleted_paths(topic: &Topic, path: &TopicPath) -> Vec<String> {
     let mut paths = vec![path.to_selector_value()];
 
     for child in &topic.children {

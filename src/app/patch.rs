@@ -5,13 +5,14 @@ use serde::Deserialize;
 use serde_json::{Map, Value};
 
 use crate::cli::{CandidateDto, CliErrorBody, CommandEnvelope, ErrorCode};
+use crate::domain::path::TopicPath;
 use crate::domain::selector::Selector;
 use crate::domain::sheet::Sheet;
 
 use super::{
-    collect_added_paths, find_topic_by_path, read_workbook_or_render_error, renamed_path,
-    render_error, resolve_topic, select_sheet_or_render_error, Invocation, ResolveOne,
-    TopicTreeInputDto,
+    collect_added_paths, collect_deleted_paths, find_topic_by_path, read_workbook_or_render_error,
+    renamed_path, render_error, resolve_topic, select_sheet_or_render_error, Invocation,
+    ResolveOne, TopicTreeInputDto,
 };
 
 #[derive(Debug, Deserialize)]
@@ -133,6 +134,26 @@ pub(super) fn render_patch(invocation: Invocation, json: bool, ops_path: &Path) 
                         event: "updated",
                         path,
                     });
+                    operations.push(PatchOperationDto {
+                        index,
+                        op: op_name.to_owned(),
+                        status: "planned",
+                    });
+                    continue;
+                }
+                Err(exit_code) => return exit_code,
+            }
+        } else if op_name == "replace_tree" {
+            match plan_patch_replace_tree(invocation.clone(), json, sheet, index, op_name, op) {
+                Ok((deleted_paths, added_paths)) => {
+                    diff.extend(deleted_paths.into_iter().map(|path| PatchDiffEventDto {
+                        event: "deleted",
+                        path,
+                    }));
+                    diff.extend(added_paths.into_iter().map(|path| PatchDiffEventDto {
+                        event: "added",
+                        path,
+                    }));
                     operations.push(PatchOperationDto {
                         index,
                         op: op_name.to_owned(),
@@ -472,6 +493,120 @@ fn plan_patch_set(
         .map(|title| renamed_path(&resolved.path, title))
         .unwrap_or_else(|| resolved.path.to_selector_value());
     Ok(path)
+}
+
+fn plan_patch_replace_tree(
+    invocation: Invocation,
+    json: bool,
+    sheet: &Sheet,
+    index: usize,
+    op_name: &str,
+    op: &PatchOpDto,
+) -> Result<(Vec<String>, Vec<String>), i32> {
+    let Some(node) = &op.node else {
+        let error = CliErrorBody::new(
+            ErrorCode::InvalidPatch,
+            "replace_tree operation is missing node.",
+            true,
+            "Add a node selector like node: path:/Q2/Payment.",
+        )
+        .with_operation_context(index, op_name.to_owned());
+        return Err(render_error(invocation, json, error));
+    };
+
+    let Some(tree) = &op.tree else {
+        let error = CliErrorBody::new(
+            ErrorCode::InvalidPatch,
+            "replace_tree operation is missing tree.",
+            true,
+            "Add a tree object with a title.",
+        )
+        .with_operation_context(index, op_name.to_owned());
+        return Err(render_error(invocation, json, error));
+    };
+    if tree.title.trim().is_empty() {
+        let error = CliErrorBody::new(
+            ErrorCode::InvalidPatch,
+            "replace_tree operation tree title must not be empty.",
+            true,
+            "Add a non-empty title for the replacement tree root.",
+        )
+        .with_operation_context(index, op_name.to_owned())
+        .with_field_path("tree.title");
+        return Err(render_error(invocation, json, error));
+    }
+
+    let selector = match Selector::parse(node) {
+        Ok(selector) => selector,
+        Err(error) => {
+            let error = CliErrorBody::new(
+                ErrorCode::InvalidPatch,
+                format!("replace_tree node selector is invalid: {error}"),
+                true,
+                "Use a valid selector such as root, id:<topic-id>, path:/Q2, or title:Payment.",
+            )
+            .with_operation_context(index, op_name.to_owned());
+            return Err(render_error(invocation, json, error));
+        }
+    };
+
+    let resolved = match resolve_topic(&sheet.root, &selector) {
+        ResolveOne::Found(resolved) => resolved,
+        ResolveOne::NotFound => {
+            let error = CliErrorBody::new(
+                ErrorCode::NotFound,
+                format!(
+                    "replace_tree selector did not match a topic: {}",
+                    selector.render()
+                ),
+                true,
+                "Run tree or find to rediscover the selector, then retry.",
+            )
+            .with_operation_context(index, op_name.to_owned())
+            .with_selector(selector.render());
+            return Err(render_error(invocation, json, error));
+        }
+        ResolveOne::Ambiguous(candidates) => {
+            let error = CliErrorBody::new(
+                ErrorCode::AmbiguousSelector,
+                "replace_tree selector matched multiple topics.",
+                true,
+                "Retry with a selector that resolves to exactly one topic.",
+            )
+            .with_operation_context(index, op_name.to_owned())
+            .with_selector(selector.render())
+            .with_candidates(
+                candidates
+                    .into_iter()
+                    .map(|candidate| CandidateDto {
+                        id: candidate.topic.id.0.clone(),
+                        path: candidate.path.to_selector_value(),
+                        title: candidate.topic.title.clone(),
+                        sheet: Some(sheet.title.clone()),
+                    })
+                    .collect(),
+            );
+            return Err(render_error(invocation, json, error));
+        }
+    };
+    if resolved.path.is_root() {
+        let error = CliErrorBody::new(
+            ErrorCode::InvalidPatch,
+            "replace_tree cannot target the root topic.",
+            true,
+            "Target a non-root topic such as path:/Q2/Payment.",
+        )
+        .with_operation_context(index, op_name.to_owned());
+        return Err(render_error(invocation, json, error));
+    }
+
+    let parent_path = TopicPath::from_segments(
+        resolved.path.segments()[..resolved.path.segments().len().saturating_sub(1)].to_vec(),
+    );
+    let deleted_paths = collect_deleted_paths(resolved.topic, &resolved.path);
+    let added_paths = collect_added_paths(&parent_path, tree);
+
+    Ok((deleted_paths, added_paths))
 }
 
 fn validate_patch_set_fields(
