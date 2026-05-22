@@ -313,6 +313,11 @@
           列表；实际将资源文件写入目录仍依赖后续 <code>--output</code>
           任务。
         </li>
+        <li>
+          <code>export --output</code> 已支持将当前 export payload 写入新文件；
+          在 <code>--overwrite</code> 实现前，目标已存在会返回
+          <code>write_failed</code>。
+        </li>
       </ul>
     </section>
   </body>

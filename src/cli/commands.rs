@@ -20,7 +20,7 @@ pub enum Command {
     Patch(PatchCommand),
     Diff(WorkbookCommand),
     Validate(ValidateCommand),
-    Export(WorkbookCommand),
+    Export(ExportCommand),
     Import(MutationCommand),
     Backup(BackupCommand),
     Restore(MutationCommand),
@@ -93,6 +93,14 @@ pub struct BackupCommand {
 
     #[arg(long)]
     pub backup_dir: Option<PathBuf>,
+}
+
+#[derive(Debug, Args)]
+pub struct ExportCommand {
+    pub workbook: PathBuf,
+
+    #[arg(long)]
+    pub output: Option<PathBuf>,
 }
 
 #[derive(Debug, Args)]

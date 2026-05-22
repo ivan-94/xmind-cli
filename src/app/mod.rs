@@ -1,7 +1,8 @@
 mod patch;
 mod tree_input;
 
-use std::path::Path;
+use std::fs;
+use std::path::{Path, PathBuf};
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use serde::Serialize;
@@ -106,9 +107,13 @@ pub fn run(cli: Cli) -> i32 {
             render_get(invocation, json, &node, depth, &fields, compact_json)
         }
         Action::Validate { strict } => render_validate(invocation, json, strict),
-        Action::Export { ref format } => {
+        Action::Export {
+            ref format,
+            ref output,
+        } => {
             let format = format.clone();
-            render_export(invocation, json, &format)
+            let output = output.clone();
+            render_export(invocation, json, &format, output)
         }
         Action::Backup { ref backup_dir } => {
             let backup_dir = backup_dir.clone();
@@ -412,6 +417,7 @@ enum Action {
     },
     Export {
         format: OutputFormat,
+        output: Option<PathBuf>,
     },
     Backup {
         backup_dir: Option<std::path::PathBuf>,
@@ -528,6 +534,7 @@ impl Invocation {
                 Self::read("export", command.workbook, sheet_selection).with_action(
                     Action::Export {
                         format: output_format,
+                        output: command.output,
                     },
                 ),
             ),
@@ -1045,7 +1052,12 @@ fn render_tree(
     0
 }
 
-fn render_export(invocation: Invocation, json: bool, format: &OutputFormat) -> i32 {
+fn render_export(
+    invocation: Invocation,
+    json: bool,
+    format: &OutputFormat,
+    output: Option<PathBuf>,
+) -> i32 {
     let workbook = match read_workbook_or_render_error(&invocation, json) {
         Ok(workbook) => workbook,
         Err(exit_code) => return exit_code,
@@ -1059,6 +1071,10 @@ fn render_export(invocation: Invocation, json: bool, format: &OutputFormat) -> i
     match format {
         OutputFormat::Json => {
             let result = TreeResultDto::from_sheet(sheet, None);
+            let content = serde_json::to_string_pretty(&result).expect("export result serializes");
+            if let Some(output) = output {
+                return write_export_output(invocation, json, output, &content);
+            }
             if json {
                 let envelope = CommandEnvelope {
                     ok: true,
@@ -1072,14 +1088,14 @@ fn render_export(invocation: Invocation, json: bool, format: &OutputFormat) -> i
                 };
                 crate::cli::render_json_envelope(&envelope);
             } else {
-                println!(
-                    "{}",
-                    serde_json::to_string_pretty(&result).expect("export result serializes")
-                );
+                println!("{content}");
             }
         }
         OutputFormat::Markdown => {
             let content = render_export_markdown(&sheet.root);
+            if let Some(output) = output {
+                return write_export_output(invocation, json, output, &content);
+            }
             if json {
                 let envelope = CommandEnvelope {
                     ok: true,
@@ -1106,6 +1122,9 @@ fn render_export(invocation: Invocation, json: bool, format: &OutputFormat) -> i
             } else {
                 "outline"
             };
+            if let Some(output) = output {
+                return write_export_output(invocation, json, output, &content);
+            }
             if json {
                 let envelope = CommandEnvelope {
                     ok: true,
@@ -1132,6 +1151,10 @@ fn render_export(invocation: Invocation, json: bool, format: &OutputFormat) -> i
                     serde_json::json!({ "asset_id": asset_id })
                 }).collect::<Vec<_>>(),
             });
+            let content = serde_json::to_string_pretty(&result).expect("export result serializes");
+            if let Some(output) = output {
+                return write_export_output(invocation, json, output, &content);
+            }
             if json {
                 let envelope = CommandEnvelope {
                     ok: true,
@@ -1145,10 +1168,7 @@ fn render_export(invocation: Invocation, json: bool, format: &OutputFormat) -> i
                 };
                 crate::cli::render_json_envelope(&envelope);
             } else {
-                println!(
-                    "{}",
-                    serde_json::to_string_pretty(&result).expect("export result serializes")
-                );
+                println!("{content}");
             }
         }
         _ => {
@@ -1190,6 +1210,48 @@ fn collect_export_outline_lines(topic: &Topic, indent: usize, lines: &mut Vec<St
     for child in &topic.children {
         collect_export_outline_lines(child, indent + 1, lines);
     }
+}
+
+fn write_export_output(invocation: Invocation, json: bool, output: PathBuf, content: &str) -> i32 {
+    if output.exists() {
+        let error = CliErrorBody::new(
+            ErrorCode::WriteFailed,
+            format!("Export output already exists: {}", output.display()),
+            false,
+            "Choose a different output path, or use --overwrite once that option is available.",
+        )
+        .with_path(output.display().to_string());
+        return render_error(invocation, json, error);
+    }
+
+    if let Err(error) = fs::write(&output, content) {
+        let error = CliErrorBody::new(
+            ErrorCode::WriteFailed,
+            format!("Export output could not be written: {error}"),
+            false,
+            "Check output path permissions and retry.",
+        )
+        .with_path(output.display().to_string());
+        return render_error(invocation, json, error);
+    }
+
+    if json {
+        let envelope = CommandEnvelope {
+            ok: true,
+            command: Some(invocation.command),
+            workbook: Some(invocation.workbook.display().to_string()),
+            dry_run: false,
+            applied: false,
+            result: Some(serde_json::json!({
+                "output": output.display().to_string(),
+            })),
+            error: None,
+            warnings: Vec::new(),
+        };
+        crate::cli::render_json_envelope(&envelope);
+    }
+
+    0
 }
 
 fn render_get(
