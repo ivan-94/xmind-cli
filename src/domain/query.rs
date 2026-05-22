@@ -75,6 +75,9 @@ impl QueryComparison {
                 let rendered_path = path.to_selector_value();
                 expected.iter().any(|value| rendered_path == *value)
             }
+            (QueryField::Note, QueryOperator::Eq, QueryValue::String(expected)) => {
+                topic.note.as_deref() == Some(expected.as_str())
+            }
             (QueryField::Note, QueryOperator::Contains, QueryValue::String(needle)) => topic
                 .note
                 .as_deref()
