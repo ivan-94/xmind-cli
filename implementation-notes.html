@@ -237,6 +237,12 @@
           dry-run 规划：目标主题输出 <code>deleted</code> diff，直接 children
           输出 <code>{event, from, to}</code> moved diff。
         </li>
+        <li>
+          Patch <code>copy</code> 的 <code>preserve_ids: true</code>
+          当前按同 workbook duplicate-id 风险处理，返回
+          <code>patch_conflict</code>；<code>preserve_ids: false</code>
+          是默认复制路径。
+        </li>
       </ul>
     </section>
   </body>
