@@ -1,5 +1,7 @@
 use std::collections::BTreeMap;
 
+use serde_json::{Map, Value};
+
 use crate::domain::sheet::Sheet;
 use crate::domain::topic::AssetId;
 
@@ -7,11 +9,44 @@ use crate::domain::topic::AssetId;
 pub struct Workbook {
     pub sheets: Vec<Sheet>,
     pub resources: ResourceIndex,
+    pub preservation: PreservationBag,
 }
 
 #[derive(Debug, Default)]
 pub struct ResourceIndex {
     assets: BTreeMap<AssetId, ()>,
+}
+
+#[derive(Debug, Default)]
+pub struct PreservationBag {
+    raw_json_fields: Map<String, Value>,
+    package_entries: Vec<String>,
+}
+
+impl PreservationBag {
+    pub fn is_empty(&self) -> bool {
+        self.raw_json_fields.is_empty() && self.package_entries.is_empty()
+    }
+
+    #[cfg(test)]
+    fn preserve_json_field(&mut self, field: impl Into<String>, value: Value) {
+        self.raw_json_fields.insert(field.into(), value);
+    }
+
+    #[cfg(test)]
+    fn preserve_package_entry(&mut self, entry_name: impl Into<String>) {
+        self.package_entries.push(entry_name.into());
+    }
+
+    #[cfg(test)]
+    fn raw_json_field_count(&self) -> usize {
+        self.raw_json_fields.len()
+    }
+
+    #[cfg(test)]
+    fn package_entry_count(&self) -> usize {
+        self.package_entries.len()
+    }
 }
 
 impl ResourceIndex {
@@ -29,7 +64,7 @@ impl ResourceIndex {
 mod tests {
     use crate::domain::topic::AssetId;
 
-    use super::ResourceIndex;
+    use super::{PreservationBag, ResourceIndex};
 
     #[test]
     fn resource_index_tracks_assets_by_id() {
@@ -38,5 +73,17 @@ mod tests {
         index.insert_asset_id(AssetId::new("xap:resources/payment.png"));
 
         assert_eq!(index.len(), 1);
+    }
+
+    #[test]
+    fn preservation_bag_tracks_unknown_json_fields_and_package_entries() {
+        let mut bag = PreservationBag::default();
+
+        bag.preserve_json_field("extensions", serde_json::json!({ "vendor": true }));
+        bag.preserve_package_entry("metadata.json");
+
+        assert!(!bag.is_empty());
+        assert_eq!(bag.raw_json_field_count(), 1);
+        assert_eq!(bag.package_entry_count(), 1);
     }
 }

@@ -1585,5 +1585,48 @@
         </li>
       </ul>
     </section>
+
+    <section class="entry">
+      <h2>2026-05-22 - PreservationBag scaffold</h2>
+      <h3>Design Decisions</h3>
+      <ul>
+        <li>
+          <code>Workbook</code> now owns a <code>PreservationBag</code> that can
+          hold raw JSON fields and package entry names once preservation
+          readers are implemented.
+        </li>
+        <li>
+          The XMind reader initializes an empty preservation bag. Inspect
+          capabilities report unknown preservation as unavailable until the bag
+          contains preserved data.
+        </li>
+      </ul>
+
+      <h3>Deviations</h3>
+      <ul>
+        <li>
+          This is only the domain container. It does not yet capture unknown
+          package entries or unknown JSON fields from actual workbooks.
+        </li>
+      </ul>
+
+      <h3>Tradeoffs</h3>
+      <ul>
+        <li>
+          The production API exposes only <code>is_empty()</code> for now.
+          Mutation and writer code can expand the bag API when it starts
+          merging preserved data.
+        </li>
+      </ul>
+
+      <h3>Open Questions</h3>
+      <ul>
+        <li>
+          Confirm whether topic-level preservation should live in each
+          <code>Topic</code> or stay in a workbook-level indexed bag once
+          unknown JSON field preservation is implemented.
+        </li>
+      </ul>
+    </section>
   </body>
 </html>

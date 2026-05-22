@@ -609,7 +609,7 @@ fn render_inspect(
         resources_count: workbook.resources.len(),
         capabilities: InspectCapabilitiesDto {
             can_read_topics: true,
-            can_preserve_unknown: false,
+            can_preserve_unknown: !workbook.preservation.is_empty(),
         },
     };
 
