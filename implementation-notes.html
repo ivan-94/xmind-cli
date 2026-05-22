@@ -437,6 +437,11 @@
           <code>root_operation_not_allowed</code> 已由 delete root 操作测试覆盖，
           并补充 patch replace root 的约束测试。
         </li>
+        <li>
+          标准错误字段由 <code>CliErrorBody</code> 的序列化 contract 测试锁定：
+          <code>code</code>、<code>message</code>、<code>retryable</code>、
+          <code>suggested_fix</code> 与 <code>exit_code</code> 都是必填输出。
+        </li>
       </ul>
     </section>
   </body>

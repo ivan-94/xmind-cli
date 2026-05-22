@@ -274,7 +274,7 @@ fn infer_workbook(args: &[OsString]) -> Option<String> {
 
 #[cfg(test)]
 mod tests {
-    use super::ErrorCode;
+    use super::{CliErrorBody, ErrorCode};
 
     #[test]
     fn documented_error_codes_map_to_documented_exit_codes() {
@@ -299,5 +299,26 @@ mod tests {
         for (code, expected_exit_code) in mappings {
             assert_eq!(code.exit_code(), expected_exit_code, "{code:?}");
         }
+    }
+
+    #[test]
+    fn error_body_serializes_required_agent_contract_fields() {
+        let error = CliErrorBody::new(
+            ErrorCode::NotFound,
+            "Selector did not match a topic.",
+            true,
+            "Run tree or find to rediscover the topic selector, then retry.",
+        );
+
+        let value = serde_json::to_value(error).expect("error serializes");
+
+        assert_eq!(value["code"], "not_found");
+        assert_eq!(value["message"], "Selector did not match a topic.");
+        assert_eq!(value["retryable"], true);
+        assert_eq!(
+            value["suggested_fix"],
+            "Run tree or find to rediscover the topic selector, then retry."
+        );
+        assert_eq!(value["exit_code"], 5);
     }
 }

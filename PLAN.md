@@ -377,11 +377,11 @@ Implement a Rust CLI named `xmind` that satisfies the documented product, comman
 - [x] Test `unsupported_asset_type`.
 - [x] Test `root_operation_not_allowed`.
 - [ ] Verify every error includes:
-  - [ ] `code`
-  - [ ] `message`
-  - [ ] `retryable`
-  - [ ] `suggested_fix`
-  - [ ] `exit_code`
+  - [x] `code`
+  - [x] `message`
+  - [x] `retryable`
+  - [x] `suggested_fix`
+  - [x] `exit_code`
 - [x] Verify selector errors include candidates.
 - [x] Verify patch errors include `operation_index`.
 - [x] Verify schema errors include `field_path`.
