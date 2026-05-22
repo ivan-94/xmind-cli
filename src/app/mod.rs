@@ -2267,7 +2267,7 @@ struct TopicImageRefDto {
 impl TopicImageRefDto {
     fn from_topic_image(image: &crate::domain::topic::TopicImageRef) -> Self {
         Self {
-            asset_id: image.asset_id.0.clone(),
+            asset_id: image.asset_id.as_str().to_owned(),
             alt: image.alt.clone(),
             title: image.title.clone(),
         }

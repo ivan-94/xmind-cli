@@ -96,7 +96,7 @@ struct StorageImage {
 impl StorageImage {
     fn into_topic_image(self) -> Option<TopicImageRef> {
         self.src.map(|src| TopicImageRef {
-            asset_id: AssetId(src),
+            asset_id: AssetId::new(src),
             alt: self.alt,
             title: self.title,
         })

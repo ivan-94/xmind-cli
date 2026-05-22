@@ -1463,5 +1463,44 @@
         </li>
       </ul>
     </section>
+
+    <section class="entry">
+      <h2>2026-05-22 - AssetId domain type</h2>
+      <h3>Design Decisions</h3>
+      <ul>
+        <li>
+          <code>AssetId</code> is a small domain wrapper with explicit
+          <code>new</code> and <code>as_str</code> methods. Storage decoding and
+          JSON DTO rendering now use this interface instead of directly reading
+          the tuple field.
+        </li>
+      </ul>
+
+      <h3>Deviations</h3>
+      <ul>
+        <li>
+          The type does not yet validate id format. At this stage asset ids can
+          still be XMind source references such as <code>xap:resources/...</code>
+          until resource indexing establishes a product-owned id scheme.
+        </li>
+      </ul>
+
+      <h3>Tradeoffs</h3>
+      <ul>
+        <li>
+          A minimal wrapper keeps current image-reference support simple while
+          giving later resource metadata work one place to add validation or
+          normalization.
+        </li>
+      </ul>
+
+      <h3>Open Questions</h3>
+      <ul>
+        <li>
+          Asset id normalization remains tied to the future resource index
+          design.
+        </li>
+      </ul>
+    </section>
   </body>
 </html>
