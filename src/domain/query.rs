@@ -101,6 +101,9 @@ impl QueryComparison {
             (QueryField::Depth, QueryOperator::Eq, QueryValue::Number(expected)) => {
                 (depth as i64) == *expected
             }
+            (QueryField::Depth, QueryOperator::Ne, QueryValue::Number(expected)) => {
+                (depth as i64) != *expected
+            }
             (QueryField::Depth, QueryOperator::Gte, QueryValue::Number(expected)) => {
                 (depth as i64) >= *expected
             }
