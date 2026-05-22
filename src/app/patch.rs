@@ -39,6 +39,9 @@ pub(super) struct PatchOpDto {
     pub(super) children_only: Option<bool>,
     pub(super) promote_children: Option<bool>,
     pub(super) preserve_ids: Option<bool>,
+    pub(super) by: Option<String>,
+    pub(super) order: Option<String>,
+    pub(super) recursive: Option<bool>,
 }
 
 impl PatchOpDto {
@@ -247,6 +250,21 @@ pub(super) fn render_patch(invocation: Invocation, json: bool, ops_path: &Path) 
                             .into_iter()
                             .map(|path| PatchDiffEventDto::path_event("added", path)),
                     );
+                    operations.push(PatchOperationDto {
+                        index,
+                        op: op_name.to_owned(),
+                        status: "planned",
+                    });
+                    continue;
+                }
+                Err(exit_code) => return exit_code,
+            }
+        } else if op_name == "sort_children" {
+            match plan_patch_sort_children(invocation.clone(), json, sheet, index, op_name, op) {
+                Ok(updated_path) => {
+                    if let Some(path) = updated_path {
+                        diff.push(PatchDiffEventDto::path_event("updated", path));
+                    }
                     operations.push(PatchOperationDto {
                         index,
                         op: op_name.to_owned(),
@@ -1392,6 +1410,136 @@ fn plan_patch_ensure_path(
     };
 
     Ok(collect_missing_path_additions(&sheet.root, &target_path))
+}
+
+fn plan_patch_sort_children(
+    invocation: Invocation,
+    json: bool,
+    sheet: &Sheet,
+    index: usize,
+    op_name: &str,
+    op: &PatchOpDto,
+) -> Result<Option<String>, i32> {
+    let by = op.by.as_deref().unwrap_or("title");
+    if by != "title" {
+        let error = CliErrorBody::new(
+            ErrorCode::InvalidPatch,
+            format!("sort_children by is not supported: {by}"),
+            true,
+            "Use by: title.",
+        )
+        .with_operation_context(index, op_name.to_owned())
+        .with_field_path("by");
+        return Err(render_error(invocation, json, error));
+    }
+
+    let order = op.order.as_deref().unwrap_or("asc");
+    if !matches!(order, "asc" | "desc") {
+        let error = CliErrorBody::new(
+            ErrorCode::InvalidPatch,
+            format!("sort_children order is not supported: {order}"),
+            true,
+            "Use order: asc or order: desc.",
+        )
+        .with_operation_context(index, op_name.to_owned())
+        .with_field_path("order");
+        return Err(render_error(invocation, json, error));
+    }
+
+    if op.recursive.unwrap_or(false) {
+        let error = CliErrorBody::new(
+            ErrorCode::InvalidPatch,
+            "sort_children recursive is not implemented in this slice.",
+            true,
+            "Omit recursive or set recursive: false.",
+        )
+        .with_operation_context(index, op_name.to_owned())
+        .with_field_path("recursive");
+        return Err(render_error(invocation, json, error));
+    }
+
+    let Some(node) = &op.node else {
+        let error = CliErrorBody::new(
+            ErrorCode::InvalidPatch,
+            "sort_children operation is missing node.",
+            true,
+            "Add a node selector like node: path:/Q2.",
+        )
+        .with_operation_context(index, op_name.to_owned());
+        return Err(render_error(invocation, json, error));
+    };
+
+    let selector = match Selector::parse(node) {
+        Ok(selector) => selector,
+        Err(error) => {
+            let error = CliErrorBody::new(
+                ErrorCode::InvalidPatch,
+                format!("sort_children node selector is invalid: {error}"),
+                true,
+                "Use a valid selector such as root, id:<topic-id>, path:/Q2, or title:Payment.",
+            )
+            .with_operation_context(index, op_name.to_owned());
+            return Err(render_error(invocation, json, error));
+        }
+    };
+
+    let resolved = match resolve_topic(&sheet.root, &selector) {
+        ResolveOne::Found(resolved) => resolved,
+        ResolveOne::NotFound => {
+            let error = CliErrorBody::new(
+                ErrorCode::NotFound,
+                format!(
+                    "sort_children selector did not match a topic: {}",
+                    selector.render()
+                ),
+                true,
+                "Run tree or find to rediscover the selector, then retry.",
+            )
+            .with_operation_context(index, op_name.to_owned())
+            .with_selector(selector.render());
+            return Err(render_error(invocation, json, error));
+        }
+        ResolveOne::Ambiguous(candidates) => {
+            let error = CliErrorBody::new(
+                ErrorCode::AmbiguousSelector,
+                "sort_children selector matched multiple topics.",
+                true,
+                "Retry with a selector that resolves to exactly one topic.",
+            )
+            .with_operation_context(index, op_name.to_owned())
+            .with_selector(selector.render())
+            .with_candidates(
+                candidates
+                    .into_iter()
+                    .map(|candidate| CandidateDto {
+                        id: candidate.topic.id.0.clone(),
+                        path: candidate.path.to_selector_value(),
+                        title: candidate.topic.title.clone(),
+                        sheet: Some(sheet.title.clone()),
+                    })
+                    .collect(),
+            );
+            return Err(render_error(invocation, json, error));
+        }
+    };
+
+    let current_titles = resolved
+        .topic
+        .children
+        .iter()
+        .map(|child| child.title.as_str())
+        .collect::<Vec<_>>();
+    let mut sorted_titles = current_titles.clone();
+    sorted_titles.sort_unstable();
+    if order == "desc" {
+        sorted_titles.reverse();
+    }
+
+    if current_titles == sorted_titles {
+        Ok(None)
+    } else {
+        Ok(Some(resolved.path.to_selector_value()))
+    }
 }
 
 fn collect_missing_path_additions(root: &Topic, target_path: &TopicPath) -> Vec<String> {

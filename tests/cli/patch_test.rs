@@ -522,6 +522,60 @@ ops:
 }
 
 #[test]
+fn patch_dry_run_sort_children_reports_updated_parent_when_order_changes() {
+    let temp_dir = tempfile::tempdir().expect("temp dir is created");
+    let ops = temp_dir.path().join("sort-children.yaml");
+    std::fs::write(
+        &ops,
+        r#"
+ops:
+  - op: sort_children
+    node: root
+    by: title
+    order: desc
+"#,
+    )
+    .expect("patch fixture is written");
+    let ops_arg = ops.to_string_lossy().into_owned();
+
+    let output = Command::cargo_bin("xmind")
+        .expect("xmind binary is built for CLI tests")
+        .args([
+            "patch",
+            "tests/fixtures/xmind/duplicate-titles.xmind",
+            "--ops",
+            &ops_arg,
+            "--dry-run",
+            "--json",
+        ])
+        .output()
+        .expect("patch command runs");
+
+    assert_eq!(output.status.code(), Some(0));
+    let body: Value = serde_json::from_slice(&output.stdout).expect("stdout is JSON");
+    assert_eq!(body["ok"], true);
+    assert_eq!(body["result"]["summary"]["updated"], 1);
+    assert_eq!(body["result"]["operations"][0]["op"], "sort_children");
+    assert_eq!(body["result"]["operations"][0]["status"], "planned");
+    assert_eq!(body["result"]["diff"][0]["event"], "updated");
+    assert_eq!(body["result"]["diff"][0]["path"], "/");
+
+    let tree_output = Command::cargo_bin("xmind")
+        .expect("xmind binary is built for CLI tests")
+        .args([
+            "tree",
+            "tests/fixtures/xmind/duplicate-titles.xmind",
+            "--json",
+            "--depth",
+            "1",
+        ])
+        .output()
+        .expect("tree command runs after dry run");
+    let tree: Value = serde_json::from_slice(&tree_output.stdout).expect("tree stdout is JSON");
+    assert_eq!(tree["result"]["root"]["children"][0]["title"], "Q1");
+}
+
+#[test]
 fn patch_replace_tree_rejects_root_target() {
     let temp_dir = tempfile::tempdir().expect("temp dir is created");
     let ops = temp_dir.path().join("replace-root.yaml");
@@ -639,7 +693,7 @@ fn patch_invalid_operation_reports_operation_index() {
     assert_eq!(body["command"], "patch");
     assert_eq!(body["error"]["code"], "invalid_patch");
     assert_eq!(body["error"]["operation_index"], 0);
-    assert_eq!(body["error"]["operation"], "sort_children");
+    assert_eq!(body["error"]["operation"], "unsupported_sort");
     assert_eq!(body["error"]["exit_code"], 7);
 }
 

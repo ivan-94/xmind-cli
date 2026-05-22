@@ -215,6 +215,12 @@
           <code>path:</code> 前缀的 canonical path，并只为缺失路径段输出
           <code>added</code> diff；已存在路径会产生零 diff 的 planned operation。
         </li>
+        <li>
+          Patch <code>sort_children</code> 当前实现 direct children 的
+          <code>by: title</code> / <code>order: asc|desc</code> dry-run
+          规划；排序会改变顺序时用目标节点的 <code>updated</code> diff
+          表示，<code>recursive: true</code> 仍返回 <code>invalid_patch</code>。
+        </li>
       </ul>
     </section>
   </body>
