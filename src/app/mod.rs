@@ -834,16 +834,6 @@ fn render_validate(invocation: Invocation, json: bool, strict: bool) -> i32 {
 }
 
 fn render_add(invocation: Invocation, json: bool, parent: &str, title: &str) -> i32 {
-    if !invocation.dry_run {
-        let error = CliErrorBody::new(
-            ErrorCode::InvalidUsage,
-            "Only add --dry-run is implemented in this slice.",
-            true,
-            "Retry with --dry-run, or wait for the transactional writer slice before using --apply.",
-        );
-        return render_error(invocation, json, error);
-    }
-
     let workbook = match read_workbook_or_render_error(&invocation, json) {
         Ok(workbook) => workbook,
         Err(exit_code) => return exit_code,
@@ -905,6 +895,7 @@ fn render_add(invocation: Invocation, json: bool, parent: &str, title: &str) -> 
         }
     };
 
+    let new_topic_id = generated_topic_id(title);
     let created_path = parent.path.join(title.to_owned()).to_selector_value();
     let result = AddDryRunResultDto {
         will_change: true,
@@ -929,13 +920,31 @@ fn render_add(invocation: Invocation, json: bool, parent: &str, title: &str) -> 
         }],
     };
 
+    if !invocation.dry_run {
+        if let Err(error) = crate::infra::xmind::encode::append_child_topic(
+            &invocation.workbook,
+            &parent.topic.id.0,
+            title,
+            &new_topic_id,
+        ) {
+            let error = CliErrorBody::new(
+                ErrorCode::WriteFailed,
+                format!("Workbook could not be written: {error}"),
+                true,
+                "Check write permissions and retry.",
+            )
+            .with_path(invocation.workbook.display().to_string());
+            return render_error(invocation, json, error);
+        }
+    }
+
     if json {
         let envelope = CommandEnvelope {
             ok: true,
             command: Some(invocation.command),
             workbook: Some(invocation.workbook.display().to_string()),
-            dry_run: true,
-            applied: false,
+            dry_run: invocation.dry_run,
+            applied: !invocation.dry_run,
             result: Some(result),
             error: None,
             warnings: Vec::new(),
@@ -946,6 +955,20 @@ fn render_add(invocation: Invocation, json: bool, parent: &str, title: &str) -> 
     }
 
     0
+}
+
+fn generated_topic_id(title: &str) -> String {
+    let slug = title
+        .chars()
+        .filter(|character| character.is_ascii_alphanumeric())
+        .flat_map(char::to_lowercase)
+        .collect::<String>();
+
+    if slug.is_empty() {
+        "topic-new".to_owned()
+    } else {
+        format!("topic-{slug}")
+    }
 }
 
 #[derive(Debug, Serialize)]

@@ -224,13 +224,13 @@ Implement a Rust CLI named `xmind` that satisfies the documented product, comman
 
 ## Phase 8: Transactional Writer and Validation
 
-- [ ] Implement package writer scaffold.
+- [x] Implement package writer scaffold.
 - [ ] Encode domain model back into supported XMind storage DTOs.
 - [ ] Merge preserved unknown JSON fields.
 - [ ] Reuse preserved package entries.
-- [ ] Write candidate package to temp file in destination directory.
+- [x] Write candidate package to temp file in destination directory.
 - [ ] Implement candidate validation.
-- [ ] Implement atomic replace.
+- [x] Implement atomic replace.
 - [ ] Implement backup writer.
 - [ ] Implement `--backup-dir`.
 - [ ] Ensure `--validate-after` failure leaves original file untouched.
@@ -271,7 +271,7 @@ Implement a Rust CLI named `xmind` that satisfies the documented product, comman
 - [ ] Reject unsupported root operations.
 - [ ] Add CLI tests for each mutation.
 - [ ] Add JSON dry-run snapshots.
-- [ ] Add applied write tests.
+- [x] Add applied write tests.
 
 ## Phase 10: Tree Input
 
