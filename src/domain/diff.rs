@@ -32,6 +32,7 @@ impl Diff {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum DiffEvent {
     Added { path: TopicPath },
+    Removed { path: TopicPath },
 }
 
 #[cfg(test)]
@@ -57,5 +58,13 @@ mod tests {
         assert!(!diff.is_empty());
         assert_eq!(diff.len(), 1);
         assert_eq!(diff.events(), &[DiffEvent::Added { path }]);
+    }
+
+    #[test]
+    fn removed_event_carries_topic_path() {
+        let path = TopicPath::parse_selector_value("/Q2/Legacy").expect("path parses");
+        let diff = Diff::from_events(vec![DiffEvent::Removed { path: path.clone() }]);
+
+        assert_eq!(diff.events(), &[DiffEvent::Removed { path }]);
     }
 }

@@ -1955,5 +1955,39 @@
         <li>None.</li>
       </ul>
     </section>
+
+    <section class="entry">
+      <h2>2026-05-22 - DiffEvent Removed</h2>
+      <h3>Design Decisions</h3>
+      <ul>
+        <li>
+          Added <code>DiffEvent::Removed</code> with the same
+          <code>TopicPath</code> payload shape as Added so deletion previews can
+          identify the removed topic location.
+        </li>
+      </ul>
+
+      <h3>Deviations</h3>
+      <ul>
+        <li>
+          The existing JSON DTOs still use the external event string
+          <code>deleted</code>; this domain event follows the documented Rust
+          model name <code>Removed</code> until renderer mapping is implemented.
+        </li>
+      </ul>
+
+      <h3>Tradeoffs</h3>
+      <ul>
+        <li>
+          Kept Removed path-only for parity with the current documentation and
+          deferred richer deleted-topic metadata until delete semantics need it.
+        </li>
+      </ul>
+
+      <h3>Open Questions</h3>
+      <ul>
+        <li>None.</li>
+      </ul>
+    </section>
   </body>
 </html>
