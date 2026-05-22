@@ -2763,5 +2763,39 @@
         </li>
       </ul>
     </section>
+
+    <section class="entry">
+      <h2>2026-05-22 - add command closure</h2>
+      <h3>Design Decisions</h3>
+      <ul>
+        <li>
+          Closed the PLAN item for <code>xmind add</code> after verifying the
+          existing CLI coverage for JSON dry-run, human dry-run, transactional
+          apply, and apply with backup creation.
+        </li>
+      </ul>
+
+      <h3>Deviations</h3>
+      <ul>
+        <li>
+          Duplicate-title handling, alternate positions, and create-missing-path
+          semantics remain separate PLAN items and are intentionally not folded
+          into the base add command closure.
+        </li>
+      </ul>
+
+      <h3>Tradeoffs</h3>
+      <ul>
+        <li>
+          Treating the base add command as complete keeps later option-specific
+          work isolated and easier to review.
+        </li>
+      </ul>
+
+      <h3>Open Questions</h3>
+      <ul>
+        <li>None.</li>
+      </ul>
+    </section>
   </body>
 </html>
