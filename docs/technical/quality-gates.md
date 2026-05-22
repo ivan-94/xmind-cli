@@ -67,9 +67,10 @@ CI should run on pull requests:
 cargo fmt --all -- --check
 cargo clippy --workspace --all-targets --all-features -- -D warnings
 cargo test --workspace --all-features
+cargo build --workspace --release
 ```
 
-Optional release gate:
+Optional release-mode test gate:
 
 ```bash
 cargo test --workspace --all-features --release

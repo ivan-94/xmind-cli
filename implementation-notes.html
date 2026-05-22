@@ -132,6 +132,11 @@
           执行 cargo deny；本地环境未预装这些 cargo 子命令，因此不加入
           <code>./scripts/quality-gate.sh</code>。
         </li>
+        <li>
+          CI 的 Rust job 增加 <code>cargo build --workspace --release</code>
+          作为发布构建 smoke test；它验证 release 二进制能完成编译，不替代更慢的
+          release-mode 全量测试。
+        </li>
       </ul>
     </section>
 
