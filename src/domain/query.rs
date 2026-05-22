@@ -53,6 +53,9 @@ impl QueryComparison {
             (QueryField::Depth, QueryOperator::Gt, QueryValue::Number(expected)) => {
                 (depth as i64) > *expected
             }
+            (QueryField::Depth, QueryOperator::Eq, QueryValue::Number(expected)) => {
+                (depth as i64) == *expected
+            }
             (QueryField::Depth, QueryOperator::Gte, QueryValue::Number(expected)) => {
                 (depth as i64) >= *expected
             }
@@ -445,6 +448,19 @@ mod tests {
     #[test]
     fn depth_greater_than_matches_deeper_topic() {
         let expr = QueryExpr::parse("depth > 1").expect("query parses");
+        let topic = Topic {
+            id: TopicId("topic-payment".to_owned()),
+            title: "Payment".to_owned(),
+            note: None,
+            children: Vec::new(),
+        };
+
+        assert!(expr.matches_topic(&topic, &TopicPath::root(), 2));
+    }
+
+    #[test]
+    fn depth_equality_matches_same_depth_topic() {
+        let expr = QueryExpr::parse("depth = 2").expect("query parses");
         let topic = Topic {
             id: TopicId("topic-payment".to_owned()),
             title: "Payment".to_owned(),
