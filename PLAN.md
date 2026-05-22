@@ -296,7 +296,7 @@ Implement a Rust CLI named `xmind` that satisfies the documented product, comman
 - [x] Parse patch YAML.
 - [x] Parse patch JSON.
 - [x] Validate top-level `ops`.
-- [ ] Normalize aliases:
+- [x] Normalize aliases:
   - [x] `delete_tree -> delete`
   - [x] `move_tree -> move`
   - [x] `clone_tree -> copy`
