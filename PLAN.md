@@ -362,7 +362,7 @@ Implement a Rust CLI named `xmind` that satisfies the documented product, comman
 
 - [ ] Test `invalid_usage`.
 - [x] Test `file_not_found`.
-- [ ] Test `parse_failed`.
+- [x] Test `parse_failed`.
 - [x] Test `sheet_not_found`.
 - [x] Test `ambiguous_sheet`.
 - [x] Test `not_found`.
