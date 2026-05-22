@@ -161,7 +161,7 @@ Implement a Rust CLI named `xmind` that satisfies the documented product, comman
 
 - [x] Add zip package reader.
 - [x] Detect supported modern XMind package format.
-- [ ] Return `unsupported_format` for unsupported variants.
+- [x] Return `unsupported_format` for unsupported variants.
 - [x] Decode workbook JSON into storage DTOs.
 - [x] Convert storage DTOs into domain model.
 - [ ] Preserve unknown package entries.

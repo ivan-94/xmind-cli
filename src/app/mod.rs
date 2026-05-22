@@ -1577,13 +1577,22 @@ fn read_workbook_or_render_error(
 ) -> Result<crate::domain::workbook::Workbook, i32> {
     crate::infra::xmind::decode::read_workbook(&invocation.workbook).map_err(|error| {
         let path = invocation.workbook.display().to_string();
-        let error = CliErrorBody::new(
-            ErrorCode::ParseFailed,
-            format!("Workbook could not be parsed: {error}"),
-            false,
-            "Open and re-save the workbook with a supported XMind version, then retry.",
-        )
-        .with_path(path);
+        let error = match error {
+            crate::infra::xmind::decode::XMindReadError::UnsupportedFormat => CliErrorBody::new(
+                ErrorCode::UnsupportedFormat,
+                "Workbook uses an unsupported XMind format variant.",
+                false,
+                "Open and re-save the file with a supported XMind version, or use export/import.",
+            )
+            .with_path(path),
+            other => CliErrorBody::new(
+                ErrorCode::ParseFailed,
+                format!("Workbook could not be parsed: {other}"),
+                false,
+                "Open and re-save the workbook with a supported XMind version, then retry.",
+            )
+            .with_path(path),
+        };
         render_error(invocation.clone(), json, error)
     })
 }

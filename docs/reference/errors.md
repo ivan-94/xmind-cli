@@ -39,6 +39,7 @@
 | `invalid_usage` | Command arguments are invalid |
 | `file_not_found` | Workbook path does not exist |
 | `parse_failed` | Workbook cannot be read |
+| `unsupported_format` | Workbook uses an unsupported XMind format variant |
 | `sheet_not_found` | Sheet selector did not match |
 | `ambiguous_sheet` | Sheet selector matched multiple sheets |
 | `not_found` | Node selector did not match |

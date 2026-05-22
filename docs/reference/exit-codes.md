@@ -40,6 +40,7 @@
 | `root_operation_not_allowed` | 8 |
 | `validation_failed` | 9 |
 | `write_failed` | 10 |
+| `unsupported_format` | 11 |
 | `unsupported_asset_type` | 11 |
 
 ## JSON Errors

@@ -12,6 +12,10 @@ use crate::domain::workbook::Workbook;
 pub fn read_workbook(path: &Path) -> Result<Workbook, XMindReadError> {
     let file = File::open(path)?;
     let mut archive = zip::ZipArchive::new(file)?;
+    if archive.by_name("content.json").is_err() && archive.by_name("content.xml").is_ok() {
+        return Err(XMindReadError::UnsupportedFormat);
+    }
+
     let mut content = String::new();
     archive
         .by_name("content.json")
@@ -35,6 +39,9 @@ pub enum XMindReadError {
 
     #[error("workbook package does not contain content.json")]
     MissingContent,
+
+    #[error("workbook package uses an unsupported XMind format variant")]
+    UnsupportedFormat,
 
     #[error("content.json could not be decoded: {0}")]
     Json(#[from] serde_json::Error),
