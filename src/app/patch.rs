@@ -784,7 +784,7 @@ fn plan_patch_merge_tree(
     op: &PatchOpDto,
 ) -> Result<PatchMergeTreePlan, i32> {
     let match_by = op.match_by.as_deref().unwrap_or("title_path");
-    if !matches!(match_by, "title_path" | "id" | "path") {
+    if !matches!(match_by, "title_path" | "id" | "path" | "title") {
         let error = CliErrorBody::new(
             ErrorCode::InvalidPatch,
             format!("merge_tree match_by is not implemented: {match_by}"),

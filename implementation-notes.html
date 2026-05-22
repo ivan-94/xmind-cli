@@ -264,6 +264,11 @@
           dry-run 规划；为此 tree input DTO 接受 per-node <code>path</code>
           字段，值为 canonical absolute topic path，例如 <code>/Q2/Payment</code>。
         </li>
+        <li>
+          Patch <code>merge_tree</code> 已支持 <code>match_by: title</code>
+          dry-run 规划；当前按同一 parent 下的 sibling title 匹配，与
+          <code>title_path</code> 在无重复 sibling title 时行为一致。
+        </li>
       </ul>
     </section>
   </body>
