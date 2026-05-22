@@ -7,11 +7,13 @@ use serde_json::Value;
 use crate::cli::{
     CandidateDto, Cli, CliErrorBody, Command, CommandEnvelope, ErrorCode, OutputFormat,
 };
+use crate::domain::diff::{Diff, DiffEvent};
 use crate::domain::path::TopicPath;
 use crate::domain::query::QueryExpr;
 use crate::domain::selector::Selector;
 use crate::domain::sheet::Sheet;
 use crate::domain::topic::Topic;
+use crate::render::diff::render_human_outline;
 
 pub fn run(cli: Cli) -> i32 {
     let Cli {
@@ -970,7 +972,11 @@ fn render_add(invocation: Invocation, json: bool, parent: &str, title: &str) -> 
     };
 
     let new_topic_id = generated_topic_id(title);
-    let created_path = parent.path.join(title.to_owned()).to_selector_value();
+    let created_topic_path = parent.path.join(title.to_owned());
+    let created_path = created_topic_path.to_selector_value();
+    let human_diff = Diff::from_events(vec![DiffEvent::Added {
+        path: created_topic_path,
+    }]);
     let result = AddDryRunResultDto {
         will_change: true,
         parent: TopicRefDto {
@@ -1025,7 +1031,7 @@ fn render_add(invocation: Invocation, json: bool, parent: &str, title: &str) -> 
         };
         crate::cli::render_json_envelope(&envelope);
     } else if !invocation.quiet {
-        println!("planned 1 added topic");
+        println!("{}", render_human_outline(&human_diff));
     }
 
     0

@@ -66,6 +66,26 @@ fn add_dry_run_reports_created_topic_without_writing() {
 }
 
 #[test]
+fn add_dry_run_human_output_includes_outline_diff() {
+    let output = Command::cargo_bin("xmind")
+        .expect("xmind binary is built for CLI tests")
+        .args([
+            "add",
+            "tests/fixtures/xmind/minimal.xmind",
+            "--parent",
+            "path:/Q2",
+            "--title",
+            "Refund",
+            "--dry-run",
+        ])
+        .output()
+        .expect("add command runs");
+
+    assert_eq!(output.status.code(), Some(0));
+    assert_eq!(String::from_utf8_lossy(&output.stdout), "+ /Q2/Refund\n");
+}
+
+#[test]
 fn add_apply_writes_created_topic_transactionally() {
     let temp_dir = tempfile::tempdir().expect("temp dir is created");
     let workbook = temp_dir.path().join("apply-add.xmind");

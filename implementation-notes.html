@@ -2193,5 +2193,41 @@
         </li>
       </ul>
     </section>
+
+    <section class="entry">
+      <h2>2026-05-22 - add diff tests</h2>
+      <h3>Design Decisions</h3>
+      <ul>
+        <li>
+          Added a CLI regression test that verifies non-JSON
+          <code>add --dry-run</code> output includes a human outline diff line.
+        </li>
+        <li>
+          Wired add success output through the structured <code>Diff</code> and
+          human diff renderer for non-JSON responses.
+        </li>
+      </ul>
+
+      <h3>Deviations</h3>
+      <ul>
+        <li>
+          Human add output changed from <code>planned 1 added topic</code> to
+          <code>+ /path</code> so it matches diff-oriented product guidance.
+        </li>
+      </ul>
+
+      <h3>Tradeoffs</h3>
+      <ul>
+        <li>
+          JSON add output remains unchanged; this slice only tightens human
+          diff review behavior.
+        </li>
+      </ul>
+
+      <h3>Open Questions</h3>
+      <ul>
+        <li>None.</li>
+      </ul>
+    </section>
   </body>
 </html>
