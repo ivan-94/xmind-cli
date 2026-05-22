@@ -318,6 +318,11 @@
           默认仍拒绝覆盖既有目标并返回 <code>write_failed</code>。
           调用方可以显式传入 <code>--overwrite</code> 替换既有文件。
         </li>
+        <li>
+          <code>export --json</code> 对 stdout 导出使用标准成功 envelope，
+          原始导出内容放在 <code>result</code> 字段中；当同时使用
+          <code>--output</code> 时，stdout envelope 只报告写入路径。
+        </li>
       </ul>
     </section>
   </body>

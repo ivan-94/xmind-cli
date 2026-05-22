@@ -72,6 +72,40 @@ fn export_overwrite_replaces_existing_output_file() {
 }
 
 #[test]
+fn export_json_wraps_payload_in_success_envelope() {
+    let output = Command::cargo_bin("xmind")
+        .expect("xmind binary is built for CLI tests")
+        .args([
+            "export",
+            "tests/fixtures/xmind/minimal.xmind",
+            "--format",
+            "markdown",
+            "--json",
+        ])
+        .output()
+        .expect("export command runs");
+
+    assert_eq!(output.status.code(), Some(0));
+    assert!(
+        output.stderr.is_empty(),
+        "export should not emit stderr diagnostics: {}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+
+    let body: Value = serde_json::from_slice(&output.stdout).expect("stdout is JSON");
+    assert_eq!(body["ok"], true);
+    assert_eq!(body["command"], "export");
+    assert_eq!(body["dry_run"], false);
+    assert_eq!(body["applied"], false);
+    assert_eq!(body["result"]["format"], "markdown");
+    assert_eq!(
+        body["result"]["content"],
+        "# Roadmap\n\n## Q2\n\n### Payment\n"
+    );
+    assert!(body.get("error").is_none());
+}
+
+#[test]
 fn export_format_json_writes_raw_tree_payload_to_stdout() {
     let output = Command::cargo_bin("xmind")
         .expect("xmind binary is built for CLI tests")
