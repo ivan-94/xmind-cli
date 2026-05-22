@@ -1628,5 +1628,51 @@
         </li>
       </ul>
     </section>
+
+    <section class="entry">
+      <h2>2026-05-22 - query evaluator field coverage</h2>
+      <h3>Design Decisions</h3>
+      <ul>
+        <li>
+          Query evaluator tests now cover every documented query field:
+          <code>id</code>, <code>title</code>, <code>note</code>,
+          <code>path</code>, <code>label</code>, <code>marker</code>,
+          <code>hyperlink</code>, <code>image</code>, <code>depth</code>, and
+          <code>children_count</code>.
+        </li>
+        <li>
+          <code>label</code> and <code>marker</code> are evaluated as string
+          collections. <code>hyperlink</code> is an optional string, and
+          <code>image</code> currently supports <code>exists</code>.
+        </li>
+      </ul>
+
+      <h3>Deviations</h3>
+      <ul>
+        <li>
+          The documented fields are singular <code>label</code> and
+          <code>marker</code>, matching query documentation rather than the
+          output DTO field names <code>labels</code> and <code>markers</code>.
+        </li>
+      </ul>
+
+      <h3>Tradeoffs</h3>
+      <ul>
+        <li>
+          Collection inequality means the queried value is absent from the
+          collection. This is useful for audits like
+          <code>label != "Deprecated"</code>.
+        </li>
+      </ul>
+
+      <h3>Open Questions</h3>
+      <ul>
+        <li>
+          Confirm whether aliases <code>labels</code> and <code>markers</code>
+          should also be accepted in query expressions for symmetry with output
+          field names.
+        </li>
+      </ul>
+    </section>
   </body>
 </html>

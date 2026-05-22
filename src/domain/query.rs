@@ -95,6 +95,26 @@ impl QueryComparison {
                 .as_deref()
                 .is_some_and(|note| note.contains(needle)),
             (QueryField::Note, QueryOperator::Exists, QueryValue::None) => topic.note.is_some(),
+            (QueryField::Label, operator, value) => {
+                matches_string_collection(&topic.labels, operator, value)
+            }
+            (QueryField::Marker, operator, value) => {
+                matches_string_collection(&topic.markers, operator, value)
+            }
+            (QueryField::Hyperlink, QueryOperator::Eq, QueryValue::String(expected)) => {
+                topic.hyperlink.as_deref() == Some(expected.as_str())
+            }
+            (QueryField::Hyperlink, QueryOperator::Ne, QueryValue::String(expected)) => {
+                topic.hyperlink.as_deref() != Some(expected.as_str())
+            }
+            (QueryField::Hyperlink, QueryOperator::Contains, QueryValue::String(needle)) => topic
+                .hyperlink
+                .as_deref()
+                .is_some_and(|hyperlink| hyperlink.contains(needle)),
+            (QueryField::Hyperlink, QueryOperator::Exists, QueryValue::None) => {
+                topic.hyperlink.is_some()
+            }
+            (QueryField::Image, QueryOperator::Exists, QueryValue::None) => topic.image.is_some(),
             (QueryField::Depth, operator, QueryValue::Number(expected)) => {
                 matches_number(depth as i64, operator, *expected)
             }
@@ -111,6 +131,29 @@ impl QueryComparison {
             }
             _ => false,
         }
+    }
+}
+
+fn matches_string_collection(
+    actual: &[String],
+    operator: &QueryOperator,
+    value: &QueryValue,
+) -> bool {
+    match (operator, value) {
+        (QueryOperator::Eq, QueryValue::String(expected)) => {
+            actual.iter().any(|value| value == expected)
+        }
+        (QueryOperator::Ne, QueryValue::String(expected)) => {
+            actual.iter().all(|value| value != expected)
+        }
+        (QueryOperator::Contains, QueryValue::String(needle)) => {
+            actual.iter().any(|value| value.contains(needle))
+        }
+        (QueryOperator::In, QueryValue::StringList(expected)) => {
+            actual.iter().any(|value| expected.contains(value))
+        }
+        (QueryOperator::Exists, QueryValue::None) => !actual.is_empty(),
+        _ => false,
     }
 }
 
@@ -132,6 +175,10 @@ enum QueryField {
     Title,
     Path,
     Note,
+    Label,
+    Marker,
+    Hyperlink,
+    Image,
     Depth,
     ChildrenCount,
 }
@@ -281,6 +328,10 @@ impl<'a> QueryParser<'a> {
             "title" => Ok(QueryField::Title),
             "path" => Ok(QueryField::Path),
             "note" => Ok(QueryField::Note),
+            "label" => Ok(QueryField::Label),
+            "marker" => Ok(QueryField::Marker),
+            "hyperlink" => Ok(QueryField::Hyperlink),
+            "image" => Ok(QueryField::Image),
             "depth" => Ok(QueryField::Depth),
             "children_count" => Ok(QueryField::ChildrenCount),
             other => Err(QueryParseError::UnsupportedField(other.to_owned())),
@@ -529,7 +580,7 @@ fn is_identifier_character(character: char) -> bool {
 #[cfg(test)]
 mod tests {
     use crate::domain::path::TopicPath;
-    use crate::domain::topic::{Topic, TopicId};
+    use crate::domain::topic::{AssetId, Topic, TopicId, TopicImageRef};
 
     use super::QueryExpr;
 
@@ -806,5 +857,92 @@ mod tests {
         };
 
         assert!(expr.matches_topic(&topic, &TopicPath::root(), 0));
+    }
+
+    #[test]
+    fn label_evaluator_matches_collection_fields() {
+        let topic = metadata_topic();
+
+        assert!(QueryExpr::parse(r#"label = "MVP""#)
+            .expect("query parses")
+            .matches_topic(&topic, &TopicPath::root(), 0));
+        assert!(QueryExpr::parse(r#"label contains "Pay""#)
+            .expect("query parses")
+            .matches_topic(&topic, &TopicPath::root(), 0));
+        assert!(QueryExpr::parse(r#"label in ["Backlog", "Payments"]"#)
+            .expect("query parses")
+            .matches_topic(&topic, &TopicPath::root(), 0));
+        assert!(QueryExpr::parse("label exists")
+            .expect("query parses")
+            .matches_topic(&topic, &TopicPath::root(), 0));
+        assert!(QueryExpr::parse(r#"label != "Deprecated""#)
+            .expect("query parses")
+            .matches_topic(&topic, &TopicPath::root(), 0));
+    }
+
+    #[test]
+    fn marker_evaluator_matches_collection_fields() {
+        let topic = metadata_topic();
+
+        assert!(QueryExpr::parse(r#"marker = "priority-1""#)
+            .expect("query parses")
+            .matches_topic(&topic, &TopicPath::root(), 0));
+        assert!(QueryExpr::parse(r#"marker contains "task""#)
+            .expect("query parses")
+            .matches_topic(&topic, &TopicPath::root(), 0));
+        assert!(QueryExpr::parse(r#"marker in ["priority-1"]"#)
+            .expect("query parses")
+            .matches_topic(&topic, &TopicPath::root(), 0));
+        assert!(QueryExpr::parse("marker exists")
+            .expect("query parses")
+            .matches_topic(&topic, &TopicPath::root(), 0));
+    }
+
+    #[test]
+    fn hyperlink_evaluator_matches_optional_string_field() {
+        let topic = metadata_topic();
+
+        assert!(
+            QueryExpr::parse(r#"hyperlink = "https://example.com/payments""#)
+                .expect("query parses")
+                .matches_topic(&topic, &TopicPath::root(), 0)
+        );
+        assert!(QueryExpr::parse(r#"hyperlink contains "payments""#)
+            .expect("query parses")
+            .matches_topic(&topic, &TopicPath::root(), 0));
+        assert!(QueryExpr::parse("hyperlink exists")
+            .expect("query parses")
+            .matches_topic(&topic, &TopicPath::root(), 0));
+        assert!(
+            QueryExpr::parse(r#"hyperlink != "https://example.com/old""#)
+                .expect("query parses")
+                .matches_topic(&topic, &TopicPath::root(), 0)
+        );
+    }
+
+    #[test]
+    fn image_evaluator_matches_existing_image_reference() {
+        let topic = metadata_topic();
+
+        assert!(QueryExpr::parse("image exists")
+            .expect("query parses")
+            .matches_topic(&topic, &TopicPath::root(), 0));
+    }
+
+    fn metadata_topic() -> Topic {
+        Topic {
+            id: TopicId("topic-payment".to_owned()),
+            title: "Payment".to_owned(),
+            note: Some("Refund details".to_owned()),
+            labels: vec!["MVP".to_owned(), "Payments".to_owned()],
+            markers: vec!["priority-1".to_owned(), "task-start".to_owned()],
+            hyperlink: Some("https://example.com/payments".to_owned()),
+            image: Some(TopicImageRef::new(
+                AssetId::new("xap:resources/payment.png"),
+                None,
+                None,
+            )),
+            children: Vec::new(),
+        }
     }
 }
