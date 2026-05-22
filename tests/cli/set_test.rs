@@ -831,7 +831,7 @@ fn set_clear_image_apply_removes_topic_image_reference_without_removing_asset() 
 fn set_image_apply_preserves_unrelated_resource_with_same_file_name() {
     let temp_dir = tempfile::tempdir().expect("temp dir is created");
     let workbook = temp_dir.path().join("unrelated-resource.xmind");
-    write_xmind_with_resource_entry(&workbook, "resources/payment.png", b"original-resource");
+    write_xmind_with_package_entry(&workbook, "resources/payment.png", b"original-resource");
     let image = temp_dir.path().join("payment.png");
     fs::write(&image, b"\x89PNG\r\n\x1a\nreplacement-image").expect("image is written");
     let workbook_arg = workbook.to_string_lossy().into_owned();
@@ -893,6 +893,38 @@ fn set_image_apply_preserves_unrelated_resource_with_same_file_name() {
         .collect();
     assert!(asset_ids.contains(&"xap:resources/payment.png"));
     assert!(asset_ids.contains(&image_asset_id));
+}
+
+#[test]
+fn set_image_apply_preserves_unrelated_package_entries() {
+    let temp_dir = tempfile::tempdir().expect("temp dir is created");
+    let workbook = temp_dir.path().join("unrelated-package-entry.xmind");
+    write_xmind_with_package_entry(&workbook, "metadata.json", br#"{"vendor":true}"#);
+    let image = temp_dir.path().join("diagram.png");
+    fs::write(&image, b"\x89PNG\r\n\x1a\nimage-bytes").expect("image is written");
+    let workbook_arg = workbook.to_string_lossy().into_owned();
+    let image_arg = image.to_string_lossy().into_owned();
+
+    let output = Command::cargo_bin("xmind")
+        .expect("xmind binary is built for CLI tests")
+        .args([
+            "set",
+            &workbook_arg,
+            "--node",
+            "path:/Q2/Payment",
+            "--image",
+            &image_arg,
+            "--apply",
+            "--json",
+        ])
+        .output()
+        .expect("set command runs");
+
+    assert_eq!(output.status.code(), Some(0));
+    assert_eq!(
+        read_package_entry(&workbook, "metadata.json"),
+        br#"{"vendor":true}"#
+    );
 }
 
 #[test]
@@ -1133,7 +1165,7 @@ fn set_append_note_apply_writes_appended_topic_note() {
     );
 }
 
-fn write_xmind_with_resource_entry(path: &Path, entry_name: &str, entry_bytes: &[u8]) {
+fn write_xmind_with_package_entry(path: &Path, entry_name: &str, entry_bytes: &[u8]) {
     let content =
         fs::read_to_string("tests/fixtures/xmind/minimal-content.json").expect("fixture readable");
     let file = File::create(path).expect("workbook fixture is created");

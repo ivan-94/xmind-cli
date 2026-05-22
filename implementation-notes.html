@@ -400,6 +400,10 @@
           <code>topic-image.xmind</code> fixture 现在覆盖 <code>get</code>、
           <code>tree --include-assets</code>、<code>inspect</code> 与 asset export 路径。
         </li>
+        <li>
+          asset preservation 测试同时覆盖同名 <code>resources/</code> 冲突与未知
+          package entry，例如 <code>metadata.json</code>，确保图片写入不会丢失无关条目。
+        </li>
       </ul>
     </section>
   </body>
