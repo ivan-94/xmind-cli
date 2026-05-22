@@ -1046,16 +1046,6 @@ fn render_tree(
 }
 
 fn render_export(invocation: Invocation, json: bool, format: &OutputFormat) -> i32 {
-    if format != &OutputFormat::Json {
-        let error = CliErrorBody::new(
-            ErrorCode::InvalidUsage,
-            "Only export --format json is implemented in this slice.",
-            true,
-            "Use --format json, or wait for the remaining export format slices.",
-        );
-        return render_error(invocation, json, error);
-    }
-
     let workbook = match read_workbook_or_render_error(&invocation, json) {
         Ok(workbook) => workbook,
         Err(exit_code) => return exit_code,
@@ -1066,27 +1056,75 @@ fn render_export(invocation: Invocation, json: bool, format: &OutputFormat) -> i
         Err(exit_code) => return exit_code,
     };
 
-    let result = TreeResultDto::from_sheet(sheet, None);
-    if json {
-        let envelope = CommandEnvelope {
-            ok: true,
-            command: Some(invocation.command),
-            workbook: Some(invocation.workbook.display().to_string()),
-            dry_run: false,
-            applied: false,
-            result: Some(serde_json::to_value(&result).expect("export result serializes")),
-            error: None,
-            warnings: Vec::new(),
-        };
-        crate::cli::render_json_envelope(&envelope);
-    } else if !invocation.quiet {
-        println!(
-            "{}",
-            serde_json::to_string_pretty(&result).expect("export result serializes")
-        );
+    match format {
+        OutputFormat::Json => {
+            let result = TreeResultDto::from_sheet(sheet, None);
+            if json {
+                let envelope = CommandEnvelope {
+                    ok: true,
+                    command: Some(invocation.command),
+                    workbook: Some(invocation.workbook.display().to_string()),
+                    dry_run: false,
+                    applied: false,
+                    result: Some(serde_json::to_value(&result).expect("export result serializes")),
+                    error: None,
+                    warnings: Vec::new(),
+                };
+                crate::cli::render_json_envelope(&envelope);
+            } else {
+                println!(
+                    "{}",
+                    serde_json::to_string_pretty(&result).expect("export result serializes")
+                );
+            }
+        }
+        OutputFormat::Markdown => {
+            let content = render_export_markdown(&sheet.root);
+            if json {
+                let envelope = CommandEnvelope {
+                    ok: true,
+                    command: Some(invocation.command),
+                    workbook: Some(invocation.workbook.display().to_string()),
+                    dry_run: false,
+                    applied: false,
+                    result: Some(serde_json::json!({
+                        "format": "markdown",
+                        "content": content,
+                    })),
+                    error: None,
+                    warnings: Vec::new(),
+                };
+                crate::cli::render_json_envelope(&envelope);
+            } else {
+                print!("{content}");
+            }
+        }
+        _ => {
+            let error = CliErrorBody::new(
+                ErrorCode::InvalidUsage,
+                "This export format is not implemented in this slice.",
+                true,
+                "Use --format json or --format markdown, or wait for the remaining export format slices.",
+            );
+            return render_error(invocation, json, error);
+        }
     }
 
     0
+}
+
+fn render_export_markdown(root: &Topic) -> String {
+    let mut headings = Vec::new();
+    collect_export_markdown_headings(root, 1, &mut headings);
+    format!("{}\n", headings.join("\n\n"))
+}
+
+fn collect_export_markdown_headings(topic: &Topic, level: usize, headings: &mut Vec<String>) {
+    let level = level.min(6);
+    headings.push(format!("{} {}", "#".repeat(level), topic.title));
+    for child in &topic.children {
+        collect_export_markdown_headings(child, level + 1, headings);
+    }
 }
 
 fn render_get(

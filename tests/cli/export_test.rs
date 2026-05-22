@@ -27,3 +27,29 @@ fn export_format_json_writes_raw_tree_payload_to_stdout() {
     assert_eq!(body["root"]["children"][0]["title"], "Q2");
     assert!(body.get("ok").is_none(), "raw export is not an envelope");
 }
+
+#[test]
+fn export_format_markdown_writes_heading_outline_to_stdout() {
+    let output = Command::cargo_bin("xmind")
+        .expect("xmind binary is built for CLI tests")
+        .args([
+            "export",
+            "tests/fixtures/xmind/minimal.xmind",
+            "--format",
+            "markdown",
+        ])
+        .output()
+        .expect("export command runs");
+
+    assert_eq!(output.status.code(), Some(0));
+    assert!(
+        output.stderr.is_empty(),
+        "export should not emit stderr diagnostics: {}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+
+    assert_eq!(
+        String::from_utf8(output.stdout).expect("stdout is UTF-8"),
+        "# Roadmap\n\n## Q2\n\n### Payment\n"
+    );
+}

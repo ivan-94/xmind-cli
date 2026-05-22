@@ -331,7 +331,7 @@ Implement a Rust CLI named `xmind` that satisfies the documented product, comman
 ## Phase 12: Import and Export
 
 - [x] Implement `export --format json`.
-- [ ] Implement `export --format markdown`.
+- [x] Implement `export --format markdown`.
 - [ ] Implement `export --format outline`.
 - [ ] Implement `export --format text`.
 - [ ] Implement `export --format assets`.
