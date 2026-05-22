@@ -44,6 +44,9 @@ impl QueryComparison {
             (QueryField::Id, QueryOperator::Eq, QueryValue::String(expected)) => {
                 topic.id.0 == *expected
             }
+            (QueryField::Id, QueryOperator::Ne, QueryValue::String(expected)) => {
+                topic.id.0 != *expected
+            }
             (QueryField::Title, QueryOperator::Eq, QueryValue::String(expected)) => {
                 topic.title == *expected
             }
