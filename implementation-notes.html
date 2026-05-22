@@ -221,6 +221,12 @@
           规划；排序会改变顺序时用目标节点的 <code>updated</code> diff
           表示，<code>recursive: true</code> 仍返回 <code>invalid_patch</code>。
         </li>
+        <li>
+          Patch <code>set_tree_metadata</code> 当前实现 <code>add_labels</code>
+          dry-run 规划；<code>recursive: true</code> 会遍历目标子树，并只为缺少
+          任一目标 label 的主题输出 <code>updated</code> diff。其他 metadata
+          patch 字段尚未进入文档化输入范围。
+        </li>
       </ul>
     </section>
   </body>

@@ -42,6 +42,7 @@ pub(super) struct PatchOpDto {
     pub(super) by: Option<String>,
     pub(super) order: Option<String>,
     pub(super) recursive: Option<bool>,
+    pub(super) add_labels: Option<Vec<String>>,
 }
 
 impl PatchOpDto {
@@ -265,6 +266,24 @@ pub(super) fn render_patch(invocation: Invocation, json: bool, ops_path: &Path) 
                     if let Some(path) = updated_path {
                         diff.push(PatchDiffEventDto::path_event("updated", path));
                     }
+                    operations.push(PatchOperationDto {
+                        index,
+                        op: op_name.to_owned(),
+                        status: "planned",
+                    });
+                    continue;
+                }
+                Err(exit_code) => return exit_code,
+            }
+        } else if op_name == "set_tree_metadata" {
+            match plan_patch_set_tree_metadata(invocation.clone(), json, sheet, index, op_name, op)
+            {
+                Ok(updated_paths) => {
+                    diff.extend(
+                        updated_paths
+                            .into_iter()
+                            .map(|path| PatchDiffEventDto::path_event("updated", path)),
+                    );
                     operations.push(PatchOperationDto {
                         index,
                         op: op_name.to_owned(),
@@ -1539,6 +1558,135 @@ fn plan_patch_sort_children(
         Ok(None)
     } else {
         Ok(Some(resolved.path.to_selector_value()))
+    }
+}
+
+fn plan_patch_set_tree_metadata(
+    invocation: Invocation,
+    json: bool,
+    sheet: &Sheet,
+    index: usize,
+    op_name: &str,
+    op: &PatchOpDto,
+) -> Result<Vec<String>, i32> {
+    let Some(node) = &op.node else {
+        let error = CliErrorBody::new(
+            ErrorCode::InvalidPatch,
+            "set_tree_metadata operation is missing node.",
+            true,
+            "Add a node selector like node: path:/Q2.",
+        )
+        .with_operation_context(index, op_name.to_owned());
+        return Err(render_error(invocation, json, error));
+    };
+
+    let Some(add_labels) = &op.add_labels else {
+        let error = CliErrorBody::new(
+            ErrorCode::InvalidPatch,
+            "set_tree_metadata operation is missing add_labels.",
+            true,
+            "Add add_labels with one or more label values.",
+        )
+        .with_operation_context(index, op_name.to_owned())
+        .with_field_path("add_labels");
+        return Err(render_error(invocation, json, error));
+    };
+    if add_labels.is_empty() || add_labels.iter().any(|label| label.trim().is_empty()) {
+        let error = CliErrorBody::new(
+            ErrorCode::InvalidPatch,
+            "set_tree_metadata add_labels must contain non-empty labels.",
+            true,
+            "Remove empty labels and retry.",
+        )
+        .with_operation_context(index, op_name.to_owned())
+        .with_field_path("add_labels");
+        return Err(render_error(invocation, json, error));
+    }
+
+    let selector = match Selector::parse(node) {
+        Ok(selector) => selector,
+        Err(error) => {
+            let error = CliErrorBody::new(
+                ErrorCode::InvalidPatch,
+                format!("set_tree_metadata node selector is invalid: {error}"),
+                true,
+                "Use a valid selector such as root, id:<topic-id>, path:/Q2, or title:Payment.",
+            )
+            .with_operation_context(index, op_name.to_owned());
+            return Err(render_error(invocation, json, error));
+        }
+    };
+
+    let resolved = match resolve_topic(&sheet.root, &selector) {
+        ResolveOne::Found(resolved) => resolved,
+        ResolveOne::NotFound => {
+            let error = CliErrorBody::new(
+                ErrorCode::NotFound,
+                format!(
+                    "set_tree_metadata selector did not match a topic: {}",
+                    selector.render()
+                ),
+                true,
+                "Run tree or find to rediscover the selector, then retry.",
+            )
+            .with_operation_context(index, op_name.to_owned())
+            .with_selector(selector.render());
+            return Err(render_error(invocation, json, error));
+        }
+        ResolveOne::Ambiguous(candidates) => {
+            let error = CliErrorBody::new(
+                ErrorCode::AmbiguousSelector,
+                "set_tree_metadata selector matched multiple topics.",
+                true,
+                "Retry with a selector that resolves to exactly one topic.",
+            )
+            .with_operation_context(index, op_name.to_owned())
+            .with_selector(selector.render())
+            .with_candidates(
+                candidates
+                    .into_iter()
+                    .map(|candidate| CandidateDto {
+                        id: candidate.topic.id.0.clone(),
+                        path: candidate.path.to_selector_value(),
+                        title: candidate.topic.title.clone(),
+                        sheet: Some(sheet.title.clone()),
+                    })
+                    .collect(),
+            );
+            return Err(render_error(invocation, json, error));
+        }
+    };
+
+    let mut updated_paths = Vec::new();
+    collect_set_tree_metadata_updates(
+        resolved.topic,
+        &resolved.path,
+        add_labels,
+        op.recursive.unwrap_or(false),
+        &mut updated_paths,
+    );
+    Ok(updated_paths)
+}
+
+fn collect_set_tree_metadata_updates(
+    topic: &Topic,
+    path: &TopicPath,
+    add_labels: &[String],
+    recursive: bool,
+    updated_paths: &mut Vec<String>,
+) {
+    if add_labels
+        .iter()
+        .any(|label| !topic.labels.iter().any(|existing| existing == label))
+    {
+        updated_paths.push(path.to_selector_value());
+    }
+
+    if recursive {
+        for child in &topic.children {
+            let child_path = path.join(child.title.clone());
+            collect_set_tree_metadata_updates(child, &child_path, add_labels, true, updated_paths);
+        }
     }
 }
 

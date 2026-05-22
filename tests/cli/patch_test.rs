@@ -576,6 +576,63 @@ ops:
 }
 
 #[test]
+fn patch_dry_run_set_tree_metadata_adds_labels_recursively() {
+    let temp_dir = tempfile::tempdir().expect("temp dir is created");
+    let ops = temp_dir.path().join("set-tree-metadata.yaml");
+    std::fs::write(
+        &ops,
+        r#"
+ops:
+  - op: set_tree_metadata
+    node: path:/Q2
+    recursive: true
+    add_labels:
+      - MVP
+"#,
+    )
+    .expect("patch fixture is written");
+    let ops_arg = ops.to_string_lossy().into_owned();
+
+    let output = Command::cargo_bin("xmind")
+        .expect("xmind binary is built for CLI tests")
+        .args([
+            "patch",
+            "tests/fixtures/xmind/minimal.xmind",
+            "--ops",
+            &ops_arg,
+            "--dry-run",
+            "--json",
+        ])
+        .output()
+        .expect("patch command runs");
+
+    assert_eq!(output.status.code(), Some(0));
+    let body: Value = serde_json::from_slice(&output.stdout).expect("stdout is JSON");
+    assert_eq!(body["ok"], true);
+    assert_eq!(body["result"]["summary"]["updated"], 2);
+    assert_eq!(body["result"]["operations"][0]["op"], "set_tree_metadata");
+    assert_eq!(body["result"]["operations"][0]["status"], "planned");
+    assert_eq!(body["result"]["diff"][0]["event"], "updated");
+    assert_eq!(body["result"]["diff"][0]["path"], "/Q2");
+    assert_eq!(body["result"]["diff"][1]["event"], "updated");
+    assert_eq!(body["result"]["diff"][1]["path"], "/Q2/Payment");
+
+    let tree_output = Command::cargo_bin("xmind")
+        .expect("xmind binary is built for CLI tests")
+        .args([
+            "tree",
+            "tests/fixtures/xmind/minimal.xmind",
+            "--json",
+            "--depth",
+            "2",
+        ])
+        .output()
+        .expect("tree command runs after dry run");
+    let tree: Value = serde_json::from_slice(&tree_output.stdout).expect("tree stdout is JSON");
+    assert_eq!(tree["result"]["root"]["children"][0]["title"], "Q2");
+}
+
+#[test]
 fn patch_replace_tree_rejects_root_target() {
     let temp_dir = tempfile::tempdir().expect("temp dir is created");
     let ops = temp_dir.path().join("replace-root.yaml");
