@@ -261,3 +261,33 @@ fn infer_workbook(args: &[OsString]) -> Option<String> {
 
     None
 }
+
+#[cfg(test)]
+mod tests {
+    use super::ErrorCode;
+
+    #[test]
+    fn documented_error_codes_map_to_documented_exit_codes() {
+        let mappings = [
+            (ErrorCode::InvalidUsage, 2),
+            (ErrorCode::FileNotFound, 3),
+            (ErrorCode::ParseFailed, 4),
+            (ErrorCode::SheetNotFound, 5),
+            (ErrorCode::NotFound, 5),
+            (ErrorCode::AmbiguousSheet, 6),
+            (ErrorCode::AmbiguousSelector, 6),
+            (ErrorCode::InvalidTreeInput, 7),
+            (ErrorCode::InvalidPatch, 7),
+            (ErrorCode::PatchConflict, 8),
+            (ErrorCode::RootOperationNotAllowed, 8),
+            (ErrorCode::ValidationFailed, 9),
+            (ErrorCode::WriteFailed, 10),
+            (ErrorCode::UnsupportedFormat, 11),
+            (ErrorCode::UnsupportedAssetType, 11),
+        ];
+
+        for (code, expected_exit_code) in mappings {
+            assert_eq!(code.exit_code(), expected_exit_code, "{code:?}");
+        }
+    }
+}

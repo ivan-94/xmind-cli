@@ -1426,5 +1426,42 @@
         </li>
       </ul>
     </section>
+
+    <section class="entry">
+      <h2>2026-05-22 - exit code mapping coverage</h2>
+      <h3>Design Decisions</h3>
+      <ul>
+        <li>
+          The complete documented <code>ErrorCode</code> to process exit-code
+          mapping is covered by a focused Rust test on
+          <code>ErrorCode::exit_code</code>.
+        </li>
+      </ul>
+
+      <h3>Deviations</h3>
+      <ul>
+        <li>
+          Not every error code has a dedicated end-to-end CLI scenario yet.
+          This slice covers the mapping table itself; command-specific error
+          behavior remains tracked by later PLAN items.
+        </li>
+      </ul>
+
+      <h3>Tradeoffs</h3>
+      <ul>
+        <li>
+          A mapping-table test is less brittle than forcing artificial CLI
+          scenarios for errors whose commands are not implemented yet.
+        </li>
+      </ul>
+
+      <h3>Open Questions</h3>
+      <ul>
+        <li>
+          None for the mapping table. Future command tests should still verify
+          representative runtime paths use the mapped exit code.
+        </li>
+      </ul>
+    </section>
   </body>
 </html>
