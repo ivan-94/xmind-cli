@@ -58,6 +58,29 @@ fn set_title_dry_run_reports_updated_topic_without_writing() {
 }
 
 #[test]
+fn set_title_dry_run_human_output_includes_outline_diff() {
+    let output = Command::cargo_bin("xmind")
+        .expect("xmind binary is built for CLI tests")
+        .args([
+            "set",
+            "tests/fixtures/xmind/minimal.xmind",
+            "--node",
+            "path:/Q2/Payment",
+            "--title",
+            "Payments",
+            "--dry-run",
+        ])
+        .output()
+        .expect("set command runs");
+
+    assert_eq!(output.status.code(), Some(0));
+    assert_eq!(
+        String::from_utf8_lossy(&output.stdout),
+        "~ /Q2/Payments title\n"
+    );
+}
+
+#[test]
 fn set_note_dry_run_reports_updated_topic_without_writing() {
     let output = Command::cargo_bin("xmind")
         .expect("xmind binary is built for CLI tests")

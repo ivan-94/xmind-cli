@@ -7,7 +7,7 @@ use serde_json::Value;
 use crate::cli::{
     CandidateDto, Cli, CliErrorBody, Command, CommandEnvelope, ErrorCode, OutputFormat,
 };
-use crate::domain::diff::{Diff, DiffEvent};
+use crate::domain::diff::{Diff, DiffEvent, FieldChange};
 use crate::domain::path::TopicPath;
 use crate::domain::query::QueryExpr;
 use crate::domain::selector::Selector;
@@ -1254,6 +1254,11 @@ fn render_set_title(invocation: Invocation, json: bool, node: &str, title: &str)
 
     let old_path = resolved.path.to_selector_value();
     let new_path = renamed_path(&resolved.path, title);
+    let human_diff = Diff::from_events(vec![DiffEvent::Updated {
+        path: TopicPath::parse_selector_value(&new_path)
+            .expect("renamed topic path remains a valid absolute path"),
+        fields: vec![FieldChange::new("title")],
+    }]);
     let result = SetTitleDryRunResultDto {
         will_change: resolved.topic.title != title,
         updated: UpdatedTopicDto {
@@ -1306,7 +1311,7 @@ fn render_set_title(invocation: Invocation, json: bool, node: &str, title: &str)
         };
         crate::cli::render_json_envelope(&envelope);
     } else if !invocation.quiet {
-        println!("planned 1 updated topic");
+        println!("{}", render_human_outline(&human_diff));
     }
 
     0

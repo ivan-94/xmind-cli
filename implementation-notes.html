@@ -2267,5 +2267,44 @@
         <li>None.</li>
       </ul>
     </section>
+
+    <section class="entry">
+      <h2>2026-05-22 - update diff tests</h2>
+      <h3>Design Decisions</h3>
+      <ul>
+        <li>
+          Added a CLI regression test that verifies non-JSON
+          <code>set --title --dry-run</code> output includes an updated diff
+          line.
+        </li>
+        <li>
+          Wired set-title human output through <code>DiffEvent::Updated</code>
+          and the human diff renderer.
+        </li>
+      </ul>
+
+      <h3>Deviations</h3>
+      <ul>
+        <li>
+          Human set-title output changed from
+          <code>planned 1 updated topic</code> to
+          <code>~ /path field</code>.
+        </li>
+      </ul>
+
+      <h3>Tradeoffs</h3>
+      <ul>
+        <li>
+          This slice covers title updates first; note and append-note human diff
+          output still uses the old summary text until broader set-field
+          coverage is added.
+        </li>
+      </ul>
+
+      <h3>Open Questions</h3>
+      <ul>
+        <li>None.</li>
+      </ul>
+    </section>
   </body>
 </html>
