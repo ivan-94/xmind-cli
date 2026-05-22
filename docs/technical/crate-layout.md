@@ -4,7 +4,7 @@
 
 - Conversation: XMind CLI product and technical design discussion
 - Scope: Proposed Rust source tree and module boundaries
-- Last updated: 2026-05-21
+- Last updated: 2026-05-22
 
 ## Initial Layout
 
@@ -24,13 +24,9 @@ src/
     output.rs
   app/
     mod.rs
-    inspect.rs
-    read.rs
-    mutate.rs
     patch.rs
-    import.rs
-    export.rs
-    validate.rs
+    set_image.rs
+    tree_input.rs
   domain/
     mod.rs
     workbook.rs
@@ -69,7 +65,9 @@ src/
 tests/
   cli/
   fixtures/
-  snapshots/
+    xmind/
+    patch/
+  cli/snapshots/
 ```
 
 ## Module Responsibilities
@@ -130,7 +128,7 @@ tests/fixtures/
   xmind/
     minimal.xmind
     multiple-sheets.xmind
-    topic-metadata.xmind
+    metadata.xmind
     topic-image.xmind
   markdown/
     heading-outline.md
@@ -142,8 +140,8 @@ tests/fixtures/
 tests/cli/
   tree_test.rs
   patch_test.rs
-  errors_test.rs
+  runtime_errors_test.rs
+  doc_examples_test.rs
 ```
 
 Fixtures should be small, committed, and deterministic.
-

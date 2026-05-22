@@ -4,7 +4,7 @@
 
 - Conversation: XMind CLI product and technical design discussion
 - Scope: Phased implementation plan for the Rust CLI
-- Last updated: 2026-05-21
+- Last updated: 2026-05-22
 
 ## Phase 0: Rust Project Foundation
 
@@ -143,8 +143,7 @@ Deliver:
 
 - shell completions,
 - manpage or generated help snapshots,
-- `cargo audit`,
-- `cargo deny`,
+- dependency security checks,
 - release builds,
 - installation documentation.
 

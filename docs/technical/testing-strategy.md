@@ -4,7 +4,7 @@
 
 - Conversation: XMind CLI product and technical design discussion
 - Scope: Unit, integration, snapshot, property, and fixture testing strategy
-- Last updated: 2026-05-21
+- Last updated: 2026-05-22
 
 ## Test Pyramid
 
@@ -54,7 +54,7 @@ Integration tests should use committed fixtures:
 ```text
 tests/fixtures/xmind/minimal.xmind
 tests/fixtures/xmind/multiple-sheets.xmind
-tests/fixtures/xmind/topic-metadata.xmind
+tests/fixtures/xmind/metadata.xmind
 tests/fixtures/xmind/topic-image.xmind
 ```
 
@@ -113,4 +113,3 @@ Default tests should not require:
 - user-specific files,
 - external cloud storage,
 - wall-clock timing assertions.
-

@@ -4,7 +4,7 @@
 
 - Conversation: XMind CLI product and technical design discussion
 - Scope: High-level Rust architecture and data flow
-- Last updated: 2026-05-21
+- Last updated: 2026-05-22
 
 ## Goals
 
@@ -99,10 +99,10 @@ patch file
 
 ## Crate Boundary
 
-The project should expose a library crate and a binary crate:
+The implemented project is currently one Cargo package with one binary target:
 
-- `xmind_cli`: binary entrypoint.
-- `xmind_cli_core`: internal library modules in the same package initially.
+- `xmind`: binary entrypoint at `src/main.rs`.
+- internal modules under `src/cli`, `src/app`, `src/domain`, `src/infra`, and `src/render`.
 
 If the implementation grows, split storage and domain into separate crates later. Do not over-split before the first full command path is proven.
 
@@ -133,4 +133,3 @@ Every command should produce enough machine-readable context for an agent to rec
 - field paths for schema errors.
 
 Human output is secondary. JSON output is the source of truth for automation.
-

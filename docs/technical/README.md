@@ -4,7 +4,7 @@
 
 - Conversation: XMind CLI product and technical design discussion
 - Scope: Rust implementation planning for an AI-native XMind CLI
-- Last updated: 2026-05-21
+- Last updated: 2026-05-22
 
 ## Purpose
 
@@ -28,7 +28,7 @@ The implementation should optimize for correctness, deterministic machine output
 
 ## Engineering Posture
 
-The CLI should be built as a small, rigorously tested Rust application with a reusable library core. The binary should be thin: parse command-line input, call library services, and render output.
+The CLI is currently a single Rust binary package with internal modules for CLI parsing, application orchestration, domain logic, infrastructure, and renderers. The binary entrypoint stays thin: parse command-line input, call module services, and render output.
 
 Core rules:
 
@@ -39,4 +39,3 @@ Core rules:
 - Emit one stable JSON envelope for agents.
 - Treat every write as transactional: build, validate, then atomically replace.
 - Make every failure actionable with structured error context.
-

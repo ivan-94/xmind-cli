@@ -4,7 +4,7 @@
 
 - Conversation: XMind CLI product and technical design discussion
 - Scope: Rust domain model design for workbook, sheet, topics, selectors, and paths
-- Last updated: 2026-05-21
+- Last updated: 2026-05-22
 
 ## Principles
 
@@ -105,7 +105,7 @@ pub enum PatchOp {
     AssertExists { node: Selector },
     AssertNotExists { node: Selector },
     Add { parent: Selector, topic: NewTopic, position: Position },
-    AddTree { parent: Selector, tree: TopicTreeInput, position: Position, if_exists: IfExists },
+    AddTree { parent: Selector, tree: TopicTreeInput, position: Position },
     Set { node: Selector, fields: TopicFieldPatch },
     Delete { node: Selector, mode: DeleteMode },
     Move { node: Selector, to: Selector, position: Position },
@@ -141,4 +141,3 @@ Use separate DTOs for:
 - XMind storage structures.
 
 Never expose internal XMind storage structs as public command output.
-

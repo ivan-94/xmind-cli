@@ -4,7 +4,7 @@
 
 - Conversation: XMind CLI product and technical design discussion
 - Scope: Command execution lifecycle and runtime policies
-- Last updated: 2026-05-21
+- Last updated: 2026-05-22
 
 ## Runtime Contract
 
@@ -48,7 +48,6 @@ pub struct AddTreeRequest {
     pub position: Position,
     pub mode: MutationMode,
     pub backup: BackupPolicy,
-    pub validate_after: bool,
     pub output: OutputPolicy,
 }
 ```
@@ -111,4 +110,3 @@ pub enum MutationMode {
 ```
 
 No lower layer should infer write behavior from missing flags.
-

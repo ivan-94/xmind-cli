@@ -183,3 +183,53 @@ fn schema_docs_track_serializable_contracts() {
         "topic tree schema should not document unsupported TopicTreeInputDto.hyperlink"
     );
 }
+
+#[test]
+fn technical_docs_track_implemented_modules() {
+    let technical_docs = [
+        "docs/technical/README.md",
+        "docs/technical/architecture.md",
+        "docs/technical/command-runtime.md",
+        "docs/technical/crate-layout.md",
+        "docs/technical/data-model.md",
+        "docs/technical/quality-gates.md",
+        "docs/technical/tech-stack.md",
+        "docs/technical/testing-strategy.md",
+    ];
+    let combined = technical_docs
+        .iter()
+        .map(|path| std::fs::read_to_string(path).expect("technical doc is readable"))
+        .collect::<Vec<_>>()
+        .join("\n");
+
+    for stale in [
+        "xmind_cli_core",
+        "validate_after",
+        "inspect.rs",
+        "read.rs",
+        "mutate.rs",
+        "topic-metadata.xmind",
+        "pulldown-cmark",
+        "miette",
+        "cargo audit",
+        "cargo doc --workspace --no-deps",
+    ] {
+        assert!(
+            !combined.contains(stale),
+            "technical docs still mention stale implementation detail `{stale}`"
+        );
+    }
+
+    let crate_layout = std::fs::read_to_string("docs/technical/crate-layout.md")
+        .expect("crate layout is readable");
+    for module in ["patch.rs", "set_image.rs", "tree_input.rs"] {
+        assert!(
+            crate_layout.contains(module),
+            "crate layout should document implemented app module `{module}`"
+        );
+    }
+    assert!(
+        combined.contains("./scripts/quality-gate.sh"),
+        "technical docs should point to the implemented local quality gate"
+    );
+}

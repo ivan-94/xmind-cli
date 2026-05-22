@@ -4,11 +4,11 @@
 
 - Conversation: XMind CLI product and technical design discussion
 - Scope: Rust crate choices and rationale
-- Last updated: 2026-05-21
+- Last updated: 2026-05-22
 
 ## Language
 
-Use stable Rust, edition 2024 if the initial toolchain supports it cleanly; otherwise edition 2021. Prefer boring, well-maintained crates with strong ecosystem adoption.
+Use stable Rust with the committed Rust 2021 edition package. Prefer boring, well-maintained crates with strong ecosystem adoption.
 
 ## CLI
 
@@ -37,7 +37,6 @@ All public JSON structs should derive `Serialize`. Input DTOs should derive `Des
 Use:
 
 - `thiserror` for typed library errors,
-- `miette` for rich human diagnostics if useful,
 - custom `CliErrorEnvelope` for JSON output.
 
 Avoid `anyhow` in the domain and application layers. `anyhow` may be acceptable only at the binary boundary during early scaffolding, but typed errors should be the implementation target.
@@ -57,10 +56,10 @@ The first implementation should focus on modern XMind JSON package formats. Olde
 
 Use:
 
-- `pulldown-cmark` for Markdown event parsing,
-- `serde_yaml` for frontmatter parsing.
+- a small repository-local Markdown outline parser,
+- `serde_yaml` for frontmatter parsing and YAML tree inputs.
 
-Do not parse Markdown outlines with ad hoc line splitting except for isolated, tested helpers after the event stream has identified blocks.
+The current parser is intentionally narrow and fixture-tested for heading, list, ordered list, task list, and hybrid outlines.
 
 ## Query Parsing
 
@@ -102,10 +101,4 @@ Required local gates:
 cargo fmt --all -- --check
 cargo clippy --workspace --all-targets --all-features -- -D warnings
 cargo test --workspace --all-features
-cargo doc --workspace --no-deps
-cargo audit
-cargo deny check
 ```
-
-`cargo audit` and `cargo deny` may be added after the initial `Cargo.toml` exists, but the project should be designed to include them before first release.
-

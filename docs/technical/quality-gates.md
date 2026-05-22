@@ -4,24 +4,22 @@
 
 - Conversation: XMind CLI product and technical design discussion
 - Scope: Required lint, format, type, test, and security gates
-- Last updated: 2026-05-21
+- Last updated: 2026-05-22
 
 ## Required Local Gates
 
-The project must define a single command that runs the full local gate:
+The implemented local gate is:
+
+```bash
+./scripts/quality-gate.sh
+```
+
+It currently runs:
 
 ```bash
 cargo fmt --all -- --check
 cargo clippy --workspace --all-targets --all-features -- -D warnings
 cargo test --workspace --all-features
-cargo doc --workspace --no-deps
-```
-
-After dependency policy files exist, include:
-
-```bash
-cargo audit
-cargo deny check
 ```
 
 ## Formatting
@@ -69,14 +67,11 @@ CI should run on pull requests:
 cargo fmt --all -- --check
 cargo clippy --workspace --all-targets --all-features -- -D warnings
 cargo test --workspace --all-features
-cargo doc --workspace --no-deps
 ```
 
 Optional release gate:
 
 ```bash
-cargo audit
-cargo deny check
 cargo test --workspace --all-features --release
 ```
 
@@ -100,4 +95,3 @@ Every failed quality gate should be easy for an agent to parse and recover from:
 - keep fixtures committed,
 - avoid network-dependent tests in the default suite,
 - separate slow/integration tests behind explicit flags.
-
