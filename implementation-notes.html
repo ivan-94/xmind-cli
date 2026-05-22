@@ -259,6 +259,11 @@
           dry-run 规划；输入 tree 的每个节点必须带 id，否则返回
           <code>invalid_patch</code> 和对应 <code>field_path</code>。
         </li>
+        <li>
+          Patch <code>merge_tree</code> 已支持 <code>match_by: path</code>
+          dry-run 规划；为此 tree input DTO 接受 per-node <code>path</code>
+          字段，值为 canonical absolute topic path，例如 <code>/Q2/Payment</code>。
+        </li>
       </ul>
     </section>
   </body>

@@ -8,6 +8,7 @@ use crate::cli::MarkdownMode;
 #[derive(Debug, Deserialize)]
 pub(super) struct TopicTreeInputDto {
     pub(super) id: Option<String>,
+    pub(super) path: Option<String>,
     pub(super) title: String,
     pub(super) note: Option<String>,
     #[serde(default)]
@@ -24,6 +25,7 @@ impl TopicTreeInputDto {
     fn new(title: String) -> Self {
         Self {
             id: None,
+            path: None,
             title,
             note: None,
             labels: Vec::new(),
@@ -45,6 +47,7 @@ pub(super) struct TopicTreeImageInputDto {
 #[derive(Default, Debug, Deserialize)]
 struct TopicTreeDefaultsDto {
     id: Option<String>,
+    path: Option<String>,
     title: Option<String>,
     note: Option<String>,
     #[serde(default)]
@@ -58,6 +61,7 @@ impl TopicTreeDefaultsDto {
     fn into_topic_tree(self) -> Option<TopicTreeInputDto> {
         Some(TopicTreeInputDto {
             id: self.id,
+            path: self.path,
             title: self.title?,
             note: self.note,
             labels: self.labels,

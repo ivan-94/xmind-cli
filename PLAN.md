@@ -320,7 +320,7 @@ Implement a Rust CLI named `xmind` that satisfies the documented product, comman
 - [x] Implement `prune`.
 - [x] Implement `match_by: title_path`.
 - [x] Implement `match_by: id`.
-- [ ] Implement `match_by: path`.
+- [x] Implement `match_by: path`.
 - [ ] Implement `match_by: title`.
 - [ ] Add operation-indexed diagnostics.
 - [ ] Add conflict detection.

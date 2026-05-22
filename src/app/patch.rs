@@ -784,7 +784,7 @@ fn plan_patch_merge_tree(
     op: &PatchOpDto,
 ) -> Result<PatchMergeTreePlan, i32> {
     let match_by = op.match_by.as_deref().unwrap_or("title_path");
-    if !matches!(match_by, "title_path" | "id") {
+    if !matches!(match_by, "title_path" | "id" | "path") {
         let error = CliErrorBody::new(
             ErrorCode::InvalidPatch,
             format!("merge_tree match_by is not implemented: {match_by}"),
@@ -834,6 +834,19 @@ fn plan_patch_merge_tree(
                 "merge_tree match_by: id requires every input tree node to include an id.",
                 true,
                 "Add id values from a prior read/export result or use match_by: title_path.",
+            )
+            .with_operation_context(index, op_name.to_owned())
+            .with_field_path(field_path);
+            return Err(render_error(invocation, json, error));
+        }
+    }
+    if match_by == "path" {
+        if let Some(field_path) = first_tree_missing_path_path(tree, "tree") {
+            let error = CliErrorBody::new(
+                ErrorCode::InvalidPatch,
+                "merge_tree match_by: path requires every input tree node to include a path.",
+                true,
+                "Add canonical path values from a prior read/tree result or use match_by: title_path.",
             )
             .with_operation_context(index, op_name.to_owned())
             .with_field_path(field_path);
@@ -920,6 +933,26 @@ fn first_tree_missing_id_path(tree: &TopicTreeInputDto, field_path: &str) -> Opt
     for (index, child) in tree.children.iter().enumerate() {
         if let Some(path) =
             first_tree_missing_id_path(child, &format!("{field_path}.children[{index}]"))
+        {
+            return Some(path);
+        }
+    }
+
+    None
+}
+
+fn first_tree_missing_path_path(tree: &TopicTreeInputDto, field_path: &str) -> Option<String> {
+    if tree
+        .path
+        .as_ref()
+        .map_or(true, |path| path.trim().is_empty())
+    {
+        return Some(format!("{field_path}.path"));
+    }
+
+    for (index, child) in tree.children.iter().enumerate() {
+        if let Some(path) =
+            first_tree_missing_path_path(child, &format!("{field_path}.children[{index}]"))
         {
             return Some(path);
         }
@@ -1800,7 +1833,7 @@ fn collect_merge_tree_diff(
     }
 
     for child_tree in &tree.children {
-        if let Some(child_topic) = find_merge_tree_child(topic, child_tree, match_by) {
+        if let Some(child_topic) = find_merge_tree_child(topic, path, child_tree, match_by) {
             collect_merge_tree_diff(
                 child_topic,
                 &path.join(child_topic.title.clone()),
@@ -1817,11 +1850,14 @@ fn collect_merge_tree_diff(
 
     if prune {
         for child_topic in &topic.children {
-            if !tree
-                .children
-                .iter()
-                .any(|child_tree| merge_tree_child_matches(child_topic, child_tree, match_by))
-            {
+            if !tree.children.iter().any(|child_tree| {
+                merge_tree_child_matches(
+                    child_topic,
+                    &path.join(child_topic.title.clone()),
+                    child_tree,
+                    match_by,
+                )
+            }) {
                 diff.deleted_paths.extend(collect_deleted_paths(
                     child_topic,
                     &path.join(child_topic.title.clone()),
@@ -1833,18 +1869,29 @@ fn collect_merge_tree_diff(
 
 fn find_merge_tree_child<'a>(
     topic: &'a Topic,
+    parent_path: &TopicPath,
     child_tree: &TopicTreeInputDto,
     match_by: &str,
 ) -> Option<&'a Topic> {
-    topic
-        .children
-        .iter()
-        .find(|child| merge_tree_child_matches(child, child_tree, match_by))
+    topic.children.iter().find(|child| {
+        merge_tree_child_matches(
+            child,
+            &parent_path.join(child.title.clone()),
+            child_tree,
+            match_by,
+        )
+    })
 }
 
-fn merge_tree_child_matches(topic: &Topic, tree: &TopicTreeInputDto, match_by: &str) -> bool {
+fn merge_tree_child_matches(
+    topic: &Topic,
+    path: &TopicPath,
+    tree: &TopicTreeInputDto,
+    match_by: &str,
+) -> bool {
     match match_by {
         "id" => tree.id.as_deref() == Some(topic.id.0.as_str()),
+        "path" => tree.path.as_deref() == Some(path.to_selector_value().as_str()),
         _ => topic.title == tree.title,
     }
 }
