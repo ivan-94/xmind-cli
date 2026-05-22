@@ -2104,5 +2104,50 @@
         <li>None.</li>
       </ul>
     </section>
+
+    <section class="entry">
+      <h2>2026-05-22 - human outline diff renderer</h2>
+      <h3>Design Decisions</h3>
+      <ul>
+        <li>
+          Added <code>render_human_outline</code> for structured
+          <code>Diff</code> values.
+        </li>
+        <li>
+          The current renderer emits deterministic path-based event lines:
+          <code>+</code> added, <code>-</code> removed, <code>~</code> updated,
+          and <code>&gt;</code> moved.
+        </li>
+      </ul>
+
+      <h3>Deviations</h3>
+      <ul>
+        <li>
+          The renderer does not yet collapse sibling events into the indented
+          tree-like display shown in product examples. That needs real subtree
+          diff inputs rather than only path-level events.
+        </li>
+        <li>
+          Runtime commands are not wired to this renderer yet; JSON and human
+          renderer wiring are separate Phase 7 tasks.
+        </li>
+      </ul>
+
+      <h3>Tradeoffs</h3>
+      <ul>
+        <li>
+          Path-based lines keep output unambiguous for agents and humans while
+          the mutation engine is still incomplete.
+        </li>
+      </ul>
+
+      <h3>Open Questions</h3>
+      <ul>
+        <li>
+          Decide whether final human diff output should prefer compact tree
+          grouping or one explicit path per changed topic.
+        </li>
+      </ul>
+    </section>
   </body>
 </html>
