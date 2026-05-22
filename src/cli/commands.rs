@@ -168,6 +168,9 @@ pub struct SetCommand {
     #[arg(long)]
     pub remove_marker: Option<String>,
 
+    #[arg(long)]
+    pub hyperlink: Option<String>,
+
     #[command(flatten)]
     pub mode: MutationMode,
 }

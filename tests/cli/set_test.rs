@@ -624,6 +624,56 @@ fn set_remove_marker_apply_removes_topic_marker() {
 }
 
 #[test]
+fn set_hyperlink_apply_writes_topic_hyperlink() {
+    let temp_dir = tempfile::tempdir().expect("temp dir is created");
+    let workbook = temp_dir.path().join("apply-set-hyperlink.xmind");
+    fs::copy("tests/fixtures/xmind/minimal.xmind", &workbook).expect("fixture is copied");
+    let workbook_arg = workbook.to_string_lossy().into_owned();
+
+    let output = Command::cargo_bin("xmind")
+        .expect("xmind binary is built for CLI tests")
+        .args([
+            "set",
+            &workbook_arg,
+            "--node",
+            "id:topic-payment",
+            "--hyperlink",
+            "https://example.com/payments",
+            "--apply",
+            "--json",
+        ])
+        .output()
+        .expect("set command runs");
+
+    assert_eq!(output.status.code(), Some(0));
+    assert!(
+        output.stderr.is_empty(),
+        "json set output should not emit stderr diagnostics: {}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+
+    let body: Value = serde_json::from_slice(&output.stdout).expect("stdout is JSON");
+    assert_eq!(body["ok"], true);
+    assert_eq!(body["command"], "set");
+    assert_eq!(body["applied"], true);
+    assert_eq!(
+        body["result"]["updated"]["new_hyperlink"],
+        "https://example.com/payments"
+    );
+
+    let get_output = Command::cargo_bin("xmind")
+        .expect("xmind binary is built for CLI tests")
+        .args(["get", &workbook_arg, "--node", "id:topic-payment", "--json"])
+        .output()
+        .expect("get command runs after apply");
+    let topic: Value = serde_json::from_slice(&get_output.stdout).expect("get stdout is JSON");
+    assert_eq!(
+        topic["result"]["topic"]["hyperlink"],
+        "https://example.com/payments"
+    );
+}
+
+#[test]
 fn set_append_note_apply_writes_appended_topic_note() {
     let temp_dir = tempfile::tempdir().expect("temp dir is created");
     let workbook = temp_dir.path().join("apply-append-note.xmind");

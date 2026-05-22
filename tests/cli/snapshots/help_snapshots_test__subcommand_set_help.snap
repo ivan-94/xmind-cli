@@ -19,6 +19,7 @@ Options:
       --set-markers <SET_MARKERS>      
       --add-marker <ADD_MARKER>        
       --remove-marker <REMOVE_MARKER>  
+      --hyperlink <HYPERLINK>          
       --dry-run                        
       --apply                          
       --backup                         

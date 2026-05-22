@@ -3035,5 +3035,45 @@
         </li>
       </ul>
     </section>
+
+    <section class="entry">
+      <h2>2026-05-22 - set hyperlink option</h2>
+      <h3>Design Decisions</h3>
+      <ul>
+        <li>
+          Implemented <code>xmind set --hyperlink &lt;url&gt;</code> for apply by
+          writing the topic <code>href</code> field through the transactional
+          writer.
+        </li>
+        <li>
+          JSON mutation output now includes <code>new_hyperlink</code> for
+          hyperlink updates.
+        </li>
+      </ul>
+
+      <h3>Deviations</h3>
+      <ul>
+        <li>
+          Hyperlink values are accepted as opaque strings in this slice; URL
+          scheme validation is not enforced.
+        </li>
+      </ul>
+
+      <h3>Tradeoffs</h3>
+      <ul>
+        <li>
+          Opaque string handling matches XMind storage flexibility and avoids
+          rejecting valid non-HTTP links before the URL policy is documented.
+        </li>
+      </ul>
+
+      <h3>Open Questions</h3>
+      <ul>
+        <li>
+          Decide whether to validate hyperlink schemes or preserve XMind's
+          broader href behavior.
+        </li>
+      </ul>
+    </section>
   </body>
 </html>

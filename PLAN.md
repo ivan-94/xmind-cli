@@ -253,7 +253,7 @@ Implement a Rust CLI named `xmind` that satisfies the documented product, comman
 - [x] Implement `set --set-markers`.
 - [x] Implement `set --add-marker`.
 - [x] Implement `set --remove-marker`.
-- [ ] Implement `set --hyperlink`.
+- [x] Implement `set --hyperlink`.
 - [ ] Implement `set --clear` repeated flag semantics.
 - [ ] Implement `delete`.
 - [ ] Implement `delete --children-only`.
