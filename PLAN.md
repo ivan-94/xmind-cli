@@ -431,13 +431,13 @@ xmind patch tests/fixtures/xmind/minimal.xmind --ops docs/examples/patch-add-tre
 
 ## Definition of Done
 
-- [ ] Every documented command exists.
-- [ ] Every documented global option is implemented or explicitly rejected.
+- [x] Every documented command exists.
+- [x] Every documented global option is implemented or explicitly rejected.
 - [ ] Every documented JSON envelope field is stable.
-- [ ] Every documented error code has a test.
-- [ ] Every mutating command supports dry-run and apply.
+- [x] Every documented error code has a test.
+- [x] Every mutating command supports dry-run and apply.
 - [ ] Dry-run never writes files.
 - [ ] Applied writes are transactional.
 - [ ] Unknown XMind data is preserved across supported edits.
 - [ ] `cargo fmt`, `cargo clippy`, `cargo test`, and `cargo doc` pass.
-- [ ] Command references and CLI help are synchronized.
+- [x] Command references and CLI help are synchronized.
