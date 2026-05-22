@@ -123,7 +123,7 @@ Implement a Rust CLI named `xmind` that satisfies the documented product, comman
   - [x] `id:`
   - [x] `path:`
   - [x] `title:`
-  - [ ] `query:`
+  - [x] `query:`
 - [x] Implement selector parser.
 - [x] Implement selector render for diagnostics.
 - [x] Implement sheet selection:

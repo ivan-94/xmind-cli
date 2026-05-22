@@ -43,6 +43,35 @@ fn get_json_path_selector_returns_topic_with_requested_depth() {
 }
 
 #[test]
+fn get_json_query_selector_returns_unique_match() {
+    let output = Command::cargo_bin("xmind")
+        .expect("xmind binary is built for CLI tests")
+        .args([
+            "get",
+            "tests/fixtures/xmind/minimal.xmind",
+            "--node",
+            "query:title = \"Payment\"",
+            "--json",
+        ])
+        .output()
+        .expect("get command runs");
+
+    assert_eq!(output.status.code(), Some(0));
+    assert!(
+        output.stderr.is_empty(),
+        "json get output should not emit stderr diagnostics: {}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+
+    let body: Value = serde_json::from_slice(&output.stdout).expect("stdout is JSON");
+    assert_eq!(body["ok"], true);
+    assert_eq!(body["command"], "get");
+    assert_eq!(body["result"]["topic"]["id"], "topic-payment");
+    assert_eq!(body["result"]["topic"]["path"], "/Q2/Payment");
+    assert_eq!(body["result"]["topic"]["title"], "Payment");
+}
+
+#[test]
 fn get_json_missing_selector_returns_not_found_diagnostic() {
     let output = Command::cargo_bin("xmind")
         .expect("xmind binary is built for CLI tests")

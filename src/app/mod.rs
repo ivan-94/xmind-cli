@@ -1614,6 +1614,15 @@ fn resolve_topic<'a>(root: &'a Topic, selector: &Selector) -> ResolveOne<'a> {
                 _ => ResolveOne::Ambiguous(matches),
             }
         }
+        Selector::Query { expr, .. } => {
+            let mut matches = Vec::new();
+            collect_topics_by_query(root, &TopicPath::root(), 0, expr, &mut matches);
+            match matches.len() {
+                0 => ResolveOne::NotFound,
+                1 => ResolveOne::Found(matches.remove(0)),
+                _ => ResolveOne::Ambiguous(matches),
+            }
+        }
     }
 }
 
@@ -1651,6 +1660,26 @@ fn collect_topics_by_title<'a>(
     for child in &topic.children {
         let child_path = path.join(child.title.clone());
         collect_topics_by_title(child, &child_path, title, matches);
+    }
+}
+
+fn collect_topics_by_query<'a>(
+    topic: &'a Topic,
+    path: &TopicPath,
+    depth: usize,
+    query: &QueryExpr,
+    matches: &mut Vec<ResolvedTopic<'a>>,
+) {
+    if query.matches_topic(topic, path, depth) {
+        matches.push(ResolvedTopic {
+            topic,
+            path: path.clone(),
+        });
+    }
+
+    for child in &topic.children {
+        let child_path = path.join(child.title.clone());
+        collect_topics_by_query(child, &child_path, depth + 1, query, matches);
     }
 }
 
