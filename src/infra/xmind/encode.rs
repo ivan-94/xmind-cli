@@ -19,8 +19,10 @@ pub fn encode_workbook_content(workbook: &Workbook) -> Result<Vec<u8>, XMindWrit
         .iter()
         .map(StorageSheetDto::from_sheet)
         .collect::<Vec<_>>();
+    let mut content = serde_json::to_value(sheets)?;
+    merge_preserved_json_fields(&mut content, workbook);
 
-    Ok(serde_json::to_vec_pretty(&sheets)?)
+    Ok(serde_json::to_vec_pretty(&content)?)
 }
 
 pub fn append_child_topic(
@@ -400,6 +402,57 @@ struct StorageChildrenDto {
     attached: Vec<StorageTopicDto>,
 }
 
+fn merge_preserved_json_fields(content: &mut Value, workbook: &Workbook) {
+    for (path, value) in workbook.preservation.raw_json_fields() {
+        merge_preserved_json_field(content, path, value.clone());
+    }
+}
+
+fn merge_preserved_json_field(content: &mut Value, path: &str, value: Value) {
+    let mut parts = path.split('.').collect::<Vec<_>>();
+    let Some(field_name) = parts.pop() else {
+        return;
+    };
+
+    let Some(parent) = navigate_preserved_parent(content, &parts) else {
+        return;
+    };
+
+    if let Some(object) = parent.as_object_mut() {
+        object.insert(field_name.to_owned(), value);
+    }
+}
+
+fn navigate_preserved_parent<'a>(
+    mut current: &'a mut Value,
+    parts: &[&str],
+) -> Option<&'a mut Value> {
+    for part in parts {
+        current = navigate_preserved_part(current, part)?;
+    }
+    Some(current)
+}
+
+fn navigate_preserved_part<'a>(current: &'a mut Value, part: &str) -> Option<&'a mut Value> {
+    if let Some((name, index)) = parse_indexed_part(part) {
+        if name == "sheets" {
+            return current.as_array_mut()?.get_mut(index);
+        }
+        return current
+            .as_object_mut()?
+            .get_mut(name)?
+            .as_array_mut()?
+            .get_mut(index);
+    }
+
+    current.as_object_mut()?.get_mut(part)
+}
+
+fn parse_indexed_part(part: &str) -> Option<(&str, usize)> {
+    let (name, index) = part.strip_suffix(']')?.split_once('[')?;
+    Some((name, index.parse().ok()?))
+}
+
 #[derive(Debug, Error)]
 pub enum XMindWriteError {
     #[error("workbook package could not be read or written: {0}")]
@@ -489,6 +542,61 @@ mod tests {
         assert_eq!(
             value[0]["rootTopic"]["children"]["attached"][0]["id"],
             "topic-payment"
+        );
+    }
+
+    #[test]
+    fn merges_preserved_unknown_json_fields_into_encoded_content() {
+        let mut preservation = PreservationBag::default();
+        preservation.preserve_json_field(
+            "sheets[0].vendorSheet",
+            serde_json::json!({ "sheet": true }),
+        );
+        preservation.preserve_json_field(
+            "sheets[0].rootTopic.vendorTopic",
+            serde_json::json!({ "topic": true }),
+        );
+        preservation.preserve_json_field(
+            "sheets[0].rootTopic.children.attached[0].vendorChild",
+            serde_json::json!({ "child": true }),
+        );
+
+        let workbook = Workbook {
+            sheets: vec![Sheet {
+                id: SheetId("sheet-roadmap".to_owned()),
+                title: "Roadmap".to_owned(),
+                root: Topic {
+                    id: TopicId("topic-root".to_owned()),
+                    title: "Roadmap".to_owned(),
+                    note: None,
+                    labels: Vec::new(),
+                    markers: Vec::new(),
+                    hyperlink: None,
+                    image: None,
+                    children: vec![Topic {
+                        id: TopicId("topic-payment".to_owned()),
+                        title: "Payment".to_owned(),
+                        note: None,
+                        labels: Vec::new(),
+                        markers: Vec::new(),
+                        hyperlink: None,
+                        image: None,
+                        children: Vec::new(),
+                    }],
+                },
+            }],
+            resources: ResourceIndex::default(),
+            preservation,
+        };
+
+        let content = encode_workbook_content(&workbook).expect("workbook encodes");
+        let value: Value = serde_json::from_slice(&content).expect("encoded content is JSON");
+
+        assert_eq!(value[0]["vendorSheet"]["sheet"], true);
+        assert_eq!(value[0]["rootTopic"]["vendorTopic"]["topic"], true);
+        assert_eq!(
+            value[0]["rootTopic"]["children"]["attached"][0]["vendorChild"]["child"],
+            true
         );
     }
 }

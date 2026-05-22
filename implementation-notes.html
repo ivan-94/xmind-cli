@@ -2388,5 +2388,47 @@
         </li>
       </ul>
     </section>
+
+    <section class="entry">
+      <h2>2026-05-22 - preserved JSON field merge</h2>
+      <h3>Design Decisions</h3>
+      <ul>
+        <li>
+          Added encoder support for merging preserved unknown JSON fields back
+          into sheet, topic, and child topic objects using preservation paths.
+        </li>
+        <li>
+          Exposed a read-only <code>PreservationBag::raw_json_fields()</code>
+          accessor so storage encoding can consume preserved fields without
+          mutating the preservation bag.
+        </li>
+      </ul>
+
+      <h3>Deviations</h3>
+      <ul>
+        <li>
+          Unknown fields with paths that no longer resolve in the encoded model
+          are skipped silently for now.
+        </li>
+      </ul>
+
+      <h3>Tradeoffs</h3>
+      <ul>
+        <li>
+          Path merging is intentionally narrow and supports the decoder's
+          current path forms, including <code>sheets[N]</code> and
+          <code>children.attached[N]</code>, rather than introducing a generic
+          JSONPath interpreter.
+        </li>
+      </ul>
+
+      <h3>Open Questions</h3>
+      <ul>
+        <li>
+          Decide later whether unresolved preserved paths should produce
+          warnings when writes are applied.
+        </li>
+      </ul>
+    </section>
   </body>
 </html>

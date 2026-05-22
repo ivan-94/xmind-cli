@@ -36,6 +36,10 @@ impl PreservationBag {
         self.package_entries.push(entry_name.into());
     }
 
+    pub fn raw_json_fields(&self) -> &Map<String, Value> {
+        &self.raw_json_fields
+    }
+
     #[cfg(test)]
     fn raw_json_field_count(&self) -> usize {
         self.raw_json_fields.len()
