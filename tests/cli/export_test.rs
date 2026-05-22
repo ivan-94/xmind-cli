@@ -72,6 +72,43 @@ fn export_overwrite_replaces_existing_output_file() {
 }
 
 #[test]
+fn export_output_without_overwrite_rejects_existing_file() {
+    let temp_dir = tempfile::tempdir().expect("temp dir is created");
+    let output_path = temp_dir.path().join("roadmap.md");
+    std::fs::write(&output_path, "old content\n").expect("existing output is written");
+    let output_arg = output_path.to_string_lossy().into_owned();
+
+    let output = Command::cargo_bin("xmind")
+        .expect("xmind binary is built for CLI tests")
+        .args([
+            "export",
+            "tests/fixtures/xmind/minimal.xmind",
+            "--format",
+            "markdown",
+            "--output",
+            &output_arg,
+            "--json",
+        ])
+        .output()
+        .expect("export command runs");
+
+    assert_eq!(output.status.code(), Some(10));
+    assert!(
+        output.stderr.is_empty(),
+        "json export errors should not emit stderr diagnostics: {}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    assert_eq!(
+        std::fs::read_to_string(output_path).expect("existing output remains readable"),
+        "old content\n"
+    );
+
+    let body: Value = serde_json::from_slice(&output.stdout).expect("stdout is JSON");
+    assert_eq!(body["ok"], false);
+    assert_eq!(body["error"]["code"], "write_failed");
+}
+
+#[test]
 fn export_json_wraps_payload_in_success_envelope() {
     let output = Command::cargo_bin("xmind")
         .expect("xmind binary is built for CLI tests")

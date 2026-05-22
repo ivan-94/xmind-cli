@@ -154,6 +154,49 @@ fn import_output_overwrite_replaces_existing_workbook() {
 }
 
 #[test]
+fn import_output_without_overwrite_rejects_existing_workbook() {
+    let temp_dir = tempfile::tempdir().expect("temp dir is created");
+    let output_path = temp_dir.path().join("roadmap.xmind");
+    fs::copy("tests/fixtures/xmind/minimal.xmind", &output_path).expect("fixture is copied");
+    let output_arg = output_path.to_string_lossy().into_owned();
+
+    let output = Command::cargo_bin("xmind")
+        .expect("xmind binary is built for CLI tests")
+        .args([
+            "import",
+            "--input",
+            "docs/examples/simple-tree.yaml",
+            "--output",
+            &output_arg,
+            "--apply",
+            "--json",
+        ])
+        .output()
+        .expect("import command runs");
+
+    assert_eq!(output.status.code(), Some(10));
+    assert!(
+        output.stderr.is_empty(),
+        "json import errors should not emit stderr diagnostics: {}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+
+    let body: Value = serde_json::from_slice(&output.stdout).expect("stdout is JSON");
+    assert_eq!(body["ok"], false);
+    assert_eq!(body["error"]["code"], "write_failed");
+
+    let tree_output = Command::cargo_bin("xmind")
+        .expect("xmind binary is built for CLI tests")
+        .args(["tree", &output_arg, "--json", "--depth", "1"])
+        .output()
+        .expect("tree command runs on preserved workbook");
+
+    assert_eq!(tree_output.status.code(), Some(0));
+    let tree: Value = serde_json::from_slice(&tree_output.stdout).expect("tree stdout is JSON");
+    assert_eq!(tree["result"]["root"]["title"], "Roadmap");
+}
+
+#[test]
 fn import_output_dry_run_reports_plan_without_creating_workbook() {
     let temp_dir = tempfile::tempdir().expect("temp dir is created");
     let output_path = temp_dir.path().join("roadmap.xmind");

@@ -344,7 +344,7 @@ Implement a Rust CLI named `xmind` that satisfies the documented product, comman
 - [x] Implement `import --dry-run` no-file behavior.
 - [x] Implement creation diff from empty workbook.
 - [x] Add import/export round-trip tests.
-- [ ] Add overwrite behavior tests.
+- [x] Add overwrite behavior tests.
 
 ## Phase 13: Assets and Images
 

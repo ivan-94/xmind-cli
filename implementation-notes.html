@@ -348,6 +348,10 @@
           已增加 Markdown outline 的 export → import round-trip 覆盖：
           当前验证主题标题层级往返；notes/metadata/assets 的往返仍取决于后续导出扩展。
         </li>
+        <li>
+          overwrite 行为已有成对回归测试：默认拒绝覆盖并保留既有目标，
+          显式 <code>--overwrite</code> 时才替换 export/import output。
+        </li>
       </ul>
     </section>
   </body>
