@@ -156,6 +156,29 @@ fn delete_children_only_apply_removes_descendants_but_keeps_topic() {
 }
 
 #[test]
+fn delete_children_only_rejects_root_operation() {
+    let output = Command::cargo_bin("xmind")
+        .expect("xmind binary is built for CLI tests")
+        .args([
+            "delete",
+            "tests/fixtures/xmind/minimal.xmind",
+            "--node",
+            "root",
+            "--children-only",
+            "--dry-run",
+            "--json",
+        ])
+        .output()
+        .expect("delete command runs");
+
+    assert_eq!(output.status.code(), Some(8));
+    let body: Value = serde_json::from_slice(&output.stdout).expect("stdout is JSON");
+    assert_eq!(body["ok"], false);
+    assert_eq!(body["error"]["code"], "root_operation_not_allowed");
+    assert_eq!(body["error"]["selector"], "root");
+}
+
+#[test]
 fn delete_promote_children_apply_removes_topic_and_promotes_children() {
     let temp_dir = tempfile::tempdir().expect("temp dir is created");
     let workbook = temp_dir.path().join("apply-delete-promote-children.xmind");

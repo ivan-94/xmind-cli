@@ -1783,12 +1783,12 @@ fn render_delete(
         }
     };
 
-    if resolved.path.is_root() && !children_only {
+    if resolved.path.is_root() {
         let error = CliErrorBody::new(
             ErrorCode::RootOperationNotAllowed,
             "Deleting the root topic is not allowed.",
             true,
-            "Use a non-root node selector, or use --children-only to clear root descendants.",
+            "Use a non-root node selector.",
         )
         .with_selector(selector.render());
         return render_error(invocation, json, error);

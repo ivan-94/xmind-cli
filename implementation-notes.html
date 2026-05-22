@@ -3624,5 +3624,42 @@
         </li>
       </ul>
     </section>
+    <section class="entry">
+      <h2>2026-05-22 - unsupported root operations</h2>
+      <h3>Design Decisions</h3>
+      <ul>
+        <li>
+          <code>delete</code> now rejects the selected sheet root even when
+          <code>--children-only</code> is present. This aligns delete with the
+          shared root operation rule that <code>delete</code>, <code>move</code>,
+          and <code>copy</code> cannot operate on <code>root</code> or
+          <code>path:/</code>.
+        </li>
+      </ul>
+
+      <h3>Deviations</h3>
+      <ul>
+        <li>
+          The earlier delete command text implied that
+          <code>--children-only root</code> could clear root descendants. The
+          command reference was updated to match the broader mutation semantics.
+        </li>
+      </ul>
+
+      <h3>Tradeoffs</h3>
+      <ul>
+        <li>
+          Clearing all root descendants remains possible by selecting explicit
+          child topics instead of mutating the structural sheet root.
+        </li>
+      </ul>
+
+      <h3>Open Questions</h3>
+      <ul>
+        <li>
+          None for this slice.
+        </li>
+      </ul>
+    </section>
   </body>
 </html>

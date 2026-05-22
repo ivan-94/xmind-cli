@@ -56,7 +56,8 @@ Dry run must list all paths that would be deleted or promoted.
 
 ## Root Behavior
 
-Deleting `root` or `path:/` is not allowed. Use `--children-only` to clear descendants while keeping the sheet root.
+Deleting `root` or `path:/` is not allowed, including with `--children-only`.
+Select a non-root topic when clearing descendants.
 
 ## Notes for Agents
 
