@@ -20,12 +20,14 @@ pub fn read_workbook(path: &Path) -> Result<Workbook, XMindReadError> {
     let mut preservation = PreservationBag::default();
     let mut resources = ResourceIndex::default();
     for index in 0..archive.len() {
-        let entry = archive.by_index(index)?;
-        let name = entry.name();
+        let mut entry = archive.by_index(index)?;
+        let name = entry.name().to_owned();
         if name != "content.json" {
-            preservation.preserve_package_entry(name.to_owned());
+            let mut bytes = Vec::new();
+            entry.read_to_end(&mut bytes)?;
+            preservation.preserve_package_entry_bytes(name.clone(), bytes);
         }
-        if is_resource_entry(name) {
+        if is_resource_entry(&name) {
             resources.insert_asset_id(AssetId::new(format!("xap:{name}")));
         }
     }
@@ -197,4 +199,41 @@ impl From<StorageTopic> for Topic {
 struct StorageChildren {
     #[serde(default)]
     attached: Vec<StorageTopic>,
+}
+
+#[cfg(test)]
+mod tests {
+    use std::fs::File;
+    use std::io::Write;
+
+    use zip::write::FileOptions;
+
+    use super::read_workbook;
+
+    #[test]
+    fn read_workbook_preserves_unknown_package_entry_bytes() {
+        let temp_dir = tempfile::tempdir().expect("temp dir is created");
+        let workbook_path = temp_dir.path().join("unknown-package.xmind");
+        let file = File::create(&workbook_path).expect("workbook file is created");
+        let mut zip = zip::ZipWriter::new(file);
+        let options = FileOptions::default().compression_method(zip::CompressionMethod::Deflated);
+
+        zip.start_file("content.json", options)
+            .expect("content entry starts");
+        zip.write_all(
+            br#"[{"id":"sheet-roadmap","title":"Roadmap","rootTopic":{"id":"topic-root","title":"Roadmap"}}]"#,
+        )
+        .expect("content entry is written");
+        zip.start_file("metadata.json", options)
+            .expect("metadata entry starts");
+        zip.write_all(br#"{"vendor":true}"#)
+            .expect("metadata entry is written");
+        zip.finish().expect("zip finishes");
+
+        let workbook = read_workbook(&workbook_path).expect("workbook reads");
+
+        let entry = &workbook.preservation.package_entries()[0];
+        assert_eq!(entry.name(), "metadata.json");
+        assert_eq!(entry.bytes(), br#"{"vendor":true}"#);
+    }
 }

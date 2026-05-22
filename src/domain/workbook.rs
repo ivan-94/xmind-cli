@@ -20,7 +20,25 @@ pub struct ResourceIndex {
 #[derive(Debug, Default)]
 pub struct PreservationBag {
     raw_json_fields: Map<String, Value>,
-    package_entries: Vec<String>,
+    package_entries: Vec<PreservedPackageEntry>,
+}
+
+#[allow(dead_code)]
+#[derive(Debug)]
+pub struct PreservedPackageEntry {
+    name: String,
+    bytes: Vec<u8>,
+}
+
+#[allow(dead_code)]
+impl PreservedPackageEntry {
+    pub fn name(&self) -> &str {
+        &self.name
+    }
+
+    pub fn bytes(&self) -> &[u8] {
+        &self.bytes
+    }
 }
 
 impl PreservationBag {
@@ -32,12 +50,25 @@ impl PreservationBag {
         self.raw_json_fields.insert(field.into(), value);
     }
 
+    #[allow(dead_code)]
     pub fn preserve_package_entry(&mut self, entry_name: impl Into<String>) {
-        self.package_entries.push(entry_name.into());
+        self.preserve_package_entry_bytes(entry_name, Vec::new());
+    }
+
+    pub fn preserve_package_entry_bytes(&mut self, entry_name: impl Into<String>, bytes: Vec<u8>) {
+        self.package_entries.push(PreservedPackageEntry {
+            name: entry_name.into(),
+            bytes,
+        });
     }
 
     pub fn raw_json_fields(&self) -> &Map<String, Value> {
         &self.raw_json_fields
+    }
+
+    #[allow(dead_code)]
+    pub fn package_entries(&self) -> &[PreservedPackageEntry] {
+        &self.package_entries
     }
 
     #[cfg(test)]
@@ -92,5 +123,16 @@ mod tests {
         assert!(!bag.is_empty());
         assert_eq!(bag.raw_json_field_count(), 1);
         assert_eq!(bag.package_entry_count(), 1);
+    }
+
+    #[test]
+    fn preservation_bag_keeps_package_entry_bytes_for_reuse() {
+        let mut bag = PreservationBag::default();
+
+        bag.preserve_package_entry_bytes("metadata.json", br#"{"vendor":true}"#.to_vec());
+
+        let entry = &bag.package_entries()[0];
+        assert_eq!(entry.name(), "metadata.json");
+        assert_eq!(entry.bytes(), br#"{"vendor":true}"#);
     }
 }

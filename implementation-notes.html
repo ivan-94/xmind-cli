@@ -2430,5 +2430,44 @@
         </li>
       </ul>
     </section>
+
+    <section class="entry">
+      <h2>2026-05-22 - preserved package entry reuse</h2>
+      <h3>Design Decisions</h3>
+      <ul>
+        <li>
+          Extended <code>PreservationBag</code> so preserved package entries
+          keep both entry names and original bytes.
+        </li>
+        <li>
+          Updated the XMind decoder to read bytes for every non-
+          <code>content.json</code> entry and store them in preservation.
+        </li>
+      </ul>
+
+      <h3>Deviations</h3>
+      <ul>
+        <li>
+          The domain-level package writer is still not wired to consume these
+          bytes. Existing direct mutation writers already copy non-content zip
+          entries, while this slice prepares the preservation-backed writer
+          path.
+        </li>
+      </ul>
+
+      <h3>Tradeoffs</h3>
+      <ul>
+        <li>
+          Accessors for preserved package bytes carry temporary dead-code
+          allowances until the package writer switches from direct zip copying
+          to preservation-backed package assembly.
+        </li>
+      </ul>
+
+      <h3>Open Questions</h3>
+      <ul>
+        <li>None.</li>
+      </ul>
+    </section>
   </body>
 </html>
