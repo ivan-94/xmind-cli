@@ -53,3 +53,29 @@ fn export_format_markdown_writes_heading_outline_to_stdout() {
         "# Roadmap\n\n## Q2\n\n### Payment\n"
     );
 }
+
+#[test]
+fn export_format_outline_writes_indented_outline_to_stdout() {
+    let output = Command::cargo_bin("xmind")
+        .expect("xmind binary is built for CLI tests")
+        .args([
+            "export",
+            "tests/fixtures/xmind/minimal.xmind",
+            "--format",
+            "outline",
+        ])
+        .output()
+        .expect("export command runs");
+
+    assert_eq!(output.status.code(), Some(0));
+    assert!(
+        output.stderr.is_empty(),
+        "export should not emit stderr diagnostics: {}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+
+    assert_eq!(
+        String::from_utf8(output.stdout).expect("stdout is UTF-8"),
+        "Roadmap\n  Q2\n    Payment\n"
+    );
+}

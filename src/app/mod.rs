@@ -1099,6 +1099,27 @@ fn render_export(invocation: Invocation, json: bool, format: &OutputFormat) -> i
                 print!("{content}");
             }
         }
+        OutputFormat::Outline => {
+            let content = render_export_outline(&sheet.root);
+            if json {
+                let envelope = CommandEnvelope {
+                    ok: true,
+                    command: Some(invocation.command),
+                    workbook: Some(invocation.workbook.display().to_string()),
+                    dry_run: false,
+                    applied: false,
+                    result: Some(serde_json::json!({
+                        "format": "outline",
+                        "content": content,
+                    })),
+                    error: None,
+                    warnings: Vec::new(),
+                };
+                crate::cli::render_json_envelope(&envelope);
+            } else {
+                print!("{content}");
+            }
+        }
         _ => {
             let error = CliErrorBody::new(
                 ErrorCode::InvalidUsage,
@@ -1124,6 +1145,19 @@ fn collect_export_markdown_headings(topic: &Topic, level: usize, headings: &mut 
     headings.push(format!("{} {}", "#".repeat(level), topic.title));
     for child in &topic.children {
         collect_export_markdown_headings(child, level + 1, headings);
+    }
+}
+
+fn render_export_outline(root: &Topic) -> String {
+    let mut lines = Vec::new();
+    collect_export_outline_lines(root, 0, &mut lines);
+    format!("{}\n", lines.join("\n"))
+}
+
+fn collect_export_outline_lines(topic: &Topic, indent: usize, lines: &mut Vec<String>) {
+    lines.push(format!("{}{}", "  ".repeat(indent), topic.title));
+    for child in &topic.children {
+        collect_export_outline_lines(child, indent + 1, lines);
     }
 }
 
