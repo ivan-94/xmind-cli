@@ -2722,5 +2722,46 @@
         </li>
       </ul>
     </section>
+
+    <section class="entry">
+      <h2>2026-05-22 - mutation planning service</h2>
+      <h3>Design Decisions</h3>
+      <ul>
+        <li>
+          Added a domain-level <code>MutationPlanner</code> service that plans
+          add-topic mutations from already resolved parent topic context.
+        </li>
+        <li>
+          Routed <code>xmind add</code> through the planner so path calculation
+          and add diff construction are no longer embedded only in CLI rendering.
+        </li>
+      </ul>
+
+      <h3>Deviations</h3>
+      <ul>
+        <li>
+          The planner currently covers add-topic planning only; set, delete,
+          move, copy, and tree/patch operations still use their existing local
+          planning code until their dedicated PLAN items are implemented.
+        </li>
+      </ul>
+
+      <h3>Tradeoffs</h3>
+      <ul>
+        <li>
+          Starting with add-topic keeps the service small and exercised by a real
+          command path before generalizing it across all mutation types.
+        </li>
+      </ul>
+
+      <h3>Open Questions</h3>
+      <ul>
+        <li>
+          Decide whether future planner results should own rendered DTO-ready
+          summaries, or stay domain-only and let the app layer map them into CLI
+          response DTOs.
+        </li>
+      </ul>
+    </section>
   </body>
 </html>

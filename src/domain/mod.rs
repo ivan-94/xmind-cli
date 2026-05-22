@@ -1,5 +1,6 @@
 pub mod diff;
 pub mod errors;
+pub mod mutation;
 pub mod patch;
 pub mod path;
 pub mod query;

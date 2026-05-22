@@ -242,7 +242,7 @@ Implement a Rust CLI named `xmind` that satisfies the documented product, comman
 
 ## Phase 9: Single-Topic Mutations
 
-- [ ] Implement mutation planning service.
+- [x] Implement mutation planning service.
 - [ ] Implement `add`.
 - [x] Implement `set --title`.
 - [x] Implement `set --note`.

@@ -9,6 +9,7 @@ use crate::cli::{
     CandidateDto, Cli, CliErrorBody, Command, CommandEnvelope, ErrorCode, OutputFormat,
 };
 use crate::domain::diff::{Diff, DiffEvent, FieldChange};
+use crate::domain::mutation::{AddTopicRequest, MutationPlanner};
 use crate::domain::path::TopicPath;
 use crate::domain::query::QueryExpr;
 use crate::domain::selector::Selector;
@@ -1093,11 +1094,14 @@ fn render_add(invocation: Invocation, json: bool, parent: &str, title: &str) -> 
     };
 
     let new_topic_id = generated_topic_id(title);
-    let created_topic_path = parent.path.join(title.to_owned());
-    let created_path = created_topic_path.to_selector_value();
-    let human_diff = Diff::from_events(vec![DiffEvent::Added {
-        path: created_topic_path,
-    }]);
+    let plan = MutationPlanner::plan_add_topic(AddTopicRequest {
+        parent: parent.topic,
+        parent_path: &parent.path,
+        title,
+        new_topic_id: &new_topic_id,
+    });
+    let created_path = plan.created_path.to_selector_value();
+    let human_diff = plan.diff.clone();
     let mut result = AddDryRunResultDto {
         will_change: true,
         parent: TopicRefDto {
@@ -1107,7 +1111,7 @@ fn render_add(invocation: Invocation, json: bool, parent: &str, title: &str) -> 
         },
         created: CreatedTopicDto {
             path: created_path.clone(),
-            title: title.to_owned(),
+            title: plan.title.clone(),
         },
         summary: SummaryDto {
             added: 1,
@@ -1129,9 +1133,9 @@ fn render_add(invocation: Invocation, json: bool, parent: &str, title: &str) -> 
         };
         if let Err(error) = crate::infra::xmind::encode::append_child_topic(
             &invocation.workbook,
-            &parent.topic.id.0,
-            title,
-            &new_topic_id,
+            &plan.parent_id,
+            &plan.title,
+            &plan.new_topic_id,
         ) {
             return render_workbook_write_error(invocation, json, error);
         }
