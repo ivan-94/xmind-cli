@@ -1347,16 +1347,6 @@ fn render_set_append_note(
         }
     };
 
-    if !invocation.dry_run {
-        let error = CliErrorBody::new(
-            ErrorCode::InvalidUsage,
-            "Only set --append-note --dry-run is implemented in this slice.",
-            true,
-            "Retry with --dry-run, or wait for the append-note writer slice before using --apply.",
-        );
-        return render_error(invocation, json, error);
-    }
-
     let path = resolved.path.to_selector_value();
     let new_note = format!(
         "{}{}",
@@ -1370,7 +1360,7 @@ fn render_set_append_note(
             path: Some(path.clone()),
             old_path: None,
             new_path: None,
-            new_note: Some(new_note),
+            new_note: Some(new_note.clone()),
             changed_fields: vec!["note"],
         },
         summary: SummaryDto {
@@ -1385,13 +1375,30 @@ fn render_set_append_note(
         }],
     };
 
+    if !invocation.dry_run {
+        if let Err(error) = crate::infra::xmind::encode::set_topic_note(
+            &invocation.workbook,
+            &resolved.topic.id.0,
+            &new_note,
+        ) {
+            let error = CliErrorBody::new(
+                ErrorCode::WriteFailed,
+                format!("Workbook could not be written: {error}"),
+                true,
+                "Check write permissions and retry.",
+            )
+            .with_path(invocation.workbook.display().to_string());
+            return render_error(invocation, json, error);
+        }
+    }
+
     if json {
         let envelope = CommandEnvelope {
             ok: true,
             command: Some(invocation.command),
             workbook: Some(invocation.workbook.display().to_string()),
-            dry_run: true,
-            applied: false,
+            dry_run: invocation.dry_run,
+            applied: !invocation.dry_run,
             result: Some(result),
             error: None,
             warnings: Vec::new(),
