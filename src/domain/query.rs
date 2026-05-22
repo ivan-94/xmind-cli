@@ -40,6 +40,9 @@ impl QueryComparison {
             (QueryField::Title, QueryOperator::Contains, QueryValue::String(needle)) => {
                 topic.title.contains(needle)
             }
+            (QueryField::Title, QueryOperator::StartsWith, QueryValue::String(prefix)) => {
+                topic.title.starts_with(prefix)
+            }
         }
     }
 }
@@ -54,6 +57,7 @@ enum QueryOperator {
     Eq,
     Ne,
     Contains,
+    StartsWith,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -132,6 +136,7 @@ impl<'a> QueryParser<'a> {
             "=" => Ok(QueryOperator::Eq),
             "!=" => Ok(QueryOperator::Ne),
             "contains" => Ok(QueryOperator::Contains),
+            "starts_with" => Ok(QueryOperator::StartsWith),
             other => Err(QueryParseError::UnsupportedOperator(other.to_owned())),
         }
     }
@@ -271,6 +276,19 @@ mod tests {
     #[test]
     fn title_contains_matches_substring() {
         let expr = QueryExpr::parse(r#"title contains "Pay""#).expect("query parses");
+        let topic = Topic {
+            id: TopicId("topic-payment".to_owned()),
+            title: "Payment".to_owned(),
+            note: None,
+            children: Vec::new(),
+        };
+
+        assert!(expr.matches_topic(&topic, &TopicPath::root(), 0));
+    }
+
+    #[test]
+    fn title_starts_with_matches_prefix() {
+        let expr = QueryExpr::parse(r#"title starts_with "Pay""#).expect("query parses");
         let topic = Topic {
             id: TopicId("topic-payment".to_owned()),
             title: "Payment".to_owned(),
