@@ -31,15 +31,40 @@ impl Diff {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum DiffEvent {
-    Added { path: TopicPath },
-    Removed { path: TopicPath },
+    Added {
+        path: TopicPath,
+    },
+    Removed {
+        path: TopicPath,
+    },
+    Updated {
+        path: TopicPath,
+        fields: Vec<FieldChange>,
+    },
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct FieldChange {
+    field: String,
+}
+
+impl FieldChange {
+    pub fn new(field: impl Into<String>) -> Self {
+        Self {
+            field: field.into(),
+        }
+    }
+
+    pub fn field(&self) -> &str {
+        &self.field
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use crate::domain::path::TopicPath;
 
-    use super::{Diff, DiffEvent};
+    use super::{Diff, DiffEvent, FieldChange};
 
     #[test]
     fn new_diff_starts_without_events() {
@@ -66,5 +91,23 @@ mod tests {
         let diff = Diff::from_events(vec![DiffEvent::Removed { path: path.clone() }]);
 
         assert_eq!(diff.events(), &[DiffEvent::Removed { path }]);
+    }
+
+    #[test]
+    fn updated_event_carries_topic_path_and_changed_fields() {
+        let path = TopicPath::parse_selector_value("/Q2/Payment").expect("path parses");
+        let field = FieldChange::new("title");
+        let diff = Diff::from_events(vec![DiffEvent::Updated {
+            path: path.clone(),
+            fields: vec![field.clone()],
+        }]);
+
+        assert_eq!(
+            diff.events(),
+            &[DiffEvent::Updated {
+                path,
+                fields: vec![field]
+            }]
+        );
     }
 }

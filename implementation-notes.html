@@ -1989,5 +1989,46 @@
         <li>None.</li>
       </ul>
     </section>
+
+    <section class="entry">
+      <h2>2026-05-22 - DiffEvent Updated</h2>
+      <h3>Design Decisions</h3>
+      <ul>
+        <li>
+          Added <code>DiffEvent::Updated</code> with
+          <code>path</code> and <code>fields</code>, matching the documented
+          domain diff shape.
+        </li>
+        <li>
+          Introduced a minimal <code>FieldChange</code> value object that
+          currently stores the changed field name.
+        </li>
+      </ul>
+
+      <h3>Deviations</h3>
+      <ul>
+        <li>
+          <code>FieldChange</code> does not yet store old/new values because the
+          current docs and dry-run DTOs only expose changed field names.
+        </li>
+      </ul>
+
+      <h3>Tradeoffs</h3>
+      <ul>
+        <li>
+          Field names are kept as strings for now so existing set operations can
+          map directly to the domain type without introducing a closed field enum
+          before label, marker, hyperlink, and image edits are complete.
+        </li>
+      </ul>
+
+      <h3>Open Questions</h3>
+      <ul>
+        <li>
+          Decide later whether JSON diff output should include old/new values
+          for updated fields.
+        </li>
+      </ul>
+    </section>
   </body>
 </html>
