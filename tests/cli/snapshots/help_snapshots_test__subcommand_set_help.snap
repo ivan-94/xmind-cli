@@ -14,6 +14,7 @@ Options:
       --note <NOTE>                
       --append-note <APPEND_NOTE>  
       --set-labels <SET_LABELS>    
+      --add-label <ADD_LABEL>      
       --dry-run                    
       --apply                      
       --backup                     

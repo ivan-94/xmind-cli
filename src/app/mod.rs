@@ -143,6 +143,14 @@ pub fn run(cli: Cli) -> i32 {
             let labels = labels.clone();
             render_set_labels(invocation, json, &node, labels)
         }
+        Action::SetAddLabel {
+            ref node,
+            ref label,
+        } => {
+            let node = node.clone();
+            let label = label.clone();
+            render_set_add_label(invocation, json, &node, label)
+        }
         Action::Delete { ref node } => {
             let node = node.clone();
             render_delete(invocation, json, &node)
@@ -229,6 +237,10 @@ enum Action {
     SetLabels {
         node: String,
         labels: Vec<String>,
+    },
+    SetAddLabel {
+        node: String,
+        label: String,
     },
     Delete {
         node: String,
@@ -417,6 +429,11 @@ impl Invocation {
                     Action::SetLabels {
                         node: command.node,
                         labels: parse_csv_values(&labels),
+                    }
+                } else if let Some(label) = command.add_label {
+                    Action::SetAddLabel {
+                        node: command.node,
+                        label,
                     }
                 } else {
                     Action::Noop
@@ -1761,6 +1778,24 @@ fn render_set_note(invocation: Invocation, json: bool, node: &str, note: &str) -
 }
 
 fn render_set_labels(invocation: Invocation, json: bool, node: &str, labels: Vec<String>) -> i32 {
+    render_set_label_mutation(invocation, json, node, LabelMutation::Replace(labels))
+}
+
+fn render_set_add_label(invocation: Invocation, json: bool, node: &str, label: String) -> i32 {
+    render_set_label_mutation(invocation, json, node, LabelMutation::Add(label))
+}
+
+enum LabelMutation {
+    Replace(Vec<String>),
+    Add(String),
+}
+
+fn render_set_label_mutation(
+    invocation: Invocation,
+    json: bool,
+    node: &str,
+    mutation: LabelMutation,
+) -> i32 {
     let workbook = match read_workbook_or_render_error(&invocation, json) {
         Ok(workbook) => workbook,
         Err(exit_code) => return exit_code,
@@ -1819,6 +1854,16 @@ fn render_set_labels(invocation: Invocation, json: bool, node: &str, labels: Vec
         }
     };
 
+    let labels = match mutation {
+        LabelMutation::Replace(labels) => labels,
+        LabelMutation::Add(label) => {
+            let mut labels = resolved.topic.labels.clone();
+            if !labels.iter().any(|existing| existing == &label) {
+                labels.push(label);
+            }
+            labels
+        }
+    };
     let path = resolved.path.to_selector_value();
     let human_diff = Diff::from_events(vec![DiffEvent::Updated {
         path: resolved.path.clone(),

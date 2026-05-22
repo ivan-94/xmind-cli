@@ -2839,5 +2839,45 @@
         </li>
       </ul>
     </section>
+
+    <section class="entry">
+      <h2>2026-05-22 - add label option</h2>
+      <h3>Design Decisions</h3>
+      <ul>
+        <li>
+          Implemented <code>xmind set --add-label &lt;label&gt;</code> by reusing
+          the labels mutation renderer and transactional label writer.
+        </li>
+        <li>
+          Adding a label preserves existing label order and appends the new label
+          only when it is not already present.
+        </li>
+      </ul>
+
+      <h3>Deviations</h3>
+      <ul>
+        <li>
+          Duplicate add-label requests are idempotent rather than creating
+          duplicate label entries.
+        </li>
+      </ul>
+
+      <h3>Tradeoffs</h3>
+      <ul>
+        <li>
+          Idempotent add semantics are friendlier for agent retries and match how
+          labels are typically treated as a set, even though the storage field is
+          an ordered array.
+        </li>
+      </ul>
+
+      <h3>Open Questions</h3>
+      <ul>
+        <li>
+          Decide whether the command reference should explicitly document
+          duplicate-label idempotency.
+        </li>
+      </ul>
+    </section>
   </body>
 </html>
