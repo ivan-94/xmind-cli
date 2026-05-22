@@ -1851,13 +1851,30 @@ fn parse_markdown_list_item(line: &str) -> Option<(usize, String)> {
         .take_while(|character| *character == ' ')
         .count();
     let trimmed = line.trim_start();
-    let title = trimmed.strip_prefix("- ")?;
+    if let Some(title) = trimmed.strip_prefix("- ") {
+        let title = title.trim();
+        if title.is_empty() {
+            return None;
+        }
+
+        return Some((indent / 2 + 1, title.to_owned()));
+    }
+
+    let dot_index = trimmed.find(". ")?;
+    if dot_index == 0
+        || !trimmed[..dot_index]
+            .chars()
+            .all(|character| character.is_ascii_digit())
+    {
+        return None;
+    }
+    let title = &trimmed[dot_index + ". ".len()..];
     let title = title.trim();
     if title.is_empty() {
         return None;
     }
 
-    Some((indent / 2 + 1, title.to_owned()))
+    Some((indent / 3 + 1, title.to_owned()))
 }
 
 fn parse_markdown_heading(line: &str) -> Option<(usize, String)> {

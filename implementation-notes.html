@@ -4043,5 +4043,42 @@
         </li>
       </ul>
     </section>
+    <section class="entry">
+      <h2>2026-05-22 - Markdown ordered list parser</h2>
+      <h3>Design Decisions</h3>
+      <ul>
+        <li>
+          Markdown tree input now recognizes ordered list items such as
+          <code>1. Payment Capability</code>.
+        </li>
+        <li>
+          Ordered list nesting uses the common three-space indentation style
+          shown in the product docs.
+        </li>
+      </ul>
+
+      <h3>Deviations</h3>
+      <ul>
+        <li>
+          The numeric value is treated as a list marker only; it does not become
+          part of the topic title.
+        </li>
+      </ul>
+
+      <h3>Tradeoffs</h3>
+      <ul>
+        <li>
+          Broader Markdown indentation normalization remains deferred to the
+          invalid Markdown diagnostics task.
+        </li>
+      </ul>
+
+      <h3>Open Questions</h3>
+      <ul>
+        <li>
+          None for this slice.
+        </li>
+      </ul>
+    </section>
   </body>
 </html>

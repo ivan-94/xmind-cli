@@ -405,3 +405,51 @@ fn add_tree_markdown_list_outline_dry_run_reports_tree_diff() {
         "/Q2/Payment Capability/Refund"
     );
 }
+
+#[test]
+fn add_tree_markdown_ordered_list_outline_dry_run_reports_tree_diff() {
+    let temp_dir = tempfile::tempdir().expect("temp dir is created");
+    let input = temp_dir.path().join("ordered-outline.md");
+    fs::write(
+        &input,
+        r#"1. Payment Capability
+   1. Checkout
+      1. Card Payment
+   2. Refund
+"#,
+    )
+    .expect("markdown fixture is written");
+    let input_arg = input.to_string_lossy().into_owned();
+
+    let output = Command::cargo_bin("xmind")
+        .expect("xmind binary is built for CLI tests")
+        .args([
+            "add-tree",
+            "tests/fixtures/xmind/minimal.xmind",
+            "--parent",
+            "path:/Q2",
+            "--from-markdown",
+            &input_arg,
+            "--dry-run",
+            "--json",
+        ])
+        .output()
+        .expect("add-tree command runs");
+
+    assert_eq!(output.status.code(), Some(0));
+    let body: Value = serde_json::from_slice(&output.stdout).expect("stdout is JSON");
+    assert_eq!(body["ok"], true);
+    assert_eq!(
+        body["result"]["created_root"]["path"],
+        "/Q2/Payment Capability"
+    );
+    assert_eq!(body["result"]["summary"]["added"], 4);
+    assert_eq!(
+        body["result"]["diff"][2]["path"],
+        "/Q2/Payment Capability/Checkout/Card Payment"
+    );
+    assert_eq!(
+        body["result"]["diff"][3]["path"],
+        "/Q2/Payment Capability/Refund"
+    );
+}
