@@ -120,6 +120,12 @@
           <code>mod.rs</code> 仍保留共享 dispatch、read/export/import 和部分
           mutation orchestration，后续 CI/release hardening 前不再扩大本轮重构。
         </li>
+        <li>
+          CI workflow 使用 GitHub Actions，在 pull request 与 main/master push
+          上运行 <code>cargo fmt</code>、<code>cargo clippy</code>、
+          <code>cargo test</code> 和 <code>cargo doc</code>；本地质量门仍由
+          <code>./scripts/quality-gate.sh</code> 控制。
+        </li>
       </ul>
     </section>
 

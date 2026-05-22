@@ -398,11 +398,11 @@ Implement a Rust CLI named `xmind` that satisfies the documented product, comman
 
 ## Phase 16: CI and Release Hardening
 
-- [ ] Add CI workflow.
-- [ ] Run `cargo fmt --all -- --check` in CI.
-- [ ] Run `cargo clippy --workspace --all-targets --all-features -- -D warnings` in CI.
-- [ ] Run `cargo test --workspace --all-features` in CI.
-- [ ] Run `cargo doc --workspace --no-deps` in CI.
+- [x] Add CI workflow.
+- [x] Run `cargo fmt --all -- --check` in CI.
+- [x] Run `cargo clippy --workspace --all-targets --all-features -- -D warnings` in CI.
+- [x] Run `cargo test --workspace --all-features` in CI.
+- [x] Run `cargo doc --workspace --no-deps` in CI.
 - [ ] Add `cargo audit`.
 - [ ] Add `cargo deny check`.
 - [ ] Add release build smoke test.
