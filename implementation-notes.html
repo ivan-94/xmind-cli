@@ -3887,5 +3887,45 @@
         </li>
       </ul>
     </section>
+    <section class="entry">
+      <h2>2026-05-22 - tree input image fields</h2>
+      <h3>Design Decisions</h3>
+      <ul>
+        <li>
+          Topic tree input now parses and preserves image objects with
+          <code>path</code>, <code>asset_id</code>, <code>alt</code>, and
+          <code>title</code> fields.
+        </li>
+        <li>
+          <code>add-tree</code> dry-run exposes the root image object on
+          <code>created_root.image</code> when present.
+        </li>
+      </ul>
+
+      <h3>Deviations</h3>
+      <ul>
+        <li>
+          This slice preserves image metadata in parsed tree input but does not
+          attach or copy image assets into the workbook. Asset writes remain in
+          Phase 13.
+        </li>
+      </ul>
+
+      <h3>Tradeoffs</h3>
+      <ul>
+        <li>
+          Image validation remains light here so the parser can carry metadata
+          forward without committing to asset resolution semantics before the
+          asset phase.
+        </li>
+      </ul>
+
+      <h3>Open Questions</h3>
+      <ul>
+        <li>
+          None for this slice.
+        </li>
+      </ul>
+    </section>
   </body>
 </html>

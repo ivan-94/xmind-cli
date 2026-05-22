@@ -279,7 +279,7 @@ Implement a Rust CLI named `xmind` that satisfies the documented product, comman
 - [x] Implement JSON tree input parser.
 - [x] Validate `TopicTree`.
 - [x] Support optional input ids for id-based merge.
-- [ ] Support image fields in tree input.
+- [x] Support image fields in tree input.
 - [ ] Implement Markdown frontmatter parser.
 - [ ] Implement Markdown heading outline parser.
 - [ ] Implement Markdown list outline parser.

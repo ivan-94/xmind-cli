@@ -1630,6 +1630,7 @@ fn render_add_tree(invocation: Invocation, json: bool, parent: &str, input: &Pat
             id: tree.id.clone(),
             path: created_root_path,
             title: tree.title.clone(),
+            image: tree.image.clone(),
         },
         summary: SummaryDto {
             added: added_paths.len(),
@@ -3866,9 +3867,18 @@ struct PatchOpDto {
 struct TopicTreeInputDto {
     id: Option<String>,
     title: String,
+    image: Option<TopicTreeImageInputDto>,
 
     #[serde(default)]
     children: Vec<TopicTreeInputDto>,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+struct TopicTreeImageInputDto {
+    path: Option<String>,
+    asset_id: Option<String>,
+    alt: Option<String>,
+    title: Option<String>,
 }
 
 #[derive(Debug, Serialize)]
@@ -3978,6 +3988,8 @@ struct AddTreeCreatedTopicDto {
     id: Option<String>,
     path: String,
     title: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    image: Option<TopicTreeImageInputDto>,
 }
 
 #[derive(Debug, Serialize)]
