@@ -3778,5 +3778,40 @@
         </li>
       </ul>
     </section>
+    <section class="entry">
+      <h2>2026-05-22 - JSON tree input parser</h2>
+      <h3>Design Decisions</h3>
+      <ul>
+        <li>
+          <code>add-tree --input</code> now dispatches by file extension:
+          <code>.yaml</code>/<code>.yml</code> through <code>serde_yaml</code>
+          and <code>.json</code> through <code>serde_json</code>.
+        </li>
+      </ul>
+
+      <h3>Deviations</h3>
+      <ul>
+        <li>
+          Non-YAML/JSON extensions are rejected with
+          <code>invalid_tree_input</code> until additional import formats are
+          implemented.
+        </li>
+      </ul>
+
+      <h3>Tradeoffs</h3>
+      <ul>
+        <li>
+          Extension-based dispatch keeps JSON parser behavior explicit even
+          though YAML syntax can technically parse JSON-shaped documents.
+        </li>
+      </ul>
+
+      <h3>Open Questions</h3>
+      <ul>
+        <li>
+          None for this slice.
+        </li>
+      </ul>
+    </section>
   </body>
 </html>

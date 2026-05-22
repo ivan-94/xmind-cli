@@ -276,7 +276,7 @@ Implement a Rust CLI named `xmind` that satisfies the documented product, comman
 ## Phase 10: Tree Input
 
 - [x] Implement YAML tree input parser.
-- [ ] Implement JSON tree input parser.
+- [x] Implement JSON tree input parser.
 - [ ] Validate `TopicTree`.
 - [ ] Support optional input ids for id-based merge.
 - [ ] Support image fields in tree input.

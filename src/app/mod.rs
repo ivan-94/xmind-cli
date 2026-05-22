@@ -1589,14 +1589,14 @@ fn render_add_tree(invocation: Invocation, json: bool, parent: &str, input: &Pat
         }
     };
 
-    let tree = match read_yaml_tree_input(input) {
+    let tree = match read_tree_input(input) {
         Ok(tree) => tree,
         Err(message) => {
             let error = CliErrorBody::new(
                 ErrorCode::InvalidTreeInput,
                 message,
                 true,
-                "Provide a YAML tree input file with a top-level title.",
+                "Provide a YAML or JSON tree input file with a top-level title.",
             )
             .with_path(input.display().to_string());
             return render_error(invocation, json, error);
@@ -1653,19 +1653,21 @@ fn render_add_tree(invocation: Invocation, json: bool, parent: &str, input: &Pat
     0
 }
 
-fn read_yaml_tree_input(input: &Path) -> Result<TopicTreeInputDto, String> {
-    let is_yaml = input
+fn read_tree_input(input: &Path) -> Result<TopicTreeInputDto, String> {
+    let extension = input
         .extension()
         .and_then(|extension| extension.to_str())
-        .is_some_and(|extension| matches!(extension, "yaml" | "yml"));
-
-    if !is_yaml {
-        return Err("Only YAML tree input is implemented in this slice.".to_owned());
-    }
-
+        .unwrap_or_default();
     let content = fs::read_to_string(input)
         .map_err(|error| format!("Tree input could not be read: {error}"))?;
-    serde_yaml::from_str(&content).map_err(|error| format!("Tree input YAML is invalid: {error}"))
+
+    match extension {
+        "yaml" | "yml" => serde_yaml::from_str(&content)
+            .map_err(|error| format!("Tree input YAML is invalid: {error}")),
+        "json" => serde_json::from_str(&content)
+            .map_err(|error| format!("Tree input JSON is invalid: {error}")),
+        _ => Err("Tree input must use .yaml, .yml, or .json.".to_owned()),
+    }
 }
 
 fn generated_topic_id(title: &str) -> String {
