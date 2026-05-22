@@ -2797,5 +2797,47 @@
         <li>None.</li>
       </ul>
     </section>
+
+    <section class="entry">
+      <h2>2026-05-22 - set labels option</h2>
+      <h3>Design Decisions</h3>
+      <ul>
+        <li>
+          Implemented <code>xmind set --set-labels &lt;csv&gt;</code> for dry-run
+          and apply, including JSON <code>new_labels</code> in the updated topic
+          result.
+        </li>
+        <li>
+          Added storage writing support for replacing a topic's
+          <code>labels</code> array while preserving the existing transactional
+          candidate validation path.
+        </li>
+      </ul>
+
+      <h3>Deviations</h3>
+      <ul>
+        <li>
+          CSV parsing trims whitespace and drops empty segments; quoted commas
+          are not supported in this slice.
+        </li>
+      </ul>
+
+      <h3>Tradeoffs</h3>
+      <ul>
+        <li>
+          Simple CSV parsing keeps the CLI behavior predictable for label names
+          used in current docs while leaving richer escaping rules for a later
+          contract-alignment pass if needed.
+        </li>
+      </ul>
+
+      <h3>Open Questions</h3>
+      <ul>
+        <li>
+          Decide whether label values should reject empty results explicitly or
+          allow <code>--set-labels ""</code> as a clear-all operation.
+        </li>
+      </ul>
+    </section>
   </body>
 </html>

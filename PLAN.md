@@ -247,7 +247,7 @@ Implement a Rust CLI named `xmind` that satisfies the documented product, comman
 - [x] Implement `set --title`.
 - [x] Implement `set --note`.
 - [x] Implement `set --append-note`.
-- [ ] Implement `set --set-labels`.
+- [x] Implement `set --set-labels`.
 - [ ] Implement `set --add-label`.
 - [ ] Implement `set --remove-label`.
 - [ ] Implement `set --set-markers`.

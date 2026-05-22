@@ -13,6 +13,7 @@ Options:
       --title <TITLE>              
       --note <NOTE>                
       --append-note <APPEND_NOTE>  
+      --set-labels <SET_LABELS>    
       --dry-run                    
       --apply                      
       --backup                     

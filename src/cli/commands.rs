@@ -150,6 +150,9 @@ pub struct SetCommand {
     #[arg(long)]
     pub append_note: Option<String>,
 
+    #[arg(long)]
+    pub set_labels: Option<String>,
+
     #[command(flatten)]
     pub mode: MutationMode,
 }

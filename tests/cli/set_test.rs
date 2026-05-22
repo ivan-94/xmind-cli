@@ -132,6 +132,62 @@ fn set_note_dry_run_reports_updated_topic_without_writing() {
 }
 
 #[test]
+fn set_labels_dry_run_reports_updated_topic_without_writing() {
+    let output = Command::cargo_bin("xmind")
+        .expect("xmind binary is built for CLI tests")
+        .args([
+            "set",
+            "tests/fixtures/xmind/minimal.xmind",
+            "--node",
+            "id:topic-payment",
+            "--set-labels",
+            "MVP,Payments",
+            "--dry-run",
+            "--json",
+        ])
+        .output()
+        .expect("set command runs");
+
+    assert_eq!(output.status.code(), Some(0));
+    assert!(
+        output.stderr.is_empty(),
+        "json set output should not emit stderr diagnostics: {}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+
+    let body: Value = serde_json::from_slice(&output.stdout).expect("stdout is JSON");
+    assert_eq!(body["ok"], true);
+    assert_eq!(body["command"], "set");
+    assert_eq!(body["dry_run"], true);
+    assert_eq!(body["applied"], false);
+    assert_eq!(body["result"]["updated"]["id"], "topic-payment");
+    assert_eq!(body["result"]["updated"]["path"], "/Q2/Payment");
+    assert_eq!(body["result"]["updated"]["changed_fields"][0], "labels");
+    assert_eq!(body["result"]["updated"]["new_labels"][0], "MVP");
+    assert_eq!(body["result"]["updated"]["new_labels"][1], "Payments");
+
+    let get_output = Command::cargo_bin("xmind")
+        .expect("xmind binary is built for CLI tests")
+        .args([
+            "get",
+            "tests/fixtures/xmind/minimal.xmind",
+            "--node",
+            "id:topic-payment",
+            "--json",
+        ])
+        .output()
+        .expect("get command runs after dry run");
+    let topic: Value = serde_json::from_slice(&get_output.stdout).expect("get stdout is JSON");
+    assert_eq!(
+        topic["result"]["topic"]["labels"]
+            .as_array()
+            .expect("labels is an array")
+            .len(),
+        0
+    );
+}
+
+#[test]
 fn set_append_note_dry_run_reports_updated_topic_without_writing() {
     let output = Command::cargo_bin("xmind")
         .expect("xmind binary is built for CLI tests")
@@ -282,6 +338,53 @@ fn set_note_apply_writes_updated_topic_note() {
         .expect("get command runs after apply");
     let topic: Value = serde_json::from_slice(&get_output.stdout).expect("get stdout is JSON");
     assert_eq!(topic["result"]["topic"]["note"], "Refund details");
+}
+
+#[test]
+fn set_labels_apply_writes_updated_topic_labels() {
+    let temp_dir = tempfile::tempdir().expect("temp dir is created");
+    let workbook = temp_dir.path().join("apply-set-labels.xmind");
+    fs::copy("tests/fixtures/xmind/minimal.xmind", &workbook).expect("fixture is copied");
+    let workbook_arg = workbook.to_string_lossy().into_owned();
+
+    let output = Command::cargo_bin("xmind")
+        .expect("xmind binary is built for CLI tests")
+        .args([
+            "set",
+            &workbook_arg,
+            "--node",
+            "id:topic-payment",
+            "--set-labels",
+            "MVP,Payments",
+            "--apply",
+            "--json",
+        ])
+        .output()
+        .expect("set command runs");
+
+    assert_eq!(output.status.code(), Some(0));
+    assert!(
+        output.stderr.is_empty(),
+        "json set output should not emit stderr diagnostics: {}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+
+    let body: Value = serde_json::from_slice(&output.stdout).expect("stdout is JSON");
+    assert_eq!(body["ok"], true);
+    assert_eq!(body["command"], "set");
+    assert_eq!(body["dry_run"], false);
+    assert_eq!(body["applied"], true);
+    assert_eq!(body["result"]["updated"]["new_labels"][0], "MVP");
+    assert_eq!(body["result"]["updated"]["new_labels"][1], "Payments");
+
+    let get_output = Command::cargo_bin("xmind")
+        .expect("xmind binary is built for CLI tests")
+        .args(["get", &workbook_arg, "--node", "id:topic-payment", "--json"])
+        .output()
+        .expect("get command runs after apply");
+    let topic: Value = serde_json::from_slice(&get_output.stdout).expect("get stdout is JSON");
+    assert_eq!(topic["result"]["topic"]["labels"][0], "MVP");
+    assert_eq!(topic["result"]["topic"]["labels"][1], "Payments");
 }
 
 #[test]
