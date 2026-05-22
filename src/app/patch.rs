@@ -13,6 +13,7 @@ pub(super) struct PatchFileDto {
 #[derive(Debug, Deserialize)]
 pub(super) struct PatchOpDto {
     pub(super) op: String,
+    pub(super) node: Option<String>,
     pub(super) parent: Option<String>,
     pub(super) tree: Option<TopicTreeInputDto>,
 }

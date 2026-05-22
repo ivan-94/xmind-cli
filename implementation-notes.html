@@ -159,6 +159,11 @@
           <code>clone_tree</code> 会分别规范化为 <code>delete</code>,
           <code>move</code>, <code>copy</code>。
         </li>
+        <li>
+          Patch precondition ops <code>assert_exists</code> 和
+          <code>assert_not_exists</code> 只影响校验结果，不产生 diff；
+          失败时会携带 <code>operation_index</code> 和 canonical operation。
+        </li>
       </ul>
     </section>
   </body>

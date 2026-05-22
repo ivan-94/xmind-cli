@@ -300,8 +300,8 @@ Implement a Rust CLI named `xmind` that satisfies the documented product, comman
   - [x] `delete_tree -> delete`
   - [x] `move_tree -> move`
   - [x] `clone_tree -> copy`
-- [ ] Implement `assert_exists`.
-- [ ] Implement `assert_not_exists`.
+- [x] Implement `assert_exists`.
+- [x] Implement `assert_not_exists`.
 - [ ] Implement patch `add`.
 - [x] Implement patch `add_tree`.
 - [ ] Implement patch `set`.

@@ -22,7 +22,7 @@ use crate::infra::fs::backup::{create_backup, create_backup_in_dir, BackupError}
 use crate::infra::xmind::encode::{InsertPosition, TopicClearField, XMindWriteError};
 use crate::render::diff::render_human_outline;
 
-use self::patch::read_patch_file;
+use self::patch::{read_patch_file, PatchOpDto};
 
 pub fn run(cli: Cli) -> i32 {
     let Cli {
@@ -3937,7 +3937,20 @@ fn render_patch(invocation: Invocation, json: bool, ops_path: &Path) -> i32 {
 
     for (index, op) in patch.ops.iter().enumerate() {
         let op_name = op.canonical_op();
-        if op_name != "add_tree" {
+        if matches!(op_name, "assert_exists" | "assert_not_exists") {
+            match render_patch_assert_operation(invocation.clone(), json, sheet, index, op_name, op)
+            {
+                Ok(()) => {
+                    operations.push(PatchOperationDto {
+                        index,
+                        op: op_name.to_owned(),
+                        status: "passed",
+                    });
+                    continue;
+                }
+                Err(exit_code) => return exit_code,
+            }
+        } else if op_name != "add_tree" {
             let error = CliErrorBody::new(
                 ErrorCode::InvalidPatch,
                 format!("Unsupported patch operation: {op_name}"),
@@ -4014,7 +4027,7 @@ fn render_patch(invocation: Invocation, json: bool, ops_path: &Path) -> i32 {
         }));
         operations.push(PatchOperationDto {
             index,
-            op: "add_tree",
+            op: "add_tree".to_owned(),
             status: "planned",
         });
     }
@@ -4049,6 +4062,96 @@ fn render_patch(invocation: Invocation, json: bool, ops_path: &Path) -> i32 {
     }
 
     0
+}
+
+fn render_patch_assert_operation(
+    invocation: Invocation,
+    json: bool,
+    sheet: &Sheet,
+    index: usize,
+    op_name: &str,
+    op: &PatchOpDto,
+) -> Result<(), i32> {
+    let Some(node) = &op.node else {
+        let error = CliErrorBody::new(
+            ErrorCode::InvalidPatch,
+            format!("{op_name} operation is missing node."),
+            true,
+            "Add a node selector like node: path:/Q2.",
+        )
+        .with_operation_context(index, op_name.to_owned());
+        return Err(render_error(invocation, json, error));
+    };
+
+    let selector = match Selector::parse(node) {
+        Ok(selector) => selector,
+        Err(error) => {
+            let error = CliErrorBody::new(
+                ErrorCode::InvalidPatch,
+                format!("{op_name} node selector is invalid: {error}"),
+                true,
+                "Use a valid selector such as root, id:<topic-id>, path:/Q2, or title:Payment.",
+            )
+            .with_operation_context(index, op_name.to_owned());
+            return Err(render_error(invocation, json, error));
+        }
+    };
+
+    match (op_name, resolve_topic(&sheet.root, &selector)) {
+        ("assert_exists", ResolveOne::Found(_)) => Ok(()),
+        ("assert_exists", ResolveOne::NotFound) => {
+            let error = CliErrorBody::new(
+                ErrorCode::NotFound,
+                format!(
+                    "assert_exists selector did not match a topic: {}",
+                    selector.render()
+                ),
+                true,
+                "Run tree or find to rediscover the selector, then retry.",
+            )
+            .with_operation_context(index, op_name.to_owned())
+            .with_selector(selector.render());
+            Err(render_error(invocation, json, error))
+        }
+        ("assert_exists", ResolveOne::Ambiguous(candidates)) => {
+            let error = CliErrorBody::new(
+                ErrorCode::AmbiguousSelector,
+                "assert_exists selector matched multiple topics.",
+                true,
+                "Retry with a selector that resolves to exactly one topic.",
+            )
+            .with_operation_context(index, op_name.to_owned())
+            .with_selector(selector.render())
+            .with_candidates(
+                candidates
+                    .into_iter()
+                    .map(|candidate| CandidateDto {
+                        id: candidate.topic.id.0.clone(),
+                        path: candidate.path.to_selector_value(),
+                        title: candidate.topic.title.clone(),
+                        sheet: Some(sheet.title.clone()),
+                    })
+                    .collect(),
+            );
+            Err(render_error(invocation, json, error))
+        }
+        ("assert_not_exists", ResolveOne::NotFound) => Ok(()),
+        ("assert_not_exists", ResolveOne::Found(_) | ResolveOne::Ambiguous(_)) => {
+            let error = CliErrorBody::new(
+                ErrorCode::PatchConflict,
+                format!(
+                    "assert_not_exists selector matched an existing topic: {}",
+                    selector.render()
+                ),
+                false,
+                "Remove or update the conflicting topic, or revise the patch precondition.",
+            )
+            .with_operation_context(index, op_name.to_owned())
+            .with_selector(selector.render());
+            Err(render_error(invocation, json, error))
+        }
+        _ => Ok(()),
+    }
 }
 
 fn read_workbook_or_render_error(
@@ -4432,7 +4535,7 @@ struct SummaryDto {
 #[derive(Debug, Serialize)]
 struct PatchOperationDto {
     index: usize,
-    op: &'static str,
+    op: String,
     status: &'static str,
 }
 

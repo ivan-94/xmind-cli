@@ -190,6 +190,128 @@ ops:
 }
 
 #[test]
+fn patch_assert_operations_pass_without_diff_when_expectations_hold() {
+    let temp_dir = tempfile::tempdir().expect("temp dir is created");
+    let ops = temp_dir.path().join("assertions.yaml");
+    std::fs::write(
+        &ops,
+        r#"
+ops:
+  - op: assert_exists
+    node: path:/Q2
+  - op: assert_not_exists
+    node: path:/Q2/Deprecated
+"#,
+    )
+    .expect("patch fixture is written");
+    let ops_arg = ops.to_string_lossy().into_owned();
+
+    let output = Command::cargo_bin("xmind")
+        .expect("xmind binary is built for CLI tests")
+        .args([
+            "patch",
+            "tests/fixtures/xmind/minimal.xmind",
+            "--ops",
+            &ops_arg,
+            "--dry-run",
+            "--json",
+        ])
+        .output()
+        .expect("patch command runs");
+
+    assert_eq!(output.status.code(), Some(0));
+    let body: Value = serde_json::from_slice(&output.stdout).expect("stdout is JSON");
+    assert_eq!(body["ok"], true);
+    assert_eq!(body["result"]["will_change"], false);
+    assert_eq!(body["result"]["summary"]["added"], 0);
+    assert_eq!(body["result"]["operations"][0]["op"], "assert_exists");
+    assert_eq!(body["result"]["operations"][0]["status"], "passed");
+    assert_eq!(body["result"]["operations"][1]["op"], "assert_not_exists");
+    assert_eq!(body["result"]["operations"][1]["status"], "passed");
+    assert_eq!(
+        body["result"]["diff"]
+            .as_array()
+            .expect("diff is array")
+            .len(),
+        0
+    );
+}
+
+#[test]
+fn patch_assert_exists_reports_operation_index_when_missing() {
+    let temp_dir = tempfile::tempdir().expect("temp dir is created");
+    let ops = temp_dir.path().join("assert-exists-missing.yaml");
+    std::fs::write(
+        &ops,
+        r#"
+ops:
+  - op: assert_exists
+    node: path:/Q2/Missing
+"#,
+    )
+    .expect("patch fixture is written");
+    let ops_arg = ops.to_string_lossy().into_owned();
+
+    let output = Command::cargo_bin("xmind")
+        .expect("xmind binary is built for CLI tests")
+        .args([
+            "patch",
+            "tests/fixtures/xmind/minimal.xmind",
+            "--ops",
+            &ops_arg,
+            "--dry-run",
+            "--json",
+        ])
+        .output()
+        .expect("patch command runs");
+
+    assert_eq!(output.status.code(), Some(5));
+    let body: Value = serde_json::from_slice(&output.stdout).expect("stdout is JSON");
+    assert_eq!(body["ok"], false);
+    assert_eq!(body["error"]["code"], "not_found");
+    assert_eq!(body["error"]["operation_index"], 0);
+    assert_eq!(body["error"]["operation"], "assert_exists");
+    assert_eq!(body["error"]["selector"], "path:/Q2/Missing");
+}
+
+#[test]
+fn patch_assert_not_exists_reports_conflict_when_topic_exists() {
+    let temp_dir = tempfile::tempdir().expect("temp dir is created");
+    let ops = temp_dir.path().join("assert-not-exists-conflict.yaml");
+    std::fs::write(
+        &ops,
+        r#"
+ops:
+  - op: assert_not_exists
+    node: path:/Q2
+"#,
+    )
+    .expect("patch fixture is written");
+    let ops_arg = ops.to_string_lossy().into_owned();
+
+    let output = Command::cargo_bin("xmind")
+        .expect("xmind binary is built for CLI tests")
+        .args([
+            "patch",
+            "tests/fixtures/xmind/minimal.xmind",
+            "--ops",
+            &ops_arg,
+            "--dry-run",
+            "--json",
+        ])
+        .output()
+        .expect("patch command runs");
+
+    assert_eq!(output.status.code(), Some(8));
+    let body: Value = serde_json::from_slice(&output.stdout).expect("stdout is JSON");
+    assert_eq!(body["ok"], false);
+    assert_eq!(body["error"]["code"], "patch_conflict");
+    assert_eq!(body["error"]["operation_index"], 0);
+    assert_eq!(body["error"]["operation"], "assert_not_exists");
+    assert_eq!(body["error"]["selector"], "path:/Q2");
+}
+
+#[test]
 fn patch_json_extension_rejects_yaml_syntax() {
     let temp_dir = tempfile::tempdir().expect("temp dir is created");
     let ops = temp_dir.path().join("ops.json");
