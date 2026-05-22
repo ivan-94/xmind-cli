@@ -1737,6 +1737,7 @@ fn read_markdown_tree_input(input: &Path) -> Result<TopicTreeInputDto, String> {
             .map_err(|error| format!("Markdown frontmatter YAML is invalid: {error}"))?,
         None => TopicTreeDefaultsDto::default(),
     };
+    reject_inline_metadata(body)?;
 
     if let Some(mut tree) = parse_markdown_outline(body)? {
         apply_topic_tree_defaults(&mut tree, defaults);
@@ -1760,6 +1761,17 @@ fn split_markdown_frontmatter(content: &str) -> (Option<&str>, &str) {
         .strip_prefix('\n')
         .unwrap_or_default();
     (Some(frontmatter), body)
+}
+
+fn reject_inline_metadata(content: &str) -> Result<(), String> {
+    if content
+        .lines()
+        .any(|line| line.contains('{') && line.contains('}'))
+    {
+        return Err("Inline metadata is not supported in Markdown input.".to_owned());
+    }
+
+    Ok(())
 }
 
 fn parse_markdown_outline(content: &str) -> Result<Option<TopicTreeInputDto>, String> {

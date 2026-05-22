@@ -4191,5 +4191,39 @@
         </li>
       </ul>
     </section>
+    <section class="entry">
+      <h2>2026-05-22 - inline metadata rejection</h2>
+      <h3>Design Decisions</h3>
+      <ul>
+        <li>
+          Markdown inline metadata blocks such as
+          <code>{labels: [MVP]}</code> are explicitly rejected with
+          <code>invalid_tree_input</code>.
+        </li>
+      </ul>
+
+      <h3>Deviations</h3>
+      <ul>
+        <li>
+          The product docs allow either parsing or explicit rejection for this
+          slice. I chose rejection to avoid silently treating metadata as title
+          text before an inline metadata grammar exists.
+        </li>
+      </ul>
+
+      <h3>Tradeoffs</h3>
+      <ul>
+        <li>
+          Frontmatter remains the supported metadata path for now.
+        </li>
+      </ul>
+
+      <h3>Open Questions</h3>
+      <ul>
+        <li>
+          None for this slice.
+        </li>
+      </ul>
+    </section>
   </body>
 </html>

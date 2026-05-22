@@ -591,3 +591,36 @@ Checkout scope.
     );
     assert_eq!(body["result"]["summary"]["added"], 2);
 }
+
+#[test]
+fn add_tree_markdown_rejects_inline_metadata() {
+    let temp_dir = tempfile::tempdir().expect("temp dir is created");
+    let input = temp_dir.path().join("inline-metadata.md");
+    fs::write(&input, "- Payment Capability {labels: [MVP]}\n")
+        .expect("markdown fixture is written");
+    let input_arg = input.to_string_lossy().into_owned();
+
+    let output = Command::cargo_bin("xmind")
+        .expect("xmind binary is built for CLI tests")
+        .args([
+            "add-tree",
+            "tests/fixtures/xmind/minimal.xmind",
+            "--parent",
+            "path:/Q2",
+            "--from-markdown",
+            &input_arg,
+            "--dry-run",
+            "--json",
+        ])
+        .output()
+        .expect("add-tree command runs");
+
+    assert_eq!(output.status.code(), Some(7));
+    let body: Value = serde_json::from_slice(&output.stdout).expect("stdout is JSON");
+    assert_eq!(body["ok"], false);
+    assert_eq!(body["error"]["code"], "invalid_tree_input");
+    assert_eq!(
+        body["error"]["message"],
+        "Inline metadata is not supported in Markdown input."
+    );
+}
