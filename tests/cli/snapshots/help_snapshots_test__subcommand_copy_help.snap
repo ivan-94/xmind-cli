@@ -1,13 +1,17 @@
 ---
 source: tests/cli/help_snapshots_test.rs
+assertion_line: 16
 expression: "help_output(&[subcommand, \"--help\"])"
 ---
-Usage: xmind copy [OPTIONS] <--dry-run|--apply> <WORKBOOK>
+Usage: xmind copy [OPTIONS] --node <NODE> --to <TO> <--dry-run|--apply> <WORKBOOK>
 
 Arguments:
   <WORKBOOK>  
 
 Options:
+      --node <NODE>                
+      --to <TO>                    
+      --title <TITLE>              
       --dry-run                    
       --apply                      
       --backup                     

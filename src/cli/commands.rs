@@ -14,7 +14,7 @@ pub enum Command {
     Set(SetCommand),
     Delete(DeleteCommand),
     Move(MoveCommand),
-    Copy(MutationCommand),
+    Copy(CopyCommand),
     Patch(PatchCommand),
     Diff(WorkbookCommand),
     Validate(ValidateCommand),
@@ -204,6 +204,23 @@ pub struct MoveCommand {
 
     #[arg(long)]
     pub to: String,
+
+    #[command(flatten)]
+    pub mode: MutationMode,
+}
+
+#[derive(Debug, Args)]
+pub struct CopyCommand {
+    pub workbook: PathBuf,
+
+    #[arg(long)]
+    pub node: String,
+
+    #[arg(long)]
+    pub to: String,
+
+    #[arg(long)]
+    pub title: Option<String>,
 
     #[command(flatten)]
     pub mode: MutationMode,

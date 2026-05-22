@@ -89,6 +89,10 @@ name = "move_test"
 path = "tests/cli/move_test.rs"
 
 [[test]]
+name = "copy_test"
+path = "tests/cli/copy_test.rs"
+
+[[test]]
 name = "backup_test"
 path = "tests/cli/backup_test.rs"
 

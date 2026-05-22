@@ -448,6 +448,54 @@ pub fn move_topic(
     Ok(())
 }
 
+pub fn copy_topic(
+    workbook_path: &Path,
+    source_topic_id: &str,
+    destination_topic_id: &str,
+    new_root_topic_id: &str,
+    new_root_title: &str,
+) -> Result<(), XMindWriteError> {
+    let file = File::open(workbook_path)?;
+    let mut archive = zip::ZipArchive::new(file)?;
+    let mut entries = Vec::new();
+    let mut content_json = None;
+
+    for index in 0..archive.len() {
+        let mut entry = archive.by_index(index)?;
+        let name = entry.name().to_owned();
+        let mut bytes = Vec::new();
+        entry.read_to_end(&mut bytes)?;
+
+        if name == "content.json" {
+            let mut content: Value = serde_json::from_slice(&bytes)?;
+            let Some(source) = find_topic_in_content(&content, source_topic_id) else {
+                return Err(XMindWriteError::TopicNotFound(source_topic_id.to_owned()));
+            };
+            let mut copied = source.clone();
+            rewrite_copied_topic_ids(&mut copied, new_root_topic_id, Some(new_root_title));
+
+            if !append_existing_topic_to_content(&mut content, destination_topic_id, copied) {
+                return Err(XMindWriteError::TopicNotFound(
+                    destination_topic_id.to_owned(),
+                ));
+            }
+            content_json = Some(serde_json::to_vec_pretty(&content)?);
+        } else {
+            entries.push((name, bytes));
+        }
+    }
+
+    let Some(content_json) = content_json else {
+        return Err(XMindWriteError::MissingContent);
+    };
+
+    let temp_path = temp_workbook_path(workbook_path);
+    write_package(&temp_path, content_json, entries)?;
+    replace_with_validated_candidate(workbook_path, &temp_path, validate_candidate_package)?;
+
+    Ok(())
+}
+
 fn append_topic_to_content(
     content: &mut Value,
     parent_topic_id: &str,
@@ -601,6 +649,16 @@ fn append_existing_topic_to_content(
         sheet.get_mut("rootTopic").is_some_and(|root| {
             append_existing_topic_to_topic(root, destination_topic_id, &mut topic)
         })
+    })
+}
+
+fn find_topic_in_content<'a>(content: &'a Value, topic_id: &str) -> Option<&'a Value> {
+    let sheets = content.as_array()?;
+
+    sheets.iter().find_map(|sheet| {
+        sheet
+            .get("rootTopic")
+            .and_then(|root| find_topic_in_topic(root, topic_id))
     })
 }
 
@@ -860,6 +918,51 @@ fn append_existing_topic_to_topic(
                 append_existing_topic_to_topic(child, destination_topic_id, moved_topic)
             })
         })
+}
+
+fn find_topic_in_topic<'a>(topic: &'a Value, topic_id: &str) -> Option<&'a Value> {
+    if topic.get("id").and_then(Value::as_str) == Some(topic_id) {
+        return Some(topic);
+    }
+
+    topic
+        .get("children")
+        .and_then(|children| children.get("attached"))
+        .and_then(Value::as_array)
+        .and_then(|children| {
+            children
+                .iter()
+                .find_map(|child| find_topic_in_topic(child, topic_id))
+        })
+}
+
+fn rewrite_copied_topic_ids(topic: &mut Value, new_id: &str, new_title: Option<&str>) {
+    if let Some(object) = topic.as_object_mut() {
+        let original_id = object
+            .get("id")
+            .and_then(Value::as_str)
+            .unwrap_or(new_id)
+            .to_owned();
+        object.insert("id".to_owned(), Value::String(new_id.to_owned()));
+        if let Some(new_title) = new_title {
+            object.insert("title".to_owned(), Value::String(new_title.to_owned()));
+        }
+
+        if let Some(children) = object
+            .get_mut("children")
+            .and_then(|children| children.get_mut("attached"))
+            .and_then(Value::as_array_mut)
+        {
+            for child in children {
+                let child_new_id = child
+                    .get("id")
+                    .and_then(Value::as_str)
+                    .map(|id| format!("{id}-copy"))
+                    .unwrap_or_else(|| format!("{original_id}-copy-child"));
+                rewrite_copied_topic_ids(child, &child_new_id, None);
+            }
+        }
+    }
 }
 
 fn set_topic_note_in_topic(topic: &mut Value, topic_id: &str, note: &str) -> bool {

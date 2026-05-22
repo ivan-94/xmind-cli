@@ -1,0 +1,62 @@
+use assert_cmd::Command;
+use serde_json::Value;
+use std::fs;
+
+#[test]
+fn copy_apply_copies_topic_to_destination_parent_with_new_id() {
+    let temp_dir = tempfile::tempdir().expect("temp dir is created");
+    let workbook = temp_dir.path().join("apply-copy.xmind");
+    fs::copy("tests/fixtures/xmind/duplicate-titles.xmind", &workbook).expect("fixture is copied");
+    let workbook_arg = workbook.to_string_lossy().into_owned();
+
+    let output = Command::cargo_bin("xmind")
+        .expect("xmind binary is built for CLI tests")
+        .args([
+            "copy",
+            &workbook_arg,
+            "--node",
+            "id:topic-payment-q1",
+            "--to",
+            "root",
+            "--apply",
+            "--json",
+        ])
+        .output()
+        .expect("copy command runs");
+
+    assert_eq!(output.status.code(), Some(0));
+    assert!(
+        output.stderr.is_empty(),
+        "json copy output should not emit stderr diagnostics: {}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+
+    let body: Value = serde_json::from_slice(&output.stdout).expect("stdout is JSON");
+    assert_eq!(body["ok"], true);
+    assert_eq!(body["command"], "copy");
+    assert_eq!(body["applied"], true);
+    assert_eq!(
+        body["result"]["copied_root"]["source_id"],
+        "topic-payment-q1"
+    );
+    assert_eq!(
+        body["result"]["copied_root"]["new_id"],
+        "topic-payment-q1-copy"
+    );
+    assert_eq!(body["result"]["copied_root"]["path"], "/Payment");
+    assert_eq!(body["result"]["summary"]["added"], 1);
+
+    let tree_output = Command::cargo_bin("xmind")
+        .expect("xmind binary is built for CLI tests")
+        .args(["tree", &workbook_arg, "--json", "--depth", "2"])
+        .output()
+        .expect("tree command runs after apply");
+    let tree: Value = serde_json::from_slice(&tree_output.stdout).expect("tree stdout is JSON");
+    let root_children = tree["result"]["root"]["children"]
+        .as_array()
+        .expect("root children is an array");
+    assert_eq!(root_children[0]["children"][0]["id"], "topic-payment-q1");
+    assert_eq!(root_children[2]["id"], "topic-payment-q1-copy");
+    assert_eq!(root_children[2]["title"], "Payment");
+    assert_eq!(root_children[2]["path"], "/Payment");
+}

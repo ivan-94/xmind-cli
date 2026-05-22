@@ -215,6 +215,16 @@ pub fn run(cli: Cli) -> i32 {
             let destination = destination.clone();
             render_move(invocation, json, &node, &destination)
         }
+        Action::Copy {
+            ref node,
+            ref destination,
+            ref title,
+        } => {
+            let node = node.clone();
+            let destination = destination.clone();
+            let title = title.clone();
+            render_copy(invocation, json, &node, &destination, title)
+        }
         Action::Noop => 0,
     }
 }
@@ -326,6 +336,11 @@ enum Action {
     Move {
         node: String,
         destination: String,
+    },
+    Copy {
+        node: String,
+        destination: String,
+        title: Option<String>,
     },
     Validate {
         strict: bool,
@@ -576,14 +591,21 @@ impl Invocation {
                     destination: command.to,
                 }),
             ),
-            Command::Copy(command) => Some(Self::mutation(
-                "copy",
-                command.workbook,
-                command.mode.apply_mode.dry_run,
-                command.mode.backup,
-                sheet_selection,
-                quiet,
-            )),
+            Command::Copy(command) => Some(
+                Self::mutation(
+                    "copy",
+                    command.workbook,
+                    command.mode.apply_mode.dry_run,
+                    command.mode.backup,
+                    sheet_selection,
+                    quiet,
+                )
+                .with_action(Action::Copy {
+                    node: command.node,
+                    destination: command.to,
+                    title: command.title,
+                }),
+            ),
             Command::Patch(command) => Some(Self::patch(
                 command.workbook,
                 command.mode.apply_mode.dry_run,
@@ -1736,6 +1758,206 @@ fn render_move(invocation: Invocation, json: bool, node: &str, destination: &str
     } else if !invocation.quiet {
         for event in &result.diff {
             println!("> {} -> {}", event.from, event.to);
+        }
+    }
+
+    0
+}
+
+fn render_copy(
+    invocation: Invocation,
+    json: bool,
+    node: &str,
+    destination: &str,
+    title: Option<String>,
+) -> i32 {
+    let workbook = match read_workbook_or_render_error(&invocation, json) {
+        Ok(workbook) => workbook,
+        Err(exit_code) => return exit_code,
+    };
+
+    let sheet = match select_sheet_or_render_error(&workbook, &invocation, json) {
+        Ok(sheet) => sheet,
+        Err(exit_code) => return exit_code,
+    };
+
+    let selector = match Selector::parse(node) {
+        Ok(selector) => selector,
+        Err(error) => {
+            let error = CliErrorBody::new(
+                ErrorCode::InvalidUsage,
+                format!("Node selector is invalid: {error}"),
+                true,
+                "Use a valid selector such as id:<topic-id>, path:/Q2, or title:Payment.",
+            );
+            return render_error(invocation, json, error);
+        }
+    };
+    let destination_selector = match Selector::parse(destination) {
+        Ok(selector) => selector,
+        Err(error) => {
+            let error = CliErrorBody::new(
+                ErrorCode::InvalidUsage,
+                format!("Destination selector is invalid: {error}"),
+                true,
+                "Use a valid destination selector such as root, id:<topic-id>, or path:/Q2.",
+            );
+            return render_error(invocation, json, error);
+        }
+    };
+
+    let source = match resolve_topic(&sheet.root, &selector) {
+        ResolveOne::Found(resolved) => resolved,
+        ResolveOne::NotFound => {
+            let error = CliErrorBody::new(
+                ErrorCode::NotFound,
+                format!("Selector did not match a topic: {}", selector.render()),
+                true,
+                "Run tree or find to rediscover the topic selector, then retry.",
+            )
+            .with_selector(selector.render());
+            return render_error(invocation, json, error);
+        }
+        ResolveOne::Ambiguous(candidates) => {
+            let error = CliErrorBody::new(
+                ErrorCode::AmbiguousSelector,
+                "Selector matched multiple topics.",
+                true,
+                "Retry with one of the candidate ids.",
+            )
+            .with_selector(selector.render())
+            .with_candidates(
+                candidates
+                    .into_iter()
+                    .map(|candidate| CandidateDto {
+                        id: candidate.topic.id.0.clone(),
+                        path: candidate.path.to_selector_value(),
+                        title: candidate.topic.title.clone(),
+                        sheet: Some(sheet.title.clone()),
+                    })
+                    .collect(),
+            );
+            return render_error(invocation, json, error);
+        }
+    };
+
+    if source.path.is_root() {
+        let error = CliErrorBody::new(
+            ErrorCode::RootOperationNotAllowed,
+            "Copying the root topic is not allowed.",
+            true,
+            "Use a non-root node selector.",
+        )
+        .with_selector(selector.render());
+        return render_error(invocation, json, error);
+    }
+
+    let destination = match resolve_topic(&sheet.root, &destination_selector) {
+        ResolveOne::Found(resolved) => resolved,
+        ResolveOne::NotFound => {
+            let error = CliErrorBody::new(
+                ErrorCode::NotFound,
+                format!(
+                    "Destination selector did not match a topic: {}",
+                    destination_selector.render()
+                ),
+                true,
+                "Run tree or find to rediscover the destination selector, then retry.",
+            )
+            .with_selector(destination_selector.render());
+            return render_error(invocation, json, error);
+        }
+        ResolveOne::Ambiguous(candidates) => {
+            let error = CliErrorBody::new(
+                ErrorCode::AmbiguousSelector,
+                "Destination selector matched multiple topics.",
+                true,
+                "Retry with one of the candidate ids.",
+            )
+            .with_selector(destination_selector.render())
+            .with_candidates(
+                candidates
+                    .into_iter()
+                    .map(|candidate| CandidateDto {
+                        id: candidate.topic.id.0.clone(),
+                        path: candidate.path.to_selector_value(),
+                        title: candidate.topic.title.clone(),
+                        sheet: Some(sheet.title.clone()),
+                    })
+                    .collect(),
+            );
+            return render_error(invocation, json, error);
+        }
+    };
+
+    let copied_title = title.unwrap_or_else(|| source.topic.title.clone());
+    if copied_title.is_empty() {
+        let error = CliErrorBody::new(
+            ErrorCode::InvalidUsage,
+            "copy title cannot be empty.",
+            true,
+            "Omit --title or provide a non-empty title.",
+        );
+        return render_error(invocation, json, error);
+    }
+
+    let new_id = format!("{}-copy", source.topic.id.0);
+    let copied_path = destination
+        .path
+        .join(copied_title.clone())
+        .to_selector_value();
+    let added = count_topics(source.topic);
+    let mut result = CopyDryRunResultDto {
+        will_change: true,
+        copied_root: CopiedRootDto {
+            source_id: source.topic.id.0.clone(),
+            new_id: new_id.clone(),
+            path: copied_path.clone(),
+        },
+        summary: SummaryDto {
+            added,
+            updated: 0,
+            deleted: 0,
+            moved: 0,
+        },
+        diff: vec![DiffEventDto {
+            event: "added",
+            path: copied_path,
+        }],
+        backup_path: None,
+    };
+
+    if !invocation.dry_run {
+        result.backup_path = match create_mutation_backup(&invocation) {
+            Ok(backup_path) => backup_path,
+            Err(error) => return render_backup_error(invocation, json, error),
+        };
+        if let Err(error) = crate::infra::xmind::encode::copy_topic(
+            &invocation.workbook,
+            &source.topic.id.0,
+            &destination.topic.id.0,
+            &new_id,
+            &copied_title,
+        ) {
+            return render_workbook_write_error(invocation, json, error);
+        }
+    }
+
+    if json {
+        let envelope = CommandEnvelope {
+            ok: true,
+            command: Some(invocation.command),
+            workbook: Some(invocation.workbook.display().to_string()),
+            dry_run: invocation.dry_run,
+            applied: !invocation.dry_run,
+            result: Some(result),
+            error: None,
+            warnings: Vec::new(),
+        };
+        crate::cli::render_json_envelope(&envelope);
+    } else if !invocation.quiet {
+        for event in &result.diff {
+            println!("+ {}", event.path);
         }
     }
 
@@ -3127,6 +3349,23 @@ struct MoveDryRunResultDto {
     diff: Vec<MoveDiffEventDto>,
     #[serde(skip_serializing_if = "Option::is_none")]
     backup_path: Option<String>,
+}
+
+#[derive(Debug, Serialize)]
+struct CopyDryRunResultDto {
+    will_change: bool,
+    copied_root: CopiedRootDto,
+    summary: SummaryDto,
+    diff: Vec<DiffEventDto>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    backup_path: Option<String>,
+}
+
+#[derive(Debug, Serialize)]
+struct CopiedRootDto {
+    source_id: String,
+    new_id: String,
+    path: String,
 }
 
 #[derive(Debug, Serialize)]
