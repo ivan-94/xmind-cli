@@ -3476,5 +3476,43 @@
         </li>
       </ul>
     </section>
+
+    <section class="entry">
+      <h2>2026-05-22 - position before selector</h2>
+      <h3>Design Decisions</h3>
+      <ul>
+        <li>
+          Implemented <code>--position before:&lt;selector&gt;</code> by resolving
+          the selector and inserting at that direct child's current index under
+          the destination parent.
+        </li>
+        <li>
+          The command rejects a <code>before:</code> selector that is not already
+          a direct child of the destination.
+        </li>
+      </ul>
+
+      <h3>Deviations</h3>
+      <ul>
+        <li>
+          <code>after:</code> remains deferred to the next PLAN item.
+        </li>
+      </ul>
+
+      <h3>Tradeoffs</h3>
+      <ul>
+        <li>
+          Requiring the reference topic to be under the destination avoids
+          ambiguous cross-parent ordering semantics.
+        </li>
+      </ul>
+
+      <h3>Open Questions</h3>
+      <ul>
+        <li>
+          None for this slice.
+        </li>
+      </ul>
+    </section>
   </body>
 </html>

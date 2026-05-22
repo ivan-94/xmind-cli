@@ -264,7 +264,7 @@ Implement a Rust CLI named `xmind` that satisfies the documented product, comman
 - [x] Implement `--position first`.
 - [x] Implement `--position last`.
 - [x] Implement `--position index:N`.
-- [ ] Implement `--position before:<selector>`.
+- [x] Implement `--position before:<selector>`.
 - [ ] Implement `--position after:<selector>`.
 - [ ] Implement `--create-missing-path`.
 - [ ] Implement intermediate topic defaults.

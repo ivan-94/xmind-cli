@@ -1295,9 +1295,10 @@ fn render_add(
         }
     };
 
-    if let Err(error) = validate_insert_position(position, parent.topic.children.len()) {
-        return render_error(invocation, json, error);
-    }
+    let position = match insert_position_from_spec(position, &parent, &sheet.root) {
+        Ok(position) => position,
+        Err(error) => return render_error(invocation, json, error),
+    };
 
     let new_topic_id = generated_topic_id(title);
     let plan = MutationPlanner::plan_add_topic(AddTopicRequest {
@@ -1443,11 +1444,19 @@ fn clear_field_name(field: TopicClearField) -> &'static str {
     }
 }
 
-fn parse_insert_position(position: Option<String>) -> Result<InsertPosition, CliErrorBody> {
+#[derive(Clone)]
+enum PositionSpec {
+    First,
+    Last,
+    Index(usize),
+    Before(Selector),
+}
+
+fn parse_insert_position(position: Option<String>) -> Result<PositionSpec, CliErrorBody> {
     match position.as_deref() {
-        None => Ok(InsertPosition::Last),
-        Some("first") => Ok(InsertPosition::First),
-        Some("last") => Ok(InsertPosition::Last),
+        None => Ok(PositionSpec::Last),
+        Some("first") => Ok(PositionSpec::First),
+        Some("last") => Ok(PositionSpec::Last),
         Some(index) if index.starts_with("index:") => {
             let value = index.trim_start_matches("index:");
             let index = value.parse::<usize>().map_err(|_| {
@@ -1458,33 +1467,86 @@ fn parse_insert_position(position: Option<String>) -> Result<InsertPosition, Cli
                     "Use --position index:N where N is a non-negative integer.",
                 )
             })?;
-            Ok(InsertPosition::Index(index))
+            Ok(PositionSpec::Index(index))
+        }
+        Some(before) if before.starts_with("before:") => {
+            let value = before.trim_start_matches("before:");
+            let selector = Selector::parse(value).map_err(|error| {
+                CliErrorBody::new(
+                    ErrorCode::InvalidUsage,
+                    format!("Position selector is invalid: {error}"),
+                    true,
+                    "Use --position before:<selector> with a valid topic selector.",
+                )
+            })?;
+            Ok(PositionSpec::Before(selector))
         }
         Some(other) => Err(CliErrorBody::new(
             ErrorCode::InvalidUsage,
             format!("Unsupported position: {other}"),
             true,
-            "Use --position first, --position last, or --position index:N.",
+            "Use --position first, --position last, --position index:N, or --position before:<selector>.",
         )),
     }
 }
 
-fn validate_insert_position(
-    position: InsertPosition,
-    child_count: usize,
-) -> Result<(), CliErrorBody> {
-    if let InsertPosition::Index(index) = position {
-        if index > child_count {
-            return Err(CliErrorBody::new(
-                ErrorCode::InvalidUsage,
-                format!("Position index {index} is outside the destination child range."),
-                true,
-                format!("Use an index between 0 and {child_count}."),
-            ));
+fn insert_position_from_spec(
+    position: PositionSpec,
+    destination: &ResolvedTopic<'_>,
+    root: &Topic,
+) -> Result<InsertPosition, CliErrorBody> {
+    match position {
+        PositionSpec::First => Ok(InsertPosition::First),
+        PositionSpec::Last => Ok(InsertPosition::Last),
+        PositionSpec::Index(index) => {
+            let child_count = destination.topic.children.len();
+            if index > child_count {
+                return Err(CliErrorBody::new(
+                    ErrorCode::InvalidUsage,
+                    format!("Position index {index} is outside the destination child range."),
+                    true,
+                    format!("Use an index between 0 and {child_count}."),
+                ));
+            }
+            Ok(InsertPosition::Index(index))
         }
+        PositionSpec::Before(selector) => match resolve_topic(root, &selector) {
+            ResolveOne::Found(target) => {
+                let Some(index) = destination
+                    .topic
+                    .children
+                    .iter()
+                    .position(|child| child.id.0 == target.topic.id.0)
+                else {
+                    return Err(CliErrorBody::new(
+                        ErrorCode::InvalidUsage,
+                        "Position selector is not a child of the destination topic.",
+                        true,
+                        "Use a before:<selector> target that is already under the destination.",
+                    )
+                    .with_selector(selector.render()));
+                };
+                Ok(InsertPosition::Index(index))
+            }
+            ResolveOne::NotFound => Err(CliErrorBody::new(
+                ErrorCode::NotFound,
+                format!(
+                    "Position selector did not match a topic: {}",
+                    selector.render()
+                ),
+                true,
+                "Run tree or find to rediscover the position selector, then retry.",
+            )
+            .with_selector(selector.render())),
+            ResolveOne::Ambiguous(_) => Err(CliErrorBody::new(
+                ErrorCode::AmbiguousSelector,
+                "Position selector matched multiple topics.",
+                true,
+                "Use an id selector for --position before:<selector>.",
+            )
+            .with_selector(selector.render())),
+        },
     }
-
-    Ok(())
 }
 
 fn render_delete(
@@ -1782,9 +1844,10 @@ fn render_move(
         }
     };
 
-    if let Err(error) = validate_insert_position(position, destination.topic.children.len()) {
-        return render_error(invocation, json, error);
-    }
+    let position = match insert_position_from_spec(position, &destination, &sheet.root) {
+        Ok(position) => position,
+        Err(error) => return render_error(invocation, json, error),
+    };
 
     if destination
         .path
@@ -2006,9 +2069,10 @@ fn render_copy(
         }
     };
 
-    if let Err(error) = validate_insert_position(position, destination.topic.children.len()) {
-        return render_error(invocation, json, error);
-    }
+    let position = match insert_position_from_spec(position, &destination, &sheet.root) {
+        Ok(position) => position,
+        Err(error) => return render_error(invocation, json, error),
+    };
 
     let copied_title = title.unwrap_or_else(|| source.topic.title.clone());
     if copied_title.is_empty() {
