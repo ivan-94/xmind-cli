@@ -133,6 +133,9 @@ pub enum QueryParseError {
     #[error("query string is missing a closing quote")]
     UnterminatedString,
 
+    #[error("query expression is missing a closing parenthesis")]
+    ExpectedClosingParenthesis,
+
     #[error("unexpected trailing query input: {0}")]
     TrailingInput(String),
 }
@@ -172,6 +175,20 @@ impl<'a> QueryParser<'a> {
     fn parse_not_expr(&mut self) -> Result<QueryExpr, QueryParseError> {
         if self.consume_keyword("not") {
             return Ok(QueryExpr::Not(Box::new(self.parse_not_expr()?)));
+        }
+
+        self.parse_primary()
+    }
+
+    fn parse_primary(&mut self) -> Result<QueryExpr, QueryParseError> {
+        self.skip_whitespace();
+        if self.consume_char('(') {
+            let expr = self.parse_or_expr()?;
+            self.skip_whitespace();
+            if !self.consume_char(')') {
+                return Err(QueryParseError::ExpectedClosingParenthesis);
+            }
+            return Ok(expr);
         }
 
         Ok(QueryExpr::Comparison(self.parse_comparison()?))
@@ -575,6 +592,20 @@ mod tests {
         };
 
         assert!(!expr.matches_topic(&topic, &TopicPath::root(), 0));
+    }
+
+    #[test]
+    fn parentheses_group_nested_expression() {
+        let expr = QueryExpr::parse(r#"title = "Payment" and (depth = 1 or depth = 2)"#)
+            .expect("query parses");
+        let topic = Topic {
+            id: TopicId("topic-payment".to_owned()),
+            title: "Payment".to_owned(),
+            note: None,
+            children: Vec::new(),
+        };
+
+        assert!(expr.matches_topic(&topic, &TopicPath::root(), 2));
     }
 
     #[test]
