@@ -135,7 +135,7 @@ Implement a Rust CLI named `xmind` that satisfies the documented product, comman
 - [x] Implement `not_found` diagnostics.
 - [x] Implement query lexer/parser.
 - [x] Implement query AST.
-- [ ] Implement query operators:
+- [x] Implement query operators:
   - [x] `=`
   - [x] `!=`
   - [x] `>`
@@ -147,7 +147,7 @@ Implement a Rust CLI named `xmind` that satisfies the documented product, comman
   - [x] `ends_with`
   - [x] `in`
   - [x] `exists`
-- [ ] Implement query precedence:
+- [x] Implement query precedence:
   - [x] parentheses,
   - [x] `not`,
   - [x] `and`,
