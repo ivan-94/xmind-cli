@@ -3514,5 +3514,40 @@
         </li>
       </ul>
     </section>
+
+    <section class="entry">
+      <h2>2026-05-22 - position after selector</h2>
+      <h3>Design Decisions</h3>
+      <ul>
+        <li>
+          Implemented <code>--position after:&lt;selector&gt;</code> by resolving
+          the selector and inserting immediately after that direct child under
+          the destination parent.
+        </li>
+      </ul>
+
+      <h3>Deviations</h3>
+      <ul>
+        <li>
+          Like <code>before:</code>, the <code>after:</code> target must be a
+          direct child of the destination parent.
+        </li>
+      </ul>
+
+      <h3>Tradeoffs</h3>
+      <ul>
+        <li>
+          <code>after:</code> reuses the same resolved-index writer path as
+          <code>index:N</code> and <code>before:</code>.
+        </li>
+      </ul>
+
+      <h3>Open Questions</h3>
+      <ul>
+        <li>
+          None for this slice.
+        </li>
+      </ul>
+    </section>
   </body>
 </html>

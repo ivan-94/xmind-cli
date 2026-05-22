@@ -1450,6 +1450,7 @@ enum PositionSpec {
     Last,
     Index(usize),
     Before(Selector),
+    After(Selector),
 }
 
 fn parse_insert_position(position: Option<String>) -> Result<PositionSpec, CliErrorBody> {
@@ -1481,11 +1482,23 @@ fn parse_insert_position(position: Option<String>) -> Result<PositionSpec, CliEr
             })?;
             Ok(PositionSpec::Before(selector))
         }
+        Some(after) if after.starts_with("after:") => {
+            let value = after.trim_start_matches("after:");
+            let selector = Selector::parse(value).map_err(|error| {
+                CliErrorBody::new(
+                    ErrorCode::InvalidUsage,
+                    format!("Position selector is invalid: {error}"),
+                    true,
+                    "Use --position after:<selector> with a valid topic selector.",
+                )
+            })?;
+            Ok(PositionSpec::After(selector))
+        }
         Some(other) => Err(CliErrorBody::new(
             ErrorCode::InvalidUsage,
             format!("Unsupported position: {other}"),
             true,
-            "Use --position first, --position last, --position index:N, or --position before:<selector>.",
+            "Use --position first, --position last, --position index:N, --position before:<selector>, or --position after:<selector>.",
         )),
     }
 }
@@ -1510,42 +1523,57 @@ fn insert_position_from_spec(
             }
             Ok(InsertPosition::Index(index))
         }
-        PositionSpec::Before(selector) => match resolve_topic(root, &selector) {
-            ResolveOne::Found(target) => {
-                let Some(index) = destination
-                    .topic
-                    .children
-                    .iter()
-                    .position(|child| child.id.0 == target.topic.id.0)
-                else {
-                    return Err(CliErrorBody::new(
-                        ErrorCode::InvalidUsage,
-                        "Position selector is not a child of the destination topic.",
-                        true,
-                        "Use a before:<selector> target that is already under the destination.",
-                    )
-                    .with_selector(selector.render()));
-                };
-                Ok(InsertPosition::Index(index))
-            }
-            ResolveOne::NotFound => Err(CliErrorBody::new(
-                ErrorCode::NotFound,
-                format!(
-                    "Position selector did not match a topic: {}",
-                    selector.render()
-                ),
-                true,
-                "Run tree or find to rediscover the position selector, then retry.",
-            )
-            .with_selector(selector.render())),
-            ResolveOne::Ambiguous(_) => Err(CliErrorBody::new(
-                ErrorCode::AmbiguousSelector,
-                "Position selector matched multiple topics.",
-                true,
-                "Use an id selector for --position before:<selector>.",
-            )
-            .with_selector(selector.render())),
-        },
+        PositionSpec::Before(selector) => {
+            relative_insert_position(selector, false, destination, root)
+        }
+        PositionSpec::After(selector) => {
+            relative_insert_position(selector, true, destination, root)
+        }
+    }
+}
+
+fn relative_insert_position(
+    selector: Selector,
+    after: bool,
+    destination: &ResolvedTopic<'_>,
+    root: &Topic,
+) -> Result<InsertPosition, CliErrorBody> {
+    match resolve_topic(root, &selector) {
+        ResolveOne::Found(target) => {
+            let Some(index) = destination
+                .topic
+                .children
+                .iter()
+                .position(|child| child.id.0 == target.topic.id.0)
+            else {
+                return Err(CliErrorBody::new(
+                    ErrorCode::InvalidUsage,
+                    "Position selector is not a child of the destination topic.",
+                    true,
+                    "Use a before:<selector> target that is already under the destination.",
+                )
+                .with_selector(selector.render()));
+            };
+            let index = if after { index + 1 } else { index };
+            Ok(InsertPosition::Index(index))
+        }
+        ResolveOne::NotFound => Err(CliErrorBody::new(
+            ErrorCode::NotFound,
+            format!(
+                "Position selector did not match a topic: {}",
+                selector.render()
+            ),
+            true,
+            "Run tree or find to rediscover the position selector, then retry.",
+        )
+        .with_selector(selector.render())),
+        ResolveOne::Ambiguous(_) => Err(CliErrorBody::new(
+            ErrorCode::AmbiguousSelector,
+            "Position selector matched multiple topics.",
+            true,
+            "Use an id selector for --position before:<selector>.",
+        )
+        .with_selector(selector.render())),
     }
 }
 

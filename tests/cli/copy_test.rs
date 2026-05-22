@@ -244,3 +244,42 @@ fn copy_position_before_inserts_copy_before_matching_destination_child() {
     );
     assert_eq!(tree["result"]["root"]["children"][2]["id"], "topic-q2");
 }
+
+#[test]
+fn copy_position_after_inserts_copy_after_matching_destination_child() {
+    let temp_dir = tempfile::tempdir().expect("temp dir is created");
+    let workbook = temp_dir.path().join("copy-position-after.xmind");
+    fs::copy("tests/fixtures/xmind/duplicate-titles.xmind", &workbook).expect("fixture is copied");
+    let workbook_arg = workbook.to_string_lossy().into_owned();
+
+    let output = Command::cargo_bin("xmind")
+        .expect("xmind binary is built for CLI tests")
+        .args([
+            "copy",
+            &workbook_arg,
+            "--node",
+            "id:topic-payment-q1",
+            "--to",
+            "root",
+            "--position",
+            "after:id:topic-q1",
+            "--apply",
+            "--json",
+        ])
+        .output()
+        .expect("copy command runs");
+
+    assert_eq!(output.status.code(), Some(0));
+    let tree_output = Command::cargo_bin("xmind")
+        .expect("xmind binary is built for CLI tests")
+        .args(["tree", &workbook_arg, "--json", "--depth", "1"])
+        .output()
+        .expect("tree command runs after apply");
+    let tree: Value = serde_json::from_slice(&tree_output.stdout).expect("tree stdout is JSON");
+    assert_eq!(tree["result"]["root"]["children"][0]["id"], "topic-q1");
+    assert_eq!(
+        tree["result"]["root"]["children"][1]["id"],
+        "topic-payment-q1-copy"
+    );
+    assert_eq!(tree["result"]["root"]["children"][2]["id"], "topic-q2");
+}
