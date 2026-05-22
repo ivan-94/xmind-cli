@@ -408,7 +408,7 @@ Implement a Rust CLI named `xmind` that satisfies the documented product, comman
 - [x] Add release build smoke test.
 - [x] Add shell completion generation.
 - [x] Add installation instructions.
-- [ ] Add changelog.
+- [x] Add changelog.
 
 ## First Useful Vertical Slice
 

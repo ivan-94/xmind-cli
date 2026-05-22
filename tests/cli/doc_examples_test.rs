@@ -252,3 +252,21 @@ fn installation_docs_cover_supported_install_paths() {
         );
     }
 }
+
+#[test]
+fn changelog_tracks_current_release_hardening_work() {
+    let changelog = std::fs::read_to_string("CHANGELOG.md").expect("changelog is readable");
+
+    for expected in [
+        "## Unreleased",
+        "CI",
+        "shell completion",
+        "installation",
+        "release build",
+    ] {
+        assert!(
+            changelog.contains(expected),
+            "changelog should mention `{expected}`"
+        );
+    }
+}
