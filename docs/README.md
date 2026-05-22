@@ -22,6 +22,7 @@ The CLI treats an XMind file as a structured workbook, not as a zip archive or s
 - `examples/`: copyable inputs and representative outputs.
 - `design/`: command taxonomy, naming rules, compatibility policy, and future ideas.
 - `technical/`: Rust implementation architecture, stack choices, quality gates, testing strategy, and roadmap.
+- `installation.md`: local install, release build, and shell completion setup.
 
 ## Reading Order
 
@@ -69,6 +70,11 @@ For Rust implementation:
 10. `technical/quality-gates.md`
 11. `technical/testing-strategy.md`
 12. `technical/implementation-roadmap.md`
+
+For local installation:
+
+1. `installation.md`
+2. `reference/commands/completion.md`
 
 ## Product Posture
 

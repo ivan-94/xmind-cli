@@ -233,3 +233,22 @@ fn technical_docs_track_implemented_modules() {
         "technical docs should point to the implemented local quality gate"
     );
 }
+
+#[test]
+fn installation_docs_cover_supported_install_paths() {
+    let install_doc =
+        std::fs::read_to_string("docs/installation.md").expect("installation doc is readable");
+
+    for expected in [
+        "cargo install --path .",
+        "cargo build --workspace --release",
+        "target/release/xmind",
+        "xmind completion bash",
+        "xmind --version",
+    ] {
+        assert!(
+            install_doc.contains(expected),
+            "installation doc should mention `{expected}`"
+        );
+    }
+}
