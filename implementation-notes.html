@@ -4115,5 +4115,43 @@
         </li>
       </ul>
     </section>
+    <section class="entry">
+      <h2>2026-05-22 - Markdown heading/list hybrid parser</h2>
+      <h3>Design Decisions</h3>
+      <ul>
+        <li>
+          Markdown body parsing now uses one sequential outline pass, so headings
+          and list items can be mixed in the same input.
+        </li>
+        <li>
+          List items following a heading are nested under the current heading
+          level; nested list indentation remains relative to that heading.
+        </li>
+      </ul>
+
+      <h3>Deviations</h3>
+      <ul>
+        <li>
+          The parser still focuses on deterministic happy paths. Ambiguity and
+          indentation diagnostics remain for the invalid Markdown diagnostics
+          PLAN item.
+        </li>
+      </ul>
+
+      <h3>Tradeoffs</h3>
+      <ul>
+        <li>
+          Replacing the previous heading-first/list-second parser avoids losing
+          list children when a document contains both structures.
+        </li>
+      </ul>
+
+      <h3>Open Questions</h3>
+      <ul>
+        <li>
+          None for this slice.
+        </li>
+      </ul>
+    </section>
   </body>
 </html>

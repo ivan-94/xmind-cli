@@ -1737,11 +1737,7 @@ fn read_markdown_tree_input(input: &Path) -> Result<TopicTreeInputDto, String> {
         None => TopicTreeDefaultsDto::default(),
     };
 
-    if let Some(mut tree) = parse_markdown_heading_outline(body)? {
-        apply_topic_tree_defaults(&mut tree, defaults);
-        return Ok(tree);
-    }
-    if let Some(mut tree) = parse_markdown_list_outline(body)? {
+    if let Some(mut tree) = parse_markdown_outline(body)? {
         apply_topic_tree_defaults(&mut tree, defaults);
         return Ok(tree);
     }
@@ -1765,52 +1761,21 @@ fn split_markdown_frontmatter(content: &str) -> (Option<&str>, &str) {
     (Some(frontmatter), body)
 }
 
-fn parse_markdown_heading_outline(content: &str) -> Result<Option<TopicTreeInputDto>, String> {
+fn parse_markdown_outline(content: &str) -> Result<Option<TopicTreeInputDto>, String> {
     let mut stack = Vec::<(usize, TopicTreeInputDto)>::new();
     let mut roots = Vec::<TopicTreeInputDto>::new();
+    let mut current_heading_level = 0;
 
     for line in content.lines() {
-        let Some((level, title)) = parse_markdown_heading(line) else {
-            continue;
-        };
-        let node = TopicTreeInputDto::new(title);
-
-        while stack
-            .last()
-            .is_some_and(|(stack_level, _)| *stack_level >= level)
-        {
-            let (_, completed) = stack.pop().expect("stack is not empty");
-            if let Some((_, parent)) = stack.last_mut() {
-                parent.children.push(completed);
-            } else {
-                roots.push(completed);
-            }
-        }
-
-        stack.push((level, node));
-    }
-
-    while let Some((_, completed)) = stack.pop() {
-        if let Some((_, parent)) = stack.last_mut() {
-            parent.children.push(completed);
+        let item = if let Some((level, title)) = parse_markdown_heading(line) {
+            current_heading_level = level;
+            Some((level, TopicTreeInputDto::new(title)))
+        } else if let Some((relative_level, node)) = parse_markdown_list_item(line) {
+            Some((current_heading_level + relative_level, node))
         } else {
-            roots.push(completed);
-        }
-    }
-
-    match roots.len() {
-        0 => Ok(None),
-        1 => Ok(roots.pop()),
-        _ => Err("Markdown heading outline must contain one top-level root.".to_owned()),
-    }
-}
-
-fn parse_markdown_list_outline(content: &str) -> Result<Option<TopicTreeInputDto>, String> {
-    let mut stack = Vec::<(usize, TopicTreeInputDto)>::new();
-    let mut roots = Vec::<TopicTreeInputDto>::new();
-
-    for line in content.lines() {
-        let Some((level, node)) = parse_markdown_list_item(line) else {
+            None
+        };
+        let Some((level, node)) = item else {
             continue;
         };
 
@@ -1840,7 +1805,7 @@ fn parse_markdown_list_outline(content: &str) -> Result<Option<TopicTreeInputDto
     match roots.len() {
         0 => Ok(None),
         1 => Ok(roots.pop()),
-        _ => Err("Markdown list outline must contain one top-level root.".to_owned()),
+        _ => Err("Markdown outline must contain one top-level root.".to_owned()),
     }
 }
 
