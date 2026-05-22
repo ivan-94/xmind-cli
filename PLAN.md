@@ -284,7 +284,7 @@ Implement a Rust CLI named `xmind` that satisfies the documented product, comman
 - [x] Implement Markdown heading outline parser.
 - [x] Implement Markdown list outline parser.
 - [x] Implement Markdown ordered list parser.
-- [ ] Implement Markdown task list parser.
+- [x] Implement Markdown task list parser.
 - [ ] Implement Markdown heading/list hybrid parser.
 - [ ] Implement Markdown note mapping.
 - [ ] Implement inline metadata parsing or explicit rejection.

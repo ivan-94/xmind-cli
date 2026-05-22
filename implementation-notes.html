@@ -4080,5 +4080,40 @@
         </li>
       </ul>
     </section>
+    <section class="entry">
+      <h2>2026-05-22 - Markdown task list parser</h2>
+      <h3>Design Decisions</h3>
+      <ul>
+        <li>
+          Markdown task list markers are now stripped from topic titles.
+          <code>[ ]</code> maps to <code>task-open</code>, and
+          <code>[x]</code>/<code>[X]</code> map to <code>task-done</code>.
+        </li>
+      </ul>
+
+      <h3>Deviations</h3>
+      <ul>
+        <li>
+          Task state is represented as markers in parsed tree input; no separate
+          task metadata field is introduced.
+        </li>
+      </ul>
+
+      <h3>Tradeoffs</h3>
+      <ul>
+        <li>
+          Only the root marker is currently visible in add-tree dry-run output,
+          because diff events are path-based. Child task markers remain preserved
+          in the parsed tree for later write/merge paths.
+        </li>
+      </ul>
+
+      <h3>Open Questions</h3>
+      <ul>
+        <li>
+          None for this slice.
+        </li>
+      </ul>
+    </section>
   </body>
 </html>

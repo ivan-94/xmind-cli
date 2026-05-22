@@ -1810,10 +1810,9 @@ fn parse_markdown_list_outline(content: &str) -> Result<Option<TopicTreeInputDto
     let mut roots = Vec::<TopicTreeInputDto>::new();
 
     for line in content.lines() {
-        let Some((level, title)) = parse_markdown_list_item(line) else {
+        let Some((level, node)) = parse_markdown_list_item(line) else {
             continue;
         };
-        let node = TopicTreeInputDto::new(title);
 
         while stack
             .last()
@@ -1845,19 +1844,15 @@ fn parse_markdown_list_outline(content: &str) -> Result<Option<TopicTreeInputDto
     }
 }
 
-fn parse_markdown_list_item(line: &str) -> Option<(usize, String)> {
+fn parse_markdown_list_item(line: &str) -> Option<(usize, TopicTreeInputDto)> {
     let indent = line
         .chars()
         .take_while(|character| *character == ' ')
         .count();
     let trimmed = line.trim_start();
     if let Some(title) = trimmed.strip_prefix("- ") {
-        let title = title.trim();
-        if title.is_empty() {
-            return None;
-        }
-
-        return Some((indent / 2 + 1, title.to_owned()));
+        let node = parse_markdown_list_topic(title.trim())?;
+        return Some((indent / 2 + 1, node));
     }
 
     let dot_index = trimmed.find(". ")?;
@@ -1868,13 +1863,32 @@ fn parse_markdown_list_item(line: &str) -> Option<(usize, String)> {
     {
         return None;
     }
-    let title = &trimmed[dot_index + ". ".len()..];
-    let title = title.trim();
+    let title = trimmed[dot_index + ". ".len()..].trim();
+    let node = parse_markdown_list_topic(title)?;
+
+    Some((indent / 3 + 1, node))
+}
+
+fn parse_markdown_list_topic(title: &str) -> Option<TopicTreeInputDto> {
+    let (title, marker) = if let Some(title) = title.strip_prefix("[ ] ") {
+        (title.trim(), Some("task-open"))
+    } else if let Some(title) = title.strip_prefix("[x] ") {
+        (title.trim(), Some("task-done"))
+    } else if let Some(title) = title.strip_prefix("[X] ") {
+        (title.trim(), Some("task-done"))
+    } else {
+        (title, None)
+    };
+
     if title.is_empty() {
         return None;
     }
 
-    Some((indent / 3 + 1, title.to_owned()))
+    let mut node = TopicTreeInputDto::new(title.to_owned());
+    if let Some(marker) = marker {
+        node.markers.push(marker.to_owned());
+    }
+    Some(node)
 }
 
 fn parse_markdown_heading(line: &str) -> Option<(usize, String)> {
