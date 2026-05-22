@@ -15,16 +15,19 @@ expression: read_output(&args)
           "children": [
             {
               "id": "topic-payment",
+              "labels": [],
               "path": "/Q2/Payment",
               "title": "Payment"
             }
           ],
           "id": "topic-q2",
+          "labels": [],
           "path": "/Q2",
           "title": "Q2"
         }
       ],
       "id": "topic-root",
+      "labels": [],
       "path": "/",
       "title": "Roadmap"
     },

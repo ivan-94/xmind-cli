@@ -171,7 +171,7 @@ Implement a Rust CLI named `xmind` that satisfies the documented product, comman
 - [x] Load child topics.
 - [x] Load topic title.
 - [x] Load topic notes.
-- [ ] Load labels.
+- [x] Load labels.
 - [ ] Load markers.
 - [ ] Load hyperlinks.
 - [ ] Load topic image references where supported.

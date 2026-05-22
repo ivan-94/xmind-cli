@@ -2137,6 +2137,9 @@ fn render_tree_topic(topic: &TreeTopicDto, fields: &[&str]) -> Value {
                     object.insert("note".to_owned(), serde_json::json!(note));
                 }
             }
+            "labels" => {
+                object.insert("labels".to_owned(), serde_json::json!(topic.labels));
+            }
             "children_count" => {
                 if let Some(children_count) = topic.children_count {
                     object.insert(
@@ -2174,6 +2177,8 @@ struct TreeTopicDto {
     #[serde(skip_serializing_if = "Option::is_none")]
     note: Option<String>,
 
+    labels: Vec<String>,
+
     #[serde(skip_serializing_if = "Option::is_none")]
     children: Option<Vec<TreeTopicDto>>,
 
@@ -2201,6 +2206,7 @@ impl TreeTopicDto {
             path: path.to_selector_value(),
             title: topic.title.clone(),
             note: topic.note.clone(),
+            labels: topic.labels.clone(),
             children,
             children_count: (!include_children && !topic.children.is_empty())
                 .then_some(topic.children.len()),

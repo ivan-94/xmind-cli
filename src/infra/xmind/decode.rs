@@ -71,6 +71,8 @@ struct StorageTopic {
     title: String,
     notes: Option<StorageNotes>,
     #[serde(default)]
+    labels: Vec<String>,
+    #[serde(default)]
     children: StorageChildren,
 }
 
@@ -92,6 +94,7 @@ impl From<StorageTopic> for Topic {
             note: value
                 .notes
                 .and_then(|notes| notes.plain.map(|plain| plain.content)),
+            labels: value.labels,
             children: value
                 .children
                 .attached

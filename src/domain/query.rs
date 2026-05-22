@@ -540,6 +540,7 @@ mod tests {
             id: TopicId("topic-payment".to_owned()),
             title: "Payment".to_owned(),
             note: None,
+            labels: Vec::new(),
             children: Vec::new(),
         };
 
@@ -553,6 +554,7 @@ mod tests {
             id: TopicId("topic-payment".to_owned()),
             title: "Payment".to_owned(),
             note: None,
+            labels: Vec::new(),
             children: Vec::new(),
         };
 
@@ -566,6 +568,7 @@ mod tests {
             id: TopicId("topic-payment".to_owned()),
             title: "Payment".to_owned(),
             note: None,
+            labels: Vec::new(),
             children: Vec::new(),
         };
 
@@ -579,6 +582,7 @@ mod tests {
             id: TopicId("topic-payment".to_owned()),
             title: "Payment".to_owned(),
             note: None,
+            labels: Vec::new(),
             children: Vec::new(),
         };
 
@@ -592,6 +596,7 @@ mod tests {
             id: TopicId("topic-payment".to_owned()),
             title: "Payment".to_owned(),
             note: None,
+            labels: Vec::new(),
             children: Vec::new(),
         };
 
@@ -605,6 +610,7 @@ mod tests {
             id: TopicId("topic-payment".to_owned()),
             title: "Payment".to_owned(),
             note: None,
+            labels: Vec::new(),
             children: Vec::new(),
         };
 
@@ -618,6 +624,7 @@ mod tests {
             id: TopicId("topic-payment".to_owned()),
             title: "Payment".to_owned(),
             note: Some("Refund details".to_owned()),
+            labels: Vec::new(),
             children: Vec::new(),
         };
 
@@ -631,6 +638,7 @@ mod tests {
             id: TopicId("topic-payment".to_owned()),
             title: "Payment".to_owned(),
             note: None,
+            labels: Vec::new(),
             children: Vec::new(),
         };
 
@@ -644,6 +652,7 @@ mod tests {
             id: TopicId("topic-payment".to_owned()),
             title: "Payment".to_owned(),
             note: None,
+            labels: Vec::new(),
             children: Vec::new(),
         };
 
@@ -657,6 +666,7 @@ mod tests {
             id: TopicId("topic-payment".to_owned()),
             title: "Payment".to_owned(),
             note: None,
+            labels: Vec::new(),
             children: Vec::new(),
         };
 
@@ -672,6 +682,7 @@ mod tests {
             id: TopicId("topic-payment".to_owned()),
             title: "Payment".to_owned(),
             note: None,
+            labels: Vec::new(),
             children: Vec::new(),
         };
 
@@ -685,6 +696,7 @@ mod tests {
             id: TopicId("topic-payment".to_owned()),
             title: "Payment".to_owned(),
             note: None,
+            labels: Vec::new(),
             children: Vec::new(),
         };
 
@@ -699,6 +711,7 @@ mod tests {
             id: TopicId("topic-payment".to_owned()),
             title: "Payment".to_owned(),
             note: None,
+            labels: Vec::new(),
             children: Vec::new(),
         };
 
@@ -712,6 +725,7 @@ mod tests {
             id: TopicId("topic-payment".to_owned()),
             title: "Payment".to_owned(),
             note: None,
+            labels: Vec::new(),
             children: Vec::new(),
         };
 
@@ -725,6 +739,7 @@ mod tests {
             id: TopicId("topic-root".to_owned()),
             title: "Roadmap".to_owned(),
             note: None,
+            labels: Vec::new(),
             children: Vec::new(),
         };
 
@@ -738,6 +753,7 @@ mod tests {
             id: TopicId("topic-root".to_owned()),
             title: "Roadmap".to_owned(),
             note: None,
+            labels: Vec::new(),
             children: Vec::new(),
         };
 

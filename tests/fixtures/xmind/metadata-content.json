@@ -19,7 +19,8 @@
                     "plain": {
                       "content": "Supports card payments and refund workflows."
                     }
-                  }
+                  },
+                  "labels": ["MVP", "Payments"]
                 }
               ]
             }

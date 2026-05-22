@@ -12,6 +12,7 @@ expression: read_output(&args)
     "topic": {
       "children": [],
       "id": "topic-payment",
+      "labels": [],
       "path": "/Q2/Payment",
       "title": "Payment"
     }

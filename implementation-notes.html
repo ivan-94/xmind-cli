@@ -1204,5 +1204,51 @@
         </li>
       </ul>
     </section>
+
+    <section class="entry">
+      <h2>2026-05-22 - topic label loading</h2>
+      <h3>Design Decisions</h3>
+      <ul>
+        <li>
+          Modern XMind topic labels are read from the topic-level
+          <code>labels</code> string array in <code>content.json</code>.
+          Missing labels default to an empty array in the domain model and JSON
+          output.
+        </li>
+        <li>
+          The metadata fixture now includes labels on the existing
+          <code>Payment</code> topic so the public <code>get --json</code>
+          path verifies package decode, domain conversion, and output rendering
+          together.
+        </li>
+      </ul>
+
+      <h3>Deviations</h3>
+      <ul>
+        <li>
+          This slice only loads and renders labels. Query predicates, mutation
+          commands, and package write-back semantics for labels remain separate
+          PLAN items.
+        </li>
+      </ul>
+
+      <h3>Tradeoffs</h3>
+      <ul>
+        <li>
+          I used the direct <code>labels: string[]</code> representation already
+          documented for topic-tree schemas instead of adding a storage-specific
+          wrapper type before another observed XMind variant requires it.
+        </li>
+      </ul>
+
+      <h3>Open Questions</h3>
+      <ul>
+        <li>
+          Confirm whether labels should later participate in
+          <code>find --contains</code> and query expressions before marker and
+          hyperlink support are implemented.
+        </li>
+      </ul>
+    </section>
   </body>
 </html>
