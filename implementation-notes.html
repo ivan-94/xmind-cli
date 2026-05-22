@@ -3927,5 +3927,46 @@
         </li>
       </ul>
     </section>
+    <section class="entry">
+      <h2>2026-05-22 - Markdown frontmatter parser</h2>
+      <h3>Design Decisions</h3>
+      <ul>
+        <li>
+          <code>add-tree</code> now accepts <code>--from-markdown</code> and
+          parses a leading YAML frontmatter block into the same topic tree input
+          DTO used by YAML and JSON tree files.
+        </li>
+        <li>
+          Frontmatter can provide root defaults such as <code>title</code>,
+          <code>labels</code>, and <code>markers</code>; these are visible in
+          the dry-run <code>created_root</code> payload.
+        </li>
+      </ul>
+
+      <h3>Deviations</h3>
+      <ul>
+        <li>
+          Markdown body parsing is intentionally not implemented in this slice.
+          Files without frontmatter currently return <code>invalid_tree_input</code>
+          until heading/list parsers are implemented.
+        </li>
+      </ul>
+
+      <h3>Tradeoffs</h3>
+      <ul>
+        <li>
+          The parser recognizes only a leading <code>---</code> frontmatter
+          block. This keeps the first Markdown slice deterministic and leaves
+          ambiguous body parsing to the dedicated Markdown tasks.
+        </li>
+      </ul>
+
+      <h3>Open Questions</h3>
+      <ul>
+        <li>
+          None for this slice.
+        </li>
+      </ul>
+    </section>
   </body>
 </html>

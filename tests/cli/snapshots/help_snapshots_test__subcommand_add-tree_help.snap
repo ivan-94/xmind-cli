@@ -2,23 +2,25 @@
 source: tests/cli/help_snapshots_test.rs
 expression: "help_output(&[subcommand, \"--help\"])"
 ---
-Usage: xmind add-tree [OPTIONS] --parent <PARENT> --input <INPUT> <--dry-run|--apply> <WORKBOOK>
+Usage: xmind add-tree [OPTIONS] --parent <PARENT> <--dry-run|--apply> <WORKBOOK>
 
 Arguments:
   <WORKBOOK>  
 
 Options:
-      --parent <PARENT>            
-      --input <INPUT>              
-      --dry-run                    
-      --apply                      
-      --backup                     
-      --json                       
-      --format <FORMAT>            [default: text] [possible values: text, json, compact-json, markdown, outline]
-      --fields <FIELDS>            
-      --quiet                      
-      --no-color                   
-      --sheet <SHEET>              
-      --sheet-id <SHEET_ID>        
-      --sheet-index <SHEET_INDEX>  
-  -h, --help                       Print help
+      --parent <PARENT>                
+      --input <INPUT>                  
+      --from-markdown <FROM_MARKDOWN>  
+      --markdown-mode <MARKDOWN_MODE>  
+      --dry-run                        
+      --apply                          
+      --backup                         
+      --json                           
+      --format <FORMAT>                [default: text] [possible values: text, json, compact-json, markdown, outline]
+      --fields <FIELDS>                
+      --quiet                          
+      --no-color                       
+      --sheet <SHEET>                  
+      --sheet-id <SHEET_ID>            
+      --sheet-index <SHEET_INDEX>      
+  -h, --help                           Print help

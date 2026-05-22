@@ -256,3 +256,46 @@ image:
         "Architecture"
     );
 }
+
+#[test]
+fn add_tree_markdown_frontmatter_dry_run_uses_root_defaults() {
+    let temp_dir = tempfile::tempdir().expect("temp dir is created");
+    let input = temp_dir.path().join("frontmatter.md");
+    fs::write(
+        &input,
+        r#"---
+title: Payment Capability
+labels: [MVP]
+markers: [priority-1]
+---
+"#,
+    )
+    .expect("markdown fixture is written");
+    let input_arg = input.to_string_lossy().into_owned();
+
+    let output = Command::cargo_bin("xmind")
+        .expect("xmind binary is built for CLI tests")
+        .args([
+            "add-tree",
+            "tests/fixtures/xmind/minimal.xmind",
+            "--parent",
+            "path:/Q2",
+            "--from-markdown",
+            &input_arg,
+            "--dry-run",
+            "--json",
+        ])
+        .output()
+        .expect("add-tree command runs");
+
+    assert_eq!(output.status.code(), Some(0));
+    let body: Value = serde_json::from_slice(&output.stdout).expect("stdout is JSON");
+    assert_eq!(body["ok"], true);
+    assert_eq!(
+        body["result"]["created_root"]["path"],
+        "/Q2/Payment Capability"
+    );
+    assert_eq!(body["result"]["created_root"]["labels"][0], "MVP");
+    assert_eq!(body["result"]["created_root"]["markers"][0], "priority-1");
+    assert_eq!(body["result"]["summary"]["added"], 1);
+}

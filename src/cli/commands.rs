@@ -148,7 +148,13 @@ pub struct AddTreeCommand {
     pub parent: String,
 
     #[arg(long)]
-    pub input: PathBuf,
+    pub input: Option<PathBuf>,
+
+    #[arg(long)]
+    pub from_markdown: Option<PathBuf>,
+
+    #[arg(long)]
+    pub markdown_mode: Option<String>,
 
     #[command(flatten)]
     pub mode: MutationMode,

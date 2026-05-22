@@ -127,10 +127,18 @@ pub fn run(cli: Cli) -> i32 {
         Action::AddTree {
             ref parent,
             ref input,
+            ref from_markdown,
         } => {
             let parent = parent.clone();
             let input = input.clone();
-            render_add_tree(invocation, json, &parent, &input)
+            let from_markdown = from_markdown.clone();
+            render_add_tree(
+                invocation,
+                json,
+                &parent,
+                input.as_deref(),
+                from_markdown.as_deref(),
+            )
         }
         Action::SetTitle {
             ref node,
@@ -319,7 +327,8 @@ enum Action {
     },
     AddTree {
         parent: String,
-        input: std::path::PathBuf,
+        input: Option<std::path::PathBuf>,
+        from_markdown: Option<std::path::PathBuf>,
     },
     SetTitle {
         node: String,
@@ -540,6 +549,7 @@ impl Invocation {
                 .with_action(Action::AddTree {
                     parent: command.parent,
                     input: command.input,
+                    from_markdown: command.from_markdown,
                 }),
             ),
             Command::Set(command) => Some(
@@ -1517,7 +1527,13 @@ fn render_add_create_missing_path(
     0
 }
 
-fn render_add_tree(invocation: Invocation, json: bool, parent: &str, input: &Path) -> i32 {
+fn render_add_tree(
+    invocation: Invocation,
+    json: bool,
+    parent: &str,
+    input: Option<&Path>,
+    from_markdown: Option<&Path>,
+) -> i32 {
     if !invocation.dry_run {
         let error = CliErrorBody::new(
             ErrorCode::InvalidUsage,
@@ -1589,7 +1605,7 @@ fn render_add_tree(invocation: Invocation, json: bool, parent: &str, input: &Pat
         }
     };
 
-    let tree = match read_tree_input(input) {
+    let tree = match read_tree_input(input, from_markdown) {
         Ok(tree) => tree,
         Err(message) => {
             let error = CliErrorBody::new(
@@ -1598,7 +1614,13 @@ fn render_add_tree(invocation: Invocation, json: bool, parent: &str, input: &Pat
                 true,
                 "Provide a YAML or JSON tree input file with a top-level title.",
             )
-            .with_path(input.display().to_string());
+            .with_path(
+                input
+                    .or(from_markdown)
+                    .map(Path::display)
+                    .map(|path| path.to_string())
+                    .unwrap_or_else(|| "<missing tree input>".to_owned()),
+            );
             return render_error(invocation, json, error);
         }
     };
@@ -1609,7 +1631,13 @@ fn render_add_tree(invocation: Invocation, json: bool, parent: &str, input: &Pat
             true,
             "Provide a topic tree where every topic has a non-empty title.",
         )
-        .with_path(input.display().to_string())
+        .with_path(
+            input
+                .or(from_markdown)
+                .map(Path::display)
+                .map(|path| path.to_string())
+                .unwrap_or_else(|| "<missing tree input>".to_owned()),
+        )
         .with_field_path(error.field_path);
         return render_error(invocation, json, error);
     }
@@ -1630,6 +1658,8 @@ fn render_add_tree(invocation: Invocation, json: bool, parent: &str, input: &Pat
             id: tree.id.clone(),
             path: created_root_path,
             title: tree.title.clone(),
+            labels: tree.labels.clone(),
+            markers: tree.markers.clone(),
             image: tree.image.clone(),
         },
         summary: SummaryDto {
@@ -1666,7 +1696,21 @@ fn render_add_tree(invocation: Invocation, json: bool, parent: &str, input: &Pat
     0
 }
 
-fn read_tree_input(input: &Path) -> Result<TopicTreeInputDto, String> {
+fn read_tree_input(
+    input: Option<&Path>,
+    from_markdown: Option<&Path>,
+) -> Result<TopicTreeInputDto, String> {
+    match (input, from_markdown) {
+        (Some(input), None) => read_yaml_or_json_tree_input(input),
+        (None, Some(input)) => read_markdown_frontmatter_tree_input(input),
+        (None, None) => Err("add-tree requires --input or --from-markdown.".to_owned()),
+        (Some(_), Some(_)) => {
+            Err("add-tree accepts only one of --input or --from-markdown.".to_owned())
+        }
+    }
+}
+
+fn read_yaml_or_json_tree_input(input: &Path) -> Result<TopicTreeInputDto, String> {
     let extension = input
         .extension()
         .and_then(|extension| extension.to_str())
@@ -1681,6 +1725,23 @@ fn read_tree_input(input: &Path) -> Result<TopicTreeInputDto, String> {
             .map_err(|error| format!("Tree input JSON is invalid: {error}")),
         _ => Err("Tree input must use .yaml, .yml, or .json.".to_owned()),
     }
+}
+
+fn read_markdown_frontmatter_tree_input(input: &Path) -> Result<TopicTreeInputDto, String> {
+    let content = fs::read_to_string(input)
+        .map_err(|error| format!("Markdown input could not be read: {error}"))?;
+    let Some(frontmatter) = markdown_frontmatter(&content) else {
+        return Err("Markdown input frontmatter is missing.".to_owned());
+    };
+
+    serde_yaml::from_str(frontmatter)
+        .map_err(|error| format!("Markdown frontmatter YAML is invalid: {error}"))
+}
+
+fn markdown_frontmatter(content: &str) -> Option<&str> {
+    let rest = content.strip_prefix("---\n")?;
+    let end = rest.find("\n---")?;
+    Some(&rest[..end])
 }
 
 struct TreeInputValidationError {
@@ -3867,6 +3928,10 @@ struct PatchOpDto {
 struct TopicTreeInputDto {
     id: Option<String>,
     title: String,
+    #[serde(default)]
+    labels: Vec<String>,
+    #[serde(default)]
+    markers: Vec<String>,
     image: Option<TopicTreeImageInputDto>,
 
     #[serde(default)]
@@ -3988,6 +4053,10 @@ struct AddTreeCreatedTopicDto {
     id: Option<String>,
     path: String,
     title: String,
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    labels: Vec<String>,
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    markers: Vec<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     image: Option<TopicTreeImageInputDto>,
 }
