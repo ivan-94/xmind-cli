@@ -319,7 +319,7 @@ Implement a Rust CLI named `xmind` that satisfies the documented product, comman
 - [x] Implement `preserve_ids`.
 - [x] Implement `prune`.
 - [x] Implement `match_by: title_path`.
-- [ ] Implement `match_by: id`.
+- [x] Implement `match_by: id`.
 - [ ] Implement `match_by: path`.
 - [ ] Implement `match_by: title`.
 - [ ] Add operation-indexed diagnostics.

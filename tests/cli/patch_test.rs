@@ -332,6 +332,51 @@ ops:
 }
 
 #[test]
+fn patch_dry_run_merge_tree_match_by_id_updates_existing_topic() {
+    let temp_dir = tempfile::tempdir().expect("temp dir is created");
+    let ops = temp_dir.path().join("merge-tree-id.yaml");
+    std::fs::write(
+        &ops,
+        r#"
+ops:
+  - op: merge_tree
+    target: path:/Q2
+    match_by: id
+    tree:
+      id: topic-q2
+      title: Q2
+      children:
+        - id: topic-payment
+          title: Payment
+          note: Updated by id
+"#,
+    )
+    .expect("patch fixture is written");
+    let ops_arg = ops.to_string_lossy().into_owned();
+
+    let output = Command::cargo_bin("xmind")
+        .expect("xmind binary is built for CLI tests")
+        .args([
+            "patch",
+            "tests/fixtures/xmind/minimal.xmind",
+            "--ops",
+            &ops_arg,
+            "--dry-run",
+            "--json",
+        ])
+        .output()
+        .expect("patch command runs");
+
+    assert_eq!(output.status.code(), Some(0));
+    let body: Value = serde_json::from_slice(&output.stdout).expect("stdout is JSON");
+    assert_eq!(body["ok"], true);
+    assert_eq!(body["result"]["summary"]["updated"], 1);
+    assert_eq!(body["result"]["operations"][0]["op"], "merge_tree");
+    assert_eq!(body["result"]["diff"][0]["event"], "updated");
+    assert_eq!(body["result"]["diff"][0]["path"], "/Q2/Payment");
+}
+
+#[test]
 fn patch_dry_run_delete_reports_deleted_subtree_diff_without_writing() {
     let temp_dir = tempfile::tempdir().expect("temp dir is created");
     let ops = temp_dir.path().join("delete.yaml");

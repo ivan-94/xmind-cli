@@ -254,6 +254,11 @@
           匹配 existing topics，匹配节点可输出 <code>updated</code>，
           缺失节点输出 <code>added</code>。
         </li>
+        <li>
+          Patch <code>merge_tree</code> 已支持 <code>match_by: id</code>
+          dry-run 规划；输入 tree 的每个节点必须带 id，否则返回
+          <code>invalid_patch</code> 和对应 <code>field_path</code>。
+        </li>
       </ul>
     </section>
   </body>

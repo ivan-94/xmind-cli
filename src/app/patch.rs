@@ -784,7 +784,7 @@ fn plan_patch_merge_tree(
     op: &PatchOpDto,
 ) -> Result<PatchMergeTreePlan, i32> {
     let match_by = op.match_by.as_deref().unwrap_or("title_path");
-    if match_by != "title_path" {
+    if !matches!(match_by, "title_path" | "id") {
         let error = CliErrorBody::new(
             ErrorCode::InvalidPatch,
             format!("merge_tree match_by is not implemented: {match_by}"),
@@ -826,6 +826,19 @@ fn plan_patch_merge_tree(
         .with_operation_context(index, op_name.to_owned())
         .with_field_path("tree.title");
         return Err(render_error(invocation, json, error));
+    }
+    if match_by == "id" {
+        if let Some(field_path) = first_tree_missing_id_path(tree, "tree") {
+            let error = CliErrorBody::new(
+                ErrorCode::InvalidPatch,
+                "merge_tree match_by: id requires every input tree node to include an id.",
+                true,
+                "Add id values from a prior read/export result or use match_by: title_path.",
+            )
+            .with_operation_context(index, op_name.to_owned())
+            .with_field_path(field_path);
+            return Err(render_error(invocation, json, error));
+        }
     }
 
     let selector = match Selector::parse(target) {
@@ -882,27 +895,47 @@ fn plan_patch_merge_tree(
         }
     };
 
-    let mut updated_paths = Vec::new();
-    let mut added_paths = Vec::new();
-    let mut deleted_paths = Vec::new();
+    let mut diff = MergeTreeDiffAccumulator::default();
     collect_merge_tree_diff(
         resolved.topic,
         &resolved.path,
         tree,
+        match_by,
         op.prune.unwrap_or(false),
-        &mut updated_paths,
-        &mut added_paths,
-        &mut deleted_paths,
+        &mut diff,
     );
 
     Ok(PatchMergeTreePlan {
-        updated_paths,
-        added_paths,
-        deleted_paths,
+        updated_paths: diff.updated_paths,
+        added_paths: diff.added_paths,
+        deleted_paths: diff.deleted_paths,
     })
 }
 
+fn first_tree_missing_id_path(tree: &TopicTreeInputDto, field_path: &str) -> Option<String> {
+    if tree.id.as_ref().map_or(true, |id| id.trim().is_empty()) {
+        return Some(format!("{field_path}.id"));
+    }
+
+    for (index, child) in tree.children.iter().enumerate() {
+        if let Some(path) =
+            first_tree_missing_id_path(child, &format!("{field_path}.children[{index}]"))
+        {
+            return Some(path);
+        }
+    }
+
+    None
+}
+
 struct PatchMergeTreePlan {
+    updated_paths: Vec<String>,
+    added_paths: Vec<String>,
+    deleted_paths: Vec<String>,
+}
+
+#[derive(Default)]
+struct MergeTreeDiffAccumulator {
     updated_paths: Vec<String>,
     added_paths: Vec<String>,
     deleted_paths: Vec<String>,
@@ -1758,32 +1791,27 @@ fn collect_merge_tree_diff(
     topic: &Topic,
     path: &TopicPath,
     tree: &TopicTreeInputDto,
+    match_by: &str,
     prune: bool,
-    updated_paths: &mut Vec<String>,
-    added_paths: &mut Vec<String>,
-    deleted_paths: &mut Vec<String>,
+    diff: &mut MergeTreeDiffAccumulator,
 ) {
     if merge_tree_updates_topic(topic, tree) {
-        updated_paths.push(path.to_selector_value());
+        diff.updated_paths.push(path.to_selector_value());
     }
 
     for child_tree in &tree.children {
-        if let Some(child_topic) = topic
-            .children
-            .iter()
-            .find(|child| child.title == child_tree.title)
-        {
+        if let Some(child_topic) = find_merge_tree_child(topic, child_tree, match_by) {
             collect_merge_tree_diff(
                 child_topic,
-                &path.join(child_tree.title.clone()),
+                &path.join(child_topic.title.clone()),
                 child_tree,
+                match_by,
                 prune,
-                updated_paths,
-                added_paths,
-                deleted_paths,
+                diff,
             );
         } else {
-            added_paths.extend(collect_added_paths(path, child_tree));
+            diff.added_paths
+                .extend(collect_added_paths(path, child_tree));
         }
     }
 
@@ -1792,14 +1820,32 @@ fn collect_merge_tree_diff(
             if !tree
                 .children
                 .iter()
-                .any(|child_tree| child_tree.title == child_topic.title)
+                .any(|child_tree| merge_tree_child_matches(child_topic, child_tree, match_by))
             {
-                deleted_paths.extend(collect_deleted_paths(
+                diff.deleted_paths.extend(collect_deleted_paths(
                     child_topic,
                     &path.join(child_topic.title.clone()),
                 ));
             }
         }
+    }
+}
+
+fn find_merge_tree_child<'a>(
+    topic: &'a Topic,
+    child_tree: &TopicTreeInputDto,
+    match_by: &str,
+) -> Option<&'a Topic> {
+    topic
+        .children
+        .iter()
+        .find(|child| merge_tree_child_matches(child, child_tree, match_by))
+}
+
+fn merge_tree_child_matches(topic: &Topic, tree: &TopicTreeInputDto, match_by: &str) -> bool {
+    match match_by {
+        "id" => tree.id.as_deref() == Some(topic.id.0.as_str()),
+        _ => topic.title == tree.title,
     }
 }
 
