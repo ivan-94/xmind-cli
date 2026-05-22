@@ -302,7 +302,7 @@ Implement a Rust CLI named `xmind` that satisfies the documented product, comman
   - [x] `clone_tree -> copy`
 - [x] Implement `assert_exists`.
 - [x] Implement `assert_not_exists`.
-- [ ] Implement patch `add`.
+- [x] Implement patch `add`.
 - [x] Implement patch `add_tree`.
 - [ ] Implement patch `set`.
 - [ ] Implement patch `replace_tree`.

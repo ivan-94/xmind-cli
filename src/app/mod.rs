@@ -3950,6 +3950,22 @@ fn render_patch(invocation: Invocation, json: bool, ops_path: &Path) -> i32 {
                 }
                 Err(exit_code) => return exit_code,
             }
+        } else if op_name == "add" {
+            match plan_patch_add(invocation.clone(), json, sheet, index, op_name, op) {
+                Ok(path) => {
+                    diff.push(DiffEventDto {
+                        event: "added",
+                        path,
+                    });
+                    operations.push(PatchOperationDto {
+                        index,
+                        op: op_name.to_owned(),
+                        status: "planned",
+                    });
+                    continue;
+                }
+                Err(exit_code) => return exit_code,
+            }
         } else if op_name != "add_tree" {
             let error = CliErrorBody::new(
                 ErrorCode::InvalidPatch,
@@ -4062,6 +4078,88 @@ fn render_patch(invocation: Invocation, json: bool, ops_path: &Path) -> i32 {
     }
 
     0
+}
+
+fn plan_patch_add(
+    invocation: Invocation,
+    json: bool,
+    sheet: &Sheet,
+    index: usize,
+    op_name: &str,
+    op: &PatchOpDto,
+) -> Result<String, i32> {
+    let Some(parent) = &op.parent else {
+        let error = CliErrorBody::new(
+            ErrorCode::InvalidPatch,
+            "add operation is missing parent.",
+            true,
+            "Add a parent selector like parent: path:/Q2.",
+        )
+        .with_operation_context(index, op_name.to_owned());
+        return Err(render_error(invocation, json, error));
+    };
+
+    let Some(title) = &op.title else {
+        let error = CliErrorBody::new(
+            ErrorCode::InvalidPatch,
+            "add operation is missing title.",
+            true,
+            "Add a non-empty title for the new topic.",
+        )
+        .with_operation_context(index, op_name.to_owned());
+        return Err(render_error(invocation, json, error));
+    };
+    if title.trim().is_empty() {
+        let error = CliErrorBody::new(
+            ErrorCode::InvalidPatch,
+            "add operation title must not be empty.",
+            true,
+            "Add a non-empty title for the new topic.",
+        )
+        .with_operation_context(index, op_name.to_owned())
+        .with_field_path("title");
+        return Err(render_error(invocation, json, error));
+    }
+
+    let parent_selector = match Selector::parse(parent) {
+        Ok(selector) => selector,
+        Err(error) => {
+            let error = CliErrorBody::new(
+                ErrorCode::InvalidPatch,
+                format!("add parent selector is invalid: {error}"),
+                true,
+                "Use a parent selector like path:/Q2.",
+            )
+            .with_operation_context(index, op_name.to_owned());
+            return Err(render_error(invocation, json, error));
+        }
+    };
+    let Selector::Path(parent_path) = &parent_selector else {
+        let error = CliErrorBody::new(
+            ErrorCode::InvalidPatch,
+            "add parent must be a path: selector.",
+            true,
+            "Use a parent selector like path:/Q2.",
+        )
+        .with_operation_context(index, op_name.to_owned());
+        return Err(render_error(invocation, json, error));
+    };
+
+    if find_topic_by_path(&sheet.root, parent_path).is_none() {
+        let error = CliErrorBody::new(
+            ErrorCode::NotFound,
+            format!(
+                "Parent selector did not match a topic: {}",
+                parent_selector.render()
+            ),
+            true,
+            "Run tree or find to rediscover the parent path, then retry.",
+        )
+        .with_operation_context(index, op_name.to_owned());
+        return Err(render_error(invocation, json, error));
+    }
+
+    Ok(parent_path.join(title.trim()).to_selector_value())
 }
 
 fn render_patch_assert_operation(

@@ -164,6 +164,10 @@
           <code>assert_not_exists</code> 只影响校验结果，不产生 diff；
           失败时会携带 <code>operation_index</code> 和 canonical operation。
         </li>
+        <li>
+          Patch <code>add</code> 当前实现 dry-run 规划：校验 parent path 和
+          非空 title，输出单条 <code>added</code> diff，不写 workbook。
+        </li>
       </ul>
     </section>
   </body>

@@ -61,6 +61,66 @@ fn patch_dry_run_add_tree_reports_structured_diff_without_writing() {
 }
 
 #[test]
+fn patch_dry_run_add_reports_single_topic_diff_without_writing() {
+    let temp_dir = tempfile::tempdir().expect("temp dir is created");
+    let ops = temp_dir.path().join("add.yaml");
+    std::fs::write(
+        &ops,
+        r#"
+ops:
+  - op: add
+    parent: path:/Q2
+    title: Refund
+"#,
+    )
+    .expect("patch fixture is written");
+    let ops_arg = ops.to_string_lossy().into_owned();
+
+    let output = Command::cargo_bin("xmind")
+        .expect("xmind binary is built for CLI tests")
+        .args([
+            "patch",
+            "tests/fixtures/xmind/minimal.xmind",
+            "--ops",
+            &ops_arg,
+            "--dry-run",
+            "--json",
+        ])
+        .output()
+        .expect("patch command runs");
+
+    assert_eq!(output.status.code(), Some(0));
+    let body: Value = serde_json::from_slice(&output.stdout).expect("stdout is JSON");
+    assert_eq!(body["ok"], true);
+    assert_eq!(body["result"]["summary"]["added"], 1);
+    assert_eq!(body["result"]["operations"][0]["index"], 0);
+    assert_eq!(body["result"]["operations"][0]["op"], "add");
+    assert_eq!(body["result"]["operations"][0]["status"], "planned");
+    assert_eq!(body["result"]["diff"][0]["event"], "added");
+    assert_eq!(body["result"]["diff"][0]["path"], "/Q2/Refund");
+
+    let tree_output = Command::cargo_bin("xmind")
+        .expect("xmind binary is built for CLI tests")
+        .args([
+            "tree",
+            "tests/fixtures/xmind/minimal.xmind",
+            "--json",
+            "--depth",
+            "2",
+        ])
+        .output()
+        .expect("tree command runs after dry run");
+    let tree: Value = serde_json::from_slice(&tree_output.stdout).expect("tree stdout is JSON");
+    assert_eq!(
+        tree["result"]["root"]["children"][0]["children"]
+            .as_array()
+            .expect("children is an array")
+            .len(),
+        1
+    );
+}
+
+#[test]
 fn patch_json_dry_run_add_tree_reports_structured_diff() {
     let temp_dir = tempfile::tempdir().expect("temp dir is created");
     let ops = temp_dir.path().join("ops.json");
