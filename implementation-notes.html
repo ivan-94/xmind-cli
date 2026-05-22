@@ -2030,5 +2030,40 @@
         </li>
       </ul>
     </section>
+
+    <section class="entry">
+      <h2>2026-05-22 - DiffEvent Moved</h2>
+      <h3>Design Decisions</h3>
+      <ul>
+        <li>
+          Added <code>DiffEvent::Moved</code> with explicit
+          <code>from</code> and <code>to</code> <code>TopicPath</code> values.
+        </li>
+      </ul>
+
+      <h3>Deviations</h3>
+      <ul>
+        <li>
+          The event currently records path movement only. It does not yet record
+          topic ids or parent/position details.
+        </li>
+      </ul>
+
+      <h3>Tradeoffs</h3>
+      <ul>
+        <li>
+          Path-only movement matches the documented diff sketch and keeps the
+          domain event stable while position semantics are still incomplete.
+        </li>
+      </ul>
+
+      <h3>Open Questions</h3>
+      <ul>
+        <li>
+          Decide during move implementation whether diff output also needs
+          stable topic ids to support follow-up agent actions.
+        </li>
+      </ul>
+    </section>
   </body>
 </html>

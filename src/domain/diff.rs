@@ -41,6 +41,10 @@ pub enum DiffEvent {
         path: TopicPath,
         fields: Vec<FieldChange>,
     },
+    Moved {
+        from: TopicPath,
+        to: TopicPath,
+    },
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -109,5 +113,17 @@ mod tests {
                 fields: vec![field]
             }]
         );
+    }
+
+    #[test]
+    fn moved_event_carries_source_and_destination_paths() {
+        let from = TopicPath::parse_selector_value("/Q2/Payment").expect("source path parses");
+        let to = TopicPath::parse_selector_value("/Q3/Payment").expect("destination path parses");
+        let diff = Diff::from_events(vec![DiffEvent::Moved {
+            from: from.clone(),
+            to: to.clone(),
+        }]);
+
+        assert_eq!(diff.events(), &[DiffEvent::Moved { from, to }]);
     }
 }
