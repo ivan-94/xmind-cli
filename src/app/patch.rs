@@ -198,11 +198,16 @@ pub(super) fn render_patch(invocation: Invocation, json: bool, ops_path: &Path) 
             }
         } else if op_name == "delete" {
             match plan_patch_delete(invocation.clone(), json, sheet, index, op_name, op) {
-                Ok(deleted_paths) => {
+                Ok(plan) => {
                     diff.extend(
-                        deleted_paths
+                        plan.deleted_paths
                             .into_iter()
                             .map(|path| PatchDiffEventDto::path_event("deleted", path)),
+                    );
+                    diff.extend(
+                        plan.moved_paths
+                            .into_iter()
+                            .map(|(from, to)| PatchDiffEventDto::moved(from, to)),
                     );
                     operations.push(PatchOperationDto {
                         index,
@@ -904,16 +909,16 @@ fn plan_patch_delete(
     index: usize,
     op_name: &str,
     op: &PatchOpDto,
-) -> Result<Vec<String>, i32> {
-    if op.promote_children.unwrap_or(false) {
+) -> Result<PatchDeletePlan, i32> {
+    if op.children_only.unwrap_or(false) && op.promote_children.unwrap_or(false) {
         let error = CliErrorBody::new(
             ErrorCode::InvalidPatch,
-            "delete promote_children is not implemented in this patch slice.",
+            "delete cannot use children_only and promote_children together.",
             true,
-            "Omit promote_children or set promote_children: false.",
+            "Choose one delete mode and retry.",
         )
         .with_operation_context(index, op_name.to_owned())
-        .with_field_path("promote_children");
+        .with_field_path("children_only");
         return Err(render_error(invocation, json, error));
     }
 
@@ -994,10 +999,43 @@ fn plan_patch_delete(
     }
 
     if op.children_only.unwrap_or(false) {
-        Ok(collect_descendant_paths(resolved.topic, &resolved.path))
+        Ok(PatchDeletePlan {
+            deleted_paths: collect_descendant_paths(resolved.topic, &resolved.path),
+            moved_paths: Vec::new(),
+        })
+    } else if op.promote_children.unwrap_or(false) {
+        Ok(PatchDeletePlan {
+            deleted_paths: vec![resolved.path.to_selector_value()],
+            moved_paths: collect_promoted_child_moves(resolved.topic, &resolved.path),
+        })
     } else {
-        Ok(collect_deleted_paths(resolved.topic, &resolved.path))
+        Ok(PatchDeletePlan {
+            deleted_paths: collect_deleted_paths(resolved.topic, &resolved.path),
+            moved_paths: Vec::new(),
+        })
     }
+}
+
+struct PatchDeletePlan {
+    deleted_paths: Vec<String>,
+    moved_paths: Vec<(String, String)>,
+}
+
+fn collect_promoted_child_moves(topic: &Topic, path: &TopicPath) -> Vec<(String, String)> {
+    let parent_path = TopicPath::from_segments(
+        path.segments()[..path.segments().len().saturating_sub(1)].to_vec(),
+    );
+
+    topic
+        .children
+        .iter()
+        .map(|child| {
+            (
+                path.join(child.title.clone()).to_selector_value(),
+                parent_path.join(child.title.clone()).to_selector_value(),
+            )
+        })
+        .collect()
 }
 
 fn plan_patch_move(

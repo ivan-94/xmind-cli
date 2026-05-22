@@ -315,7 +315,7 @@ Implement a Rust CLI named `xmind` that satisfies the documented product, comman
 - [x] Implement patch `sort_children`.
 - [x] Implement patch `set_tree_metadata`.
 - [x] Implement `children_only`.
-- [ ] Implement `promote_children`.
+- [x] Implement `promote_children`.
 - [ ] Implement `preserve_ids`.
 - [ ] Implement `prune`.
 - [ ] Implement `match_by: title_path`.

@@ -386,6 +386,48 @@ ops:
 }
 
 #[test]
+fn patch_dry_run_delete_promote_children_reports_deleted_and_moved_diff() {
+    let temp_dir = tempfile::tempdir().expect("temp dir is created");
+    let ops = temp_dir.path().join("delete-promote-children.yaml");
+    std::fs::write(
+        &ops,
+        r#"
+ops:
+  - op: delete
+    node: path:/Q2
+    promote_children: true
+"#,
+    )
+    .expect("patch fixture is written");
+    let ops_arg = ops.to_string_lossy().into_owned();
+
+    let output = Command::cargo_bin("xmind")
+        .expect("xmind binary is built for CLI tests")
+        .args([
+            "patch",
+            "tests/fixtures/xmind/minimal.xmind",
+            "--ops",
+            &ops_arg,
+            "--dry-run",
+            "--json",
+        ])
+        .output()
+        .expect("patch command runs");
+
+    assert_eq!(output.status.code(), Some(0));
+    let body: Value = serde_json::from_slice(&output.stdout).expect("stdout is JSON");
+    assert_eq!(body["ok"], true);
+    assert_eq!(body["result"]["summary"]["deleted"], 1);
+    assert_eq!(body["result"]["summary"]["moved"], 1);
+    assert_eq!(body["result"]["operations"][0]["op"], "delete");
+    assert_eq!(body["result"]["diff"][0]["event"], "deleted");
+    assert_eq!(body["result"]["diff"][0]["path"], "/Q2");
+    assert_eq!(body["result"]["diff"][1]["event"], "moved");
+    assert_eq!(body["result"]["diff"][1]["from"], "/Q2/Payment");
+    assert_eq!(body["result"]["diff"][1]["to"], "/Payment");
+}
+
+#[test]
 fn patch_dry_run_move_reports_moved_diff_without_writing() {
     let temp_dir = tempfile::tempdir().expect("temp dir is created");
     let ops = temp_dir.path().join("move.yaml");
