@@ -78,6 +78,9 @@ impl QueryComparison {
             (QueryField::Note, QueryOperator::Eq, QueryValue::String(expected)) => {
                 topic.note.as_deref() == Some(expected.as_str())
             }
+            (QueryField::Note, QueryOperator::Ne, QueryValue::String(expected)) => {
+                topic.note.as_deref() != Some(expected.as_str())
+            }
             (QueryField::Note, QueryOperator::Contains, QueryValue::String(needle)) => topic
                 .note
                 .as_deref()

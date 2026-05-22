@@ -646,6 +646,40 @@ fn find_json_query_note_equality_returns_matches() {
 }
 
 #[test]
+fn find_json_query_note_inequality_returns_non_matching_notes() {
+    let output = Command::cargo_bin("xmind")
+        .expect("xmind binary is built for CLI tests")
+        .args([
+            "find",
+            "tests/fixtures/xmind/metadata.xmind",
+            "--query",
+            "note != \"Supports card payments and refund workflows.\"",
+            "--json",
+        ])
+        .output()
+        .expect("find command runs");
+
+    assert_eq!(output.status.code(), Some(0));
+    assert!(
+        output.stderr.is_empty(),
+        "json find output should not emit stderr diagnostics: {}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+
+    let body: Value = serde_json::from_slice(&output.stdout).expect("stdout is JSON");
+    assert_eq!(body["ok"], true);
+    assert_eq!(
+        body["result"]["matches"]
+            .as_array()
+            .expect("matches is an array")
+            .len(),
+        2
+    );
+    assert_eq!(body["result"]["matches"][0]["id"], "topic-root");
+    assert_eq!(body["result"]["matches"][1]["id"], "topic-q2");
+}
+
+#[test]
 fn find_json_query_depth_greater_than_returns_deeper_topics() {
     let output = Command::cargo_bin("xmind")
         .expect("xmind binary is built for CLI tests")
