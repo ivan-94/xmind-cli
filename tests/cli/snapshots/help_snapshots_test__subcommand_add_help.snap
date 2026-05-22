@@ -13,6 +13,7 @@ Options:
       --title <TITLE>              
       --dry-run                    
       --apply                      
+      --backup                     
       --json                       
       --format <FORMAT>            [default: text] [possible values: text, json, compact-json, markdown, outline]
       --fields <FIELDS>            

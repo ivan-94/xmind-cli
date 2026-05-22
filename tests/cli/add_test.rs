@@ -134,3 +134,60 @@ fn add_apply_writes_created_topic_transactionally() {
     assert_eq!(children[0]["title"], "Payment");
     assert_eq!(children[1]["title"], "Refund");
 }
+
+#[test]
+fn add_apply_with_backup_creates_original_workbook_backup() {
+    let temp_dir = tempfile::tempdir().expect("temp dir is created");
+    let workbook = temp_dir.path().join("apply-add-backup.xmind");
+    fs::copy("tests/fixtures/xmind/minimal.xmind", &workbook).expect("fixture is copied");
+    let original_bytes = fs::read(&workbook).expect("original workbook is readable");
+    let workbook_arg = workbook.to_string_lossy().into_owned();
+
+    let output = Command::cargo_bin("xmind")
+        .expect("xmind binary is built for CLI tests")
+        .args([
+            "add",
+            &workbook_arg,
+            "--parent",
+            "path:/Q2",
+            "--title",
+            "Refund",
+            "--apply",
+            "--backup",
+            "--json",
+        ])
+        .output()
+        .expect("add command runs");
+
+    assert_eq!(output.status.code(), Some(0));
+    assert!(
+        output.stderr.is_empty(),
+        "json add output should not emit stderr diagnostics: {}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+
+    let body: Value = serde_json::from_slice(&output.stdout).expect("stdout is JSON");
+    assert_eq!(body["ok"], true);
+    assert_eq!(body["command"], "add");
+    assert_eq!(body["applied"], true);
+
+    let backup_path = body["result"]["backup_path"]
+        .as_str()
+        .expect("backup path is returned");
+    assert!(backup_path.contains(".xmind-backups"));
+    assert_eq!(
+        fs::read(backup_path).expect("backup is readable"),
+        original_bytes
+    );
+
+    let tree_output = Command::cargo_bin("xmind")
+        .expect("xmind binary is built for CLI tests")
+        .args(["tree", &workbook_arg, "--json", "--depth", "2"])
+        .output()
+        .expect("tree command runs after apply");
+    let tree: Value = serde_json::from_slice(&tree_output.stdout).expect("tree stdout is JSON");
+    let children = tree["result"]["root"]["children"][0]["children"]
+        .as_array()
+        .expect("children is an array");
+    assert_eq!(children[1]["title"], "Refund");
+}

@@ -14,7 +14,7 @@ use crate::domain::query::QueryExpr;
 use crate::domain::selector::Selector;
 use crate::domain::sheet::Sheet;
 use crate::domain::topic::Topic;
-use crate::infra::fs::backup::create_backup_in_dir;
+use crate::infra::fs::backup::{create_backup, create_backup_in_dir, BackupError};
 use crate::infra::xmind::encode::XMindWriteError;
 use crate::render::diff::render_human_outline;
 
@@ -156,6 +156,7 @@ struct Invocation {
     workbook: std::path::PathBuf,
     dry_run: bool,
     applied: bool,
+    backup: bool,
     quiet: bool,
     no_color: bool,
     sheet_selection: SheetSelection,
@@ -357,7 +358,8 @@ impl Invocation {
                 Self::mutation(
                     "add",
                     command.workbook,
-                    command.mode.dry_run,
+                    command.mode.apply_mode.dry_run,
+                    command.mode.backup,
                     sheet_selection,
                     quiet,
                 )
@@ -369,7 +371,8 @@ impl Invocation {
             Command::AddTree(command) => Some(Self::mutation(
                 "add-tree",
                 command.workbook,
-                command.mode.dry_run,
+                command.mode.apply_mode.dry_run,
+                command.mode.backup,
                 sheet_selection,
                 quiet,
             )),
@@ -377,7 +380,8 @@ impl Invocation {
                 Self::mutation(
                     "set",
                     command.workbook,
-                    command.mode.dry_run,
+                    command.mode.apply_mode.dry_run,
+                    command.mode.backup,
                     sheet_selection,
                     quiet,
                 )
@@ -404,7 +408,8 @@ impl Invocation {
                 Self::mutation(
                     "delete",
                     command.workbook,
-                    command.mode.dry_run,
+                    command.mode.apply_mode.dry_run,
+                    command.mode.backup,
                     sheet_selection,
                     quiet,
                 )
@@ -414,7 +419,8 @@ impl Invocation {
                 Self::mutation(
                     "move",
                     command.workbook,
-                    command.mode.dry_run,
+                    command.mode.apply_mode.dry_run,
+                    command.mode.backup,
                     sheet_selection,
                     quiet,
                 )
@@ -426,13 +432,15 @@ impl Invocation {
             Command::Copy(command) => Some(Self::mutation(
                 "copy",
                 command.workbook,
-                command.mode.dry_run,
+                command.mode.apply_mode.dry_run,
+                command.mode.backup,
                 sheet_selection,
                 quiet,
             )),
             Command::Patch(command) => Some(Self::patch(
                 command.workbook,
-                command.mode.dry_run,
+                command.mode.apply_mode.dry_run,
+                command.mode.backup,
                 command.ops,
                 sheet_selection,
                 quiet,
@@ -440,14 +448,16 @@ impl Invocation {
             Command::Import(command) => Some(Self::mutation(
                 "import",
                 command.workbook,
-                command.mode.dry_run,
+                command.mode.apply_mode.dry_run,
+                command.mode.backup,
                 sheet_selection,
                 quiet,
             )),
             Command::Restore(command) => Some(Self::mutation(
                 "restore",
                 command.workbook,
-                command.mode.dry_run,
+                command.mode.apply_mode.dry_run,
+                command.mode.backup,
                 sheet_selection,
                 quiet,
             )),
@@ -460,6 +470,7 @@ impl Invocation {
             workbook,
             dry_run: false,
             applied: false,
+            backup: false,
             quiet: false,
             no_color: false,
             sheet_selection,
@@ -480,6 +491,7 @@ impl Invocation {
             workbook,
             dry_run: false,
             applied: false,
+            backup: false,
             quiet,
             no_color: false,
             sheet_selection,
@@ -493,6 +505,7 @@ impl Invocation {
             workbook,
             dry_run: false,
             applied: false,
+            backup: false,
             quiet,
             no_color: false,
             sheet_selection,
@@ -506,6 +519,7 @@ impl Invocation {
             workbook,
             dry_run: false,
             applied: false,
+            backup: false,
             quiet,
             no_color: false,
             sheet_selection,
@@ -527,6 +541,7 @@ impl Invocation {
             workbook,
             dry_run: false,
             applied: false,
+            backup: false,
             quiet,
             no_color: false,
             sheet_selection,
@@ -545,6 +560,7 @@ impl Invocation {
             workbook,
             dry_run: false,
             applied: false,
+            backup: false,
             quiet,
             no_color: false,
             sheet_selection,
@@ -563,6 +579,7 @@ impl Invocation {
             workbook,
             dry_run: false,
             applied: false,
+            backup: false,
             quiet,
             no_color: false,
             sheet_selection,
@@ -581,6 +598,7 @@ impl Invocation {
         command: &str,
         workbook: std::path::PathBuf,
         dry_run: bool,
+        backup: bool,
         sheet_selection: SheetSelection,
         quiet: bool,
     ) -> Self {
@@ -589,6 +607,7 @@ impl Invocation {
             workbook,
             dry_run,
             applied: false,
+            backup,
             quiet,
             no_color: false,
             sheet_selection,
@@ -609,6 +628,7 @@ impl Invocation {
     fn patch(
         workbook: std::path::PathBuf,
         dry_run: bool,
+        backup: bool,
         ops: std::path::PathBuf,
         sheet_selection: SheetSelection,
         quiet: bool,
@@ -618,6 +638,7 @@ impl Invocation {
             workbook,
             dry_run,
             applied: false,
+            backup,
             quiet,
             no_color: false,
             sheet_selection,
@@ -1077,7 +1098,7 @@ fn render_add(invocation: Invocation, json: bool, parent: &str, title: &str) -> 
     let human_diff = Diff::from_events(vec![DiffEvent::Added {
         path: created_topic_path,
     }]);
-    let result = AddDryRunResultDto {
+    let mut result = AddDryRunResultDto {
         will_change: true,
         parent: TopicRefDto {
             id: parent.topic.id.0.clone(),
@@ -1098,9 +1119,14 @@ fn render_add(invocation: Invocation, json: bool, parent: &str, title: &str) -> 
             event: "added",
             path: created_path,
         }],
+        backup_path: None,
     };
 
     if !invocation.dry_run {
+        result.backup_path = match create_mutation_backup(&invocation) {
+            Ok(backup_path) => backup_path,
+            Err(error) => return render_backup_error(invocation, json, error),
+        };
         if let Err(error) = crate::infra::xmind::encode::append_child_topic(
             &invocation.workbook,
             &parent.topic.id.0,
@@ -1518,7 +1544,7 @@ fn render_set_title(invocation: Invocation, json: bool, node: &str, title: &str)
             .expect("renamed topic path remains a valid absolute path"),
         fields: vec![FieldChange::new("title")],
     }]);
-    let result = SetTitleDryRunResultDto {
+    let mut result = SetTitleDryRunResultDto {
         will_change: resolved.topic.title != title,
         updated: UpdatedTopicDto {
             id: resolved.topic.id.0.clone(),
@@ -1538,9 +1564,14 @@ fn render_set_title(invocation: Invocation, json: bool, node: &str, title: &str)
             event: "updated",
             path: new_path,
         }],
+        backup_path: None,
     };
 
     if !invocation.dry_run {
+        result.backup_path = match create_mutation_backup(&invocation) {
+            Ok(backup_path) => backup_path,
+            Err(error) => return render_backup_error(invocation, json, error),
+        };
         if let Err(error) = crate::infra::xmind::encode::rename_topic(
             &invocation.workbook,
             &resolved.topic.id.0,
@@ -1641,7 +1672,7 @@ fn render_set_note(invocation: Invocation, json: bool, node: &str, note: &str) -
     };
 
     let path = resolved.path.to_selector_value();
-    let result = SetTitleDryRunResultDto {
+    let mut result = SetTitleDryRunResultDto {
         will_change: true,
         updated: UpdatedTopicDto {
             id: resolved.topic.id.0.clone(),
@@ -1661,9 +1692,14 @@ fn render_set_note(invocation: Invocation, json: bool, node: &str, note: &str) -
             event: "updated",
             path,
         }],
+        backup_path: None,
     };
 
     if !invocation.dry_run {
+        result.backup_path = match create_mutation_backup(&invocation) {
+            Ok(backup_path) => backup_path,
+            Err(error) => return render_backup_error(invocation, json, error),
+        };
         if let Err(error) = crate::infra::xmind::encode::set_topic_note(
             &invocation.workbook,
             &resolved.topic.id.0,
@@ -1762,7 +1798,7 @@ fn render_set_append_note(
         resolved.topic.note.as_deref().unwrap_or(""),
         append_note
     );
-    let result = SetTitleDryRunResultDto {
+    let mut result = SetTitleDryRunResultDto {
         will_change: true,
         updated: UpdatedTopicDto {
             id: resolved.topic.id.0.clone(),
@@ -1782,9 +1818,14 @@ fn render_set_append_note(
             event: "updated",
             path,
         }],
+        backup_path: None,
     };
 
     if !invocation.dry_run {
+        result.backup_path = match create_mutation_backup(&invocation) {
+            Ok(backup_path) => backup_path,
+            Err(error) => return render_backup_error(invocation, json, error),
+        };
         if let Err(error) = crate::infra::xmind::encode::set_topic_note(
             &invocation.workbook,
             &resolved.topic.id.0,
@@ -2173,6 +2214,8 @@ struct AddDryRunResultDto {
     created: CreatedTopicDto,
     summary: SummaryDto,
     diff: Vec<DiffEventDto>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    backup_path: Option<String>,
 }
 
 #[derive(Debug, Serialize)]
@@ -2224,6 +2267,8 @@ struct SetTitleDryRunResultDto {
     updated: UpdatedTopicDto,
     summary: SummaryDto,
     diff: Vec<DiffEventDto>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    backup_path: Option<String>,
 }
 
 #[derive(Debug, Serialize)]
@@ -2911,6 +2956,26 @@ fn workbook_write_error_body(workbook: &Path, error: XMindWriteError) -> CliErro
         )
         .with_path(workbook.display().to_string()),
     }
+}
+
+fn create_mutation_backup(invocation: &Invocation) -> Result<Option<String>, BackupError> {
+    if invocation.dry_run || !invocation.backup {
+        return Ok(None);
+    }
+
+    create_backup(&invocation.workbook, backup_timestamp())
+        .map(|backup| Some(backup.path.display().to_string()))
+}
+
+fn render_backup_error(invocation: Invocation, json: bool, error: BackupError) -> i32 {
+    let error = CliErrorBody::new(
+        ErrorCode::WriteFailed,
+        format!("Backup could not be written: {error}"),
+        true,
+        "Check backup directory permissions and retry.",
+    )
+    .with_path(invocation.workbook.display().to_string());
+    render_error(invocation, json, error)
 }
 
 fn render_error(invocation: Invocation, json: bool, error: CliErrorBody) -> i32 {

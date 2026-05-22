@@ -94,8 +94,17 @@ pub struct BackupCommand {
 }
 
 #[derive(Debug, Args)]
-#[group(required = true, multiple = false)]
 pub struct MutationMode {
+    #[command(flatten)]
+    pub apply_mode: ApplyMode,
+
+    #[arg(long)]
+    pub backup: bool,
+}
+
+#[derive(Debug, Args)]
+#[group(required = true, multiple = false)]
+pub struct ApplyMode {
     #[arg(long)]
     pub dry_run: bool,
 

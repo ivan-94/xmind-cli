@@ -2676,5 +2676,51 @@
         </li>
       </ul>
     </section>
+
+    <section class="entry">
+      <h2>2026-05-22 - mutation backup creation test</h2>
+      <h3>Design Decisions</h3>
+      <ul>
+        <li>
+          Added a CLI regression test for
+          <code>xmind add --apply --backup --json</code> that verifies a backup
+          file is created before the workbook is mutated.
+        </li>
+        <li>
+          Exposed <code>--backup</code> on mutation commands through the shared
+          mutation option group, while keeping <code>--dry-run</code> and
+          <code>--apply</code> as the only mutually exclusive required choices.
+        </li>
+        <li>
+          Returned <code>result.backup_path</code> for add and set mutation
+          results when a backup is created.
+        </li>
+      </ul>
+
+      <h3>Deviations</h3>
+      <ul>
+        <li>
+          Mutation <code>--backup-dir</code> is still not exposed; backups use
+          the default <code>.xmind-backups</code> directory for this slice.
+        </li>
+      </ul>
+
+      <h3>Tradeoffs</h3>
+      <ul>
+        <li>
+          Supporting add and set through the shared write path gives immediate
+          coverage for currently implemented apply commands without pretending
+          unimplemented delete/move/copy apply paths can create backups yet.
+        </li>
+      </ul>
+
+      <h3>Open Questions</h3>
+      <ul>
+        <li>
+          Decide whether mutation <code>--backup-dir</code> should reuse the
+          standalone backup command option name and JSON field exactly.
+        </li>
+      </ul>
+    </section>
   </body>
 </html>
