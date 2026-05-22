@@ -1000,16 +1000,6 @@ fn render_set_title(invocation: Invocation, json: bool, node: &str, title: &str)
         return render_error(invocation, json, error);
     }
 
-    if !invocation.dry_run {
-        let error = CliErrorBody::new(
-            ErrorCode::InvalidUsage,
-            "Only set --title --dry-run is implemented in this slice.",
-            true,
-            "Retry with --dry-run, or wait for the set writer slice before using --apply.",
-        );
-        return render_error(invocation, json, error);
-    }
-
     let workbook = match read_workbook_or_render_error(&invocation, json) {
         Ok(workbook) => workbook,
         Err(exit_code) => return exit_code,
@@ -1090,13 +1080,30 @@ fn render_set_title(invocation: Invocation, json: bool, node: &str, title: &str)
         }],
     };
 
+    if !invocation.dry_run {
+        if let Err(error) = crate::infra::xmind::encode::rename_topic(
+            &invocation.workbook,
+            &resolved.topic.id.0,
+            title,
+        ) {
+            let error = CliErrorBody::new(
+                ErrorCode::WriteFailed,
+                format!("Workbook could not be written: {error}"),
+                true,
+                "Check write permissions and retry.",
+            )
+            .with_path(invocation.workbook.display().to_string());
+            return render_error(invocation, json, error);
+        }
+    }
+
     if json {
         let envelope = CommandEnvelope {
             ok: true,
             command: Some(invocation.command),
             workbook: Some(invocation.workbook.display().to_string()),
-            dry_run: true,
-            applied: false,
+            dry_run: invocation.dry_run,
+            applied: !invocation.dry_run,
             result: Some(result),
             error: None,
             warnings: Vec::new(),

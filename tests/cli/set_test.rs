@@ -1,5 +1,6 @@
 use assert_cmd::Command;
 use serde_json::Value;
+use std::fs;
 
 #[test]
 fn set_title_dry_run_reports_updated_topic_without_writing() {
@@ -53,5 +54,57 @@ fn set_title_dry_run_reports_updated_topic_without_writing() {
     assert_eq!(
         tree["result"]["root"]["children"][0]["children"][0]["title"],
         "Payment"
+    );
+}
+
+#[test]
+fn set_title_apply_writes_updated_topic() {
+    let temp_dir = tempfile::tempdir().expect("temp dir is created");
+    let workbook = temp_dir.path().join("apply-set.xmind");
+    fs::copy("tests/fixtures/xmind/minimal.xmind", &workbook).expect("fixture is copied");
+    let workbook_arg = workbook.to_string_lossy().into_owned();
+
+    let output = Command::cargo_bin("xmind")
+        .expect("xmind binary is built for CLI tests")
+        .args([
+            "set",
+            &workbook_arg,
+            "--node",
+            "id:topic-payment",
+            "--title",
+            "Payments",
+            "--apply",
+            "--json",
+        ])
+        .output()
+        .expect("set command runs");
+
+    assert_eq!(output.status.code(), Some(0));
+    assert!(
+        output.stderr.is_empty(),
+        "json set output should not emit stderr diagnostics: {}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+
+    let body: Value = serde_json::from_slice(&output.stdout).expect("stdout is JSON");
+    assert_eq!(body["ok"], true);
+    assert_eq!(body["command"], "set");
+    assert_eq!(body["dry_run"], false);
+    assert_eq!(body["applied"], true);
+    assert_eq!(body["result"]["updated"]["new_path"], "/Q2/Payments");
+
+    let tree_output = Command::cargo_bin("xmind")
+        .expect("xmind binary is built for CLI tests")
+        .args(["tree", &workbook_arg, "--json", "--depth", "2"])
+        .output()
+        .expect("tree command runs after apply");
+    let tree: Value = serde_json::from_slice(&tree_output.stdout).expect("tree stdout is JSON");
+    assert_eq!(
+        tree["result"]["root"]["children"][0]["children"][0]["title"],
+        "Payments"
+    );
+    assert_eq!(
+        tree["result"]["root"]["children"][0]["children"][0]["path"],
+        "/Q2/Payments"
     );
 }
