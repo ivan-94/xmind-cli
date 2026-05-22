@@ -8,6 +8,7 @@ use crate::cli::{CandidateDto, CliErrorBody, CommandEnvelope, ErrorCode};
 use crate::domain::path::TopicPath;
 use crate::domain::selector::Selector;
 use crate::domain::sheet::Sheet;
+use crate::domain::topic::Topic;
 
 use super::{
     collect_added_paths, collect_deleted_paths, find_topic_by_path, read_workbook_or_render_error,
@@ -25,9 +26,12 @@ pub(super) struct PatchOpDto {
     pub(super) op: String,
     pub(super) node: Option<String>,
     pub(super) parent: Option<String>,
+    pub(super) target: Option<String>,
     pub(super) title: Option<String>,
     pub(super) fields: Option<Map<String, Value>>,
     pub(super) tree: Option<TopicTreeInputDto>,
+    pub(super) match_by: Option<String>,
+    pub(super) prune: Option<bool>,
 }
 
 impl PatchOpDto {
@@ -148,6 +152,26 @@ pub(super) fn render_patch(invocation: Invocation, json: bool, ops_path: &Path) 
                 Ok((deleted_paths, added_paths)) => {
                     diff.extend(deleted_paths.into_iter().map(|path| PatchDiffEventDto {
                         event: "deleted",
+                        path,
+                    }));
+                    diff.extend(added_paths.into_iter().map(|path| PatchDiffEventDto {
+                        event: "added",
+                        path,
+                    }));
+                    operations.push(PatchOperationDto {
+                        index,
+                        op: op_name.to_owned(),
+                        status: "planned",
+                    });
+                    continue;
+                }
+                Err(exit_code) => return exit_code,
+            }
+        } else if op_name == "merge_tree" {
+            match plan_patch_merge_tree(invocation.clone(), json, sheet, index, op_name, op) {
+                Ok((updated_paths, added_paths)) => {
+                    diff.extend(updated_paths.into_iter().map(|path| PatchDiffEventDto {
+                        event: "updated",
                         path,
                     }));
                     diff.extend(added_paths.into_iter().map(|path| PatchDiffEventDto {
@@ -607,6 +631,179 @@ fn plan_patch_replace_tree(
     let added_paths = collect_added_paths(&parent_path, tree);
 
     Ok((deleted_paths, added_paths))
+}
+
+fn plan_patch_merge_tree(
+    invocation: Invocation,
+    json: bool,
+    sheet: &Sheet,
+    index: usize,
+    op_name: &str,
+    op: &PatchOpDto,
+) -> Result<(Vec<String>, Vec<String>), i32> {
+    let match_by = op.match_by.as_deref().unwrap_or("title_path");
+    if match_by != "title_path" {
+        let error = CliErrorBody::new(
+            ErrorCode::InvalidPatch,
+            format!("merge_tree match_by is not implemented: {match_by}"),
+            true,
+            "Use match_by: title_path for this patch slice.",
+        )
+        .with_operation_context(index, op_name.to_owned())
+        .with_field_path("match_by");
+        return Err(render_error(invocation, json, error));
+    }
+    if op.prune.unwrap_or(false) {
+        let error = CliErrorBody::new(
+            ErrorCode::InvalidPatch,
+            "merge_tree prune is not implemented in this slice.",
+            true,
+            "Omit prune or set prune: false.",
+        )
+        .with_operation_context(index, op_name.to_owned())
+        .with_field_path("prune");
+        return Err(render_error(invocation, json, error));
+    }
+
+    let Some(target) = &op.target else {
+        let error = CliErrorBody::new(
+            ErrorCode::InvalidPatch,
+            "merge_tree operation is missing target.",
+            true,
+            "Add a target selector like target: path:/Q2/Payment.",
+        )
+        .with_operation_context(index, op_name.to_owned());
+        return Err(render_error(invocation, json, error));
+    };
+
+    let Some(tree) = &op.tree else {
+        let error = CliErrorBody::new(
+            ErrorCode::InvalidPatch,
+            "merge_tree operation is missing tree.",
+            true,
+            "Add a tree object with a title.",
+        )
+        .with_operation_context(index, op_name.to_owned());
+        return Err(render_error(invocation, json, error));
+    };
+    if tree.title.trim().is_empty() {
+        let error = CliErrorBody::new(
+            ErrorCode::InvalidPatch,
+            "merge_tree operation tree title must not be empty.",
+            true,
+            "Add a non-empty title for the merge tree root.",
+        )
+        .with_operation_context(index, op_name.to_owned())
+        .with_field_path("tree.title");
+        return Err(render_error(invocation, json, error));
+    }
+
+    let selector = match Selector::parse(target) {
+        Ok(selector) => selector,
+        Err(error) => {
+            let error = CliErrorBody::new(
+                ErrorCode::InvalidPatch,
+                format!("merge_tree target selector is invalid: {error}"),
+                true,
+                "Use a valid selector such as root, id:<topic-id>, path:/Q2, or title:Payment.",
+            )
+            .with_operation_context(index, op_name.to_owned());
+            return Err(render_error(invocation, json, error));
+        }
+    };
+
+    let resolved = match resolve_topic(&sheet.root, &selector) {
+        ResolveOne::Found(resolved) => resolved,
+        ResolveOne::NotFound => {
+            let error = CliErrorBody::new(
+                ErrorCode::NotFound,
+                format!(
+                    "merge_tree target selector did not match a topic: {}",
+                    selector.render()
+                ),
+                true,
+                "Run tree or find to rediscover the selector, then retry.",
+            )
+            .with_operation_context(index, op_name.to_owned())
+            .with_selector(selector.render());
+            return Err(render_error(invocation, json, error));
+        }
+        ResolveOne::Ambiguous(candidates) => {
+            let error = CliErrorBody::new(
+                ErrorCode::AmbiguousSelector,
+                "merge_tree target selector matched multiple topics.",
+                true,
+                "Retry with a selector that resolves to exactly one topic.",
+            )
+            .with_operation_context(index, op_name.to_owned())
+            .with_selector(selector.render())
+            .with_candidates(
+                candidates
+                    .into_iter()
+                    .map(|candidate| CandidateDto {
+                        id: candidate.topic.id.0.clone(),
+                        path: candidate.path.to_selector_value(),
+                        title: candidate.topic.title.clone(),
+                        sheet: Some(sheet.title.clone()),
+                    })
+                    .collect(),
+            );
+            return Err(render_error(invocation, json, error));
+        }
+    };
+
+    let mut updated_paths = Vec::new();
+    let mut added_paths = Vec::new();
+    collect_merge_tree_diff(
+        resolved.topic,
+        &resolved.path,
+        tree,
+        &mut updated_paths,
+        &mut added_paths,
+    );
+
+    Ok((updated_paths, added_paths))
+}
+
+fn collect_merge_tree_diff(
+    topic: &Topic,
+    path: &TopicPath,
+    tree: &TopicTreeInputDto,
+    updated_paths: &mut Vec<String>,
+    added_paths: &mut Vec<String>,
+) {
+    if merge_tree_updates_topic(topic, tree) {
+        updated_paths.push(path.to_selector_value());
+    }
+
+    for child_tree in &tree.children {
+        if let Some(child_topic) = topic
+            .children
+            .iter()
+            .find(|child| child.title == child_tree.title)
+        {
+            collect_merge_tree_diff(
+                child_topic,
+                &path.join(child_tree.title.clone()),
+                child_tree,
+                updated_paths,
+                added_paths,
+            );
+        } else {
+            added_paths.extend(collect_added_paths(path, child_tree));
+        }
+    }
+}
+
+fn merge_tree_updates_topic(topic: &Topic, tree: &TopicTreeInputDto) -> bool {
+    topic.title != tree.title
+        || tree
+            .note
+            .as_ref()
+            .is_some_and(|note| topic.note.as_deref() != Some(note.as_str()))
+        || (!tree.labels.is_empty() && topic.labels != tree.labels)
+        || (!tree.markers.is_empty() && topic.markers != tree.markers)
+        || tree.image.is_some()
 }
 
 fn validate_patch_set_fields(

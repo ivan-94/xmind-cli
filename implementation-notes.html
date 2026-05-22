@@ -184,6 +184,14 @@
           会输出旧子树 <code>deleted</code> diff 与新树 <code>added</code>
           diff；root target 按 mutation root rule 返回 <code>invalid_patch</code>。
         </li>
+        <li>
+          Patch <code>merge_tree</code> 当前实现 dry-run 规划的默认
+          <code>match_by: title_path</code>：匹配到的主题在输入 metadata
+          发生变化时输出 <code>updated</code> diff，缺失子树输出
+          <code>added</code> diff；<code>prune</code> 和其他
+          <code>match_by</code> 策略仍按 PLAN 后续任务处理，当前会返回
+          <code>invalid_patch</code>，避免生成不准确计划。
+        </li>
       </ul>
     </section>
   </body>
