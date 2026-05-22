@@ -1,0 +1,21 @@
+---
+source: tests/cli/json_envelope_snapshots_test.rs
+assertion_line: 13
+expression: "command_output_allowing_failure(&[\"get\", \"tests/fixtures/xmind/minimal.xmind\",\n                \"--node\", \"id:missing-topic\", \"--json\"])"
+---
+{
+  "ok": false,
+  "command": "get",
+  "workbook": "tests/fixtures/xmind/minimal.xmind",
+  "dry_run": false,
+  "applied": false,
+  "error": {
+    "code": "not_found",
+    "message": "Selector did not match a topic: id:missing-topic",
+    "retryable": true,
+    "suggested_fix": "Run tree or find to rediscover the topic selector, then retry.",
+    "selector": "id:missing-topic",
+    "exit_code": 5
+  },
+  "warnings": []
+}
