@@ -1125,6 +1125,32 @@ fn render_export(invocation: Invocation, json: bool, format: &OutputFormat) -> i
                 print!("{content}");
             }
         }
+        OutputFormat::Assets => {
+            let result = serde_json::json!({
+                "format": "assets",
+                "assets": workbook.resources.asset_ids().into_iter().map(|asset_id| {
+                    serde_json::json!({ "asset_id": asset_id })
+                }).collect::<Vec<_>>(),
+            });
+            if json {
+                let envelope = CommandEnvelope {
+                    ok: true,
+                    command: Some(invocation.command),
+                    workbook: Some(invocation.workbook.display().to_string()),
+                    dry_run: false,
+                    applied: false,
+                    result: Some(result),
+                    error: None,
+                    warnings: Vec::new(),
+                };
+                crate::cli::render_json_envelope(&envelope);
+            } else {
+                println!(
+                    "{}",
+                    serde_json::to_string_pretty(&result).expect("export result serializes")
+                );
+            }
+        }
         _ => {
             let error = CliErrorBody::new(
                 ErrorCode::InvalidUsage,

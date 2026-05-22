@@ -10,7 +10,7 @@ Arguments:
 Options:
       --strict                     
       --json                       
-      --format <FORMAT>            [default: text] [possible values: text, json, compact-json, markdown, outline]
+      --format <FORMAT>            [default: text] [possible values: text, json, compact-json, markdown, outline, assets]
       --fields <FIELDS>            
       --quiet                      
       --no-color                   

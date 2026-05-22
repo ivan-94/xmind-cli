@@ -91,6 +91,13 @@ impl ResourceIndex {
         self.assets.len()
     }
 
+    pub fn asset_ids(&self) -> Vec<String> {
+        self.assets
+            .keys()
+            .map(|asset_id| asset_id.as_str().to_owned())
+            .collect()
+    }
+
     #[cfg(test)]
     fn contains_asset_id(&self, asset_id: &AssetId) -> bool {
         self.assets.contains_key(asset_id)

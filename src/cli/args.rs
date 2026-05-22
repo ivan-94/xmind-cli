@@ -44,6 +44,7 @@ pub enum OutputFormat {
     CompactJson,
     Markdown,
     Outline,
+    Assets,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, ValueEnum)]

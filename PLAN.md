@@ -334,7 +334,7 @@ Implement a Rust CLI named `xmind` that satisfies the documented product, comman
 - [x] Implement `export --format markdown`.
 - [x] Implement `export --format outline`.
 - [x] Implement `export --format text`.
-- [ ] Implement `export --format assets`.
+- [x] Implement `export --format assets`.
 - [ ] Implement `export --output`.
 - [ ] Implement `export --overwrite`.
 - [ ] Implement `export --json` wrapping payload in envelope.

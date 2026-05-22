@@ -1,6 +1,5 @@
 ---
 source: tests/cli/help_snapshots_test.rs
-assertion_line: 16
 expression: "help_output(&[subcommand, \"--help\"])"
 ---
 Usage: xmind copy [OPTIONS] --node <NODE> --to <TO> <--dry-run|--apply> <WORKBOOK>
@@ -18,7 +17,7 @@ Options:
       --apply                      
       --backup                     
       --json                       
-      --format <FORMAT>            [default: text] [possible values: text, json, compact-json, markdown, outline]
+      --format <FORMAT>            [default: text] [possible values: text, json, compact-json, markdown, outline, assets]
       --fields <FIELDS>            
       --quiet                      
       --no-color                   

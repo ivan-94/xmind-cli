@@ -105,3 +105,28 @@ fn export_format_text_writes_default_readable_outline_to_stdout() {
         "Roadmap\n  Q2\n    Payment\n"
     );
 }
+
+#[test]
+fn export_format_assets_lists_resource_ids_to_stdout() {
+    let output = Command::cargo_bin("xmind")
+        .expect("xmind binary is built for CLI tests")
+        .args([
+            "export",
+            "tests/fixtures/xmind/topic-image.xmind",
+            "--format",
+            "assets",
+        ])
+        .output()
+        .expect("export command runs");
+
+    assert_eq!(output.status.code(), Some(0));
+    assert!(
+        output.stderr.is_empty(),
+        "export should not emit stderr diagnostics: {}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+
+    let body: Value = serde_json::from_slice(&output.stdout).expect("stdout is JSON");
+    assert_eq!(body["format"], "assets");
+    assert_eq!(body["assets"][0]["asset_id"], "xap:resources/payment.png");
+}
