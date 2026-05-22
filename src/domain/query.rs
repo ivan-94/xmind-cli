@@ -56,6 +56,9 @@ impl QueryComparison {
             (QueryField::Depth, QueryOperator::Gte, QueryValue::Number(expected)) => {
                 (depth as i64) >= *expected
             }
+            (QueryField::Depth, QueryOperator::Lt, QueryValue::Number(expected)) => {
+                (depth as i64) < *expected
+            }
             _ => false,
         }
     }
@@ -79,6 +82,7 @@ enum QueryOperator {
     Exists,
     Gt,
     Gte,
+    Lt,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -176,6 +180,7 @@ impl<'a> QueryParser<'a> {
             "exists" => Ok(QueryOperator::Exists),
             ">" => Ok(QueryOperator::Gt),
             ">=" => Ok(QueryOperator::Gte),
+            "<" => Ok(QueryOperator::Lt),
             other => Err(QueryParseError::UnsupportedOperator(other.to_owned())),
         }
     }
@@ -456,5 +461,18 @@ mod tests {
         };
 
         assert!(expr.matches_topic(&topic, &TopicPath::root(), 2));
+    }
+
+    #[test]
+    fn depth_less_than_matches_shallower_topic() {
+        let expr = QueryExpr::parse("depth < 1").expect("query parses");
+        let topic = Topic {
+            id: TopicId("topic-root".to_owned()),
+            title: "Roadmap".to_owned(),
+            note: None,
+            children: Vec::new(),
+        };
+
+        assert!(expr.matches_topic(&topic, &TopicPath::root(), 0));
     }
 }
