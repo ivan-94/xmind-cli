@@ -1547,16 +1547,6 @@ fn render_delete(
 }
 
 fn render_move(invocation: Invocation, json: bool, node: &str, destination: &str) -> i32 {
-    if !invocation.dry_run {
-        let error = CliErrorBody::new(
-            ErrorCode::InvalidUsage,
-            "Only move --dry-run is implemented in this slice.",
-            true,
-            "Retry with --dry-run, or wait for the move apply slice.",
-        );
-        return render_error(invocation, json, error);
-    }
-
     let workbook = match read_workbook_or_render_error(&invocation, json) {
         Ok(workbook) => workbook,
         Err(exit_code) => return exit_code,
@@ -1676,12 +1666,27 @@ fn render_move(invocation: Invocation, json: bool, node: &str, destination: &str
         }
     };
 
+    if destination
+        .path
+        .segments()
+        .starts_with(source.path.segments())
+    {
+        let error = CliErrorBody::new(
+            ErrorCode::PatchConflict,
+            "Cannot move a topic into itself or one of its descendants.",
+            true,
+            "Choose a destination outside the source subtree.",
+        )
+        .with_selector(destination_selector.render());
+        return render_error(invocation, json, error);
+    }
+
     let from_path = source.path.to_selector_value();
     let to_path = destination
         .path
         .join(source.topic.title.clone())
         .to_selector_value();
-    let result = MoveDryRunResultDto {
+    let mut result = MoveDryRunResultDto {
         will_change: from_path != to_path,
         moved: MovedTopicDto {
             id: source.topic.id.0.clone(),
@@ -1699,7 +1704,22 @@ fn render_move(invocation: Invocation, json: bool, node: &str, destination: &str
             from: from_path,
             to: to_path,
         }],
+        backup_path: None,
     };
+
+    if !invocation.dry_run {
+        result.backup_path = match create_mutation_backup(&invocation) {
+            Ok(backup_path) => backup_path,
+            Err(error) => return render_backup_error(invocation, json, error),
+        };
+        if let Err(error) = crate::infra::xmind::encode::move_topic(
+            &invocation.workbook,
+            &source.topic.id.0,
+            &destination.topic.id.0,
+        ) {
+            return render_workbook_write_error(invocation, json, error);
+        }
+    }
 
     if json {
         let envelope = CommandEnvelope {
@@ -1707,7 +1727,7 @@ fn render_move(invocation: Invocation, json: bool, node: &str, destination: &str
             command: Some(invocation.command),
             workbook: Some(invocation.workbook.display().to_string()),
             dry_run: invocation.dry_run,
-            applied: false,
+            applied: !invocation.dry_run,
             result: Some(result),
             error: None,
             warnings: Vec::new(),
@@ -3105,6 +3125,8 @@ struct MoveDryRunResultDto {
     moved: MovedTopicDto,
     summary: SummaryDto,
     diff: Vec<MoveDiffEventDto>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    backup_path: Option<String>,
 }
 
 #[derive(Debug, Serialize)]

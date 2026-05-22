@@ -3241,5 +3241,45 @@
         </li>
       </ul>
     </section>
+
+    <section class="entry">
+      <h2>2026-05-22 - move apply</h2>
+      <h3>Design Decisions</h3>
+      <ul>
+        <li>
+          Implemented <code>xmind move --apply</code> for moving a topic subtree
+          to a destination parent.
+        </li>
+        <li>
+          The initial apply behavior appends the moved topic to the destination
+          parent's existing children; explicit position handling remains in later
+          PLAN items.
+        </li>
+      </ul>
+
+      <h3>Deviations</h3>
+      <ul>
+        <li>
+          <code>--position</code> is not implemented in this slice, so apply uses
+          the same implicit last-child placement as the existing dry-run path.
+        </li>
+      </ul>
+
+      <h3>Tradeoffs</h3>
+      <ul>
+        <li>
+          The command rejects moves into the source subtree before writing,
+          preventing cycles in the XMind topic tree.
+        </li>
+      </ul>
+
+      <h3>Open Questions</h3>
+      <ul>
+        <li>
+          Confirm whether no-op moves to the same parent/path should skip the
+          package rewrite instead of producing an idempotent write.
+        </li>
+      </ul>
+    </section>
   </body>
 </html>

@@ -405,6 +405,49 @@ pub fn delete_topic_promote_children(
     Ok(())
 }
 
+pub fn move_topic(
+    workbook_path: &Path,
+    topic_id: &str,
+    destination_topic_id: &str,
+) -> Result<(), XMindWriteError> {
+    let file = File::open(workbook_path)?;
+    let mut archive = zip::ZipArchive::new(file)?;
+    let mut entries = Vec::new();
+    let mut content_json = None;
+
+    for index in 0..archive.len() {
+        let mut entry = archive.by_index(index)?;
+        let name = entry.name().to_owned();
+        let mut bytes = Vec::new();
+        entry.read_to_end(&mut bytes)?;
+
+        if name == "content.json" {
+            let mut content: Value = serde_json::from_slice(&bytes)?;
+            let Some(topic) = remove_topic_from_content(&mut content, topic_id) else {
+                return Err(XMindWriteError::TopicNotFound(topic_id.to_owned()));
+            };
+            if !append_existing_topic_to_content(&mut content, destination_topic_id, topic) {
+                return Err(XMindWriteError::TopicNotFound(
+                    destination_topic_id.to_owned(),
+                ));
+            }
+            content_json = Some(serde_json::to_vec_pretty(&content)?);
+        } else {
+            entries.push((name, bytes));
+        }
+    }
+
+    let Some(content_json) = content_json else {
+        return Err(XMindWriteError::MissingContent);
+    };
+
+    let temp_path = temp_workbook_path(workbook_path);
+    write_package(&temp_path, content_json, entries)?;
+    replace_with_validated_candidate(workbook_path, &temp_path, validate_candidate_package)?;
+
+    Ok(())
+}
+
 fn append_topic_to_content(
     content: &mut Value,
     parent_topic_id: &str,
@@ -531,6 +574,33 @@ fn delete_topic_promote_children_in_content(content: &mut Value, topic_id: &str)
         sheet
             .get_mut("rootTopic")
             .is_some_and(|root| delete_topic_promote_children_below(root, topic_id))
+    })
+}
+
+fn remove_topic_from_content(content: &mut Value, topic_id: &str) -> Option<Value> {
+    let sheets = content.as_array_mut()?;
+
+    sheets.iter_mut().find_map(|sheet| {
+        sheet
+            .get_mut("rootTopic")
+            .and_then(|root| remove_topic_below(root, topic_id))
+    })
+}
+
+fn append_existing_topic_to_content(
+    content: &mut Value,
+    destination_topic_id: &str,
+    topic: Value,
+) -> bool {
+    let Some(sheets) = content.as_array_mut() else {
+        return false;
+    };
+
+    let mut topic = Some(topic);
+    sheets.iter_mut().any(|sheet| {
+        sheet.get_mut("rootTopic").is_some_and(|root| {
+            append_existing_topic_to_topic(root, destination_topic_id, &mut topic)
+        })
     })
 }
 
@@ -736,6 +806,60 @@ fn delete_topic_promote_children_below(topic: &mut Value, topic_id: &str) -> boo
     children
         .iter_mut()
         .any(|child| delete_topic_promote_children_below(child, topic_id))
+}
+
+fn remove_topic_below(topic: &mut Value, topic_id: &str) -> Option<Value> {
+    let children = topic
+        .get_mut("children")
+        .and_then(|children| children.get_mut("attached"))
+        .and_then(Value::as_array_mut)?;
+
+    if let Some(index) = children
+        .iter()
+        .position(|child| child.get("id").and_then(Value::as_str) == Some(topic_id))
+    {
+        return Some(children.remove(index));
+    }
+
+    children
+        .iter_mut()
+        .find_map(|child| remove_topic_below(child, topic_id))
+}
+
+fn append_existing_topic_to_topic(
+    topic: &mut Value,
+    destination_topic_id: &str,
+    moved_topic: &mut Option<Value>,
+) -> bool {
+    if topic.get("id").and_then(Value::as_str) == Some(destination_topic_id) {
+        if let Some(moved_topic) = moved_topic.take() {
+            let children = topic
+                .as_object_mut()
+                .expect("topic matched by id is an object")
+                .entry("children")
+                .or_insert_with(|| json!({ "attached": [] }));
+            let attached = children
+                .as_object_mut()
+                .and_then(|children| children.get_mut("attached"))
+                .and_then(Value::as_array_mut);
+
+            if let Some(attached) = attached {
+                attached.push(moved_topic);
+                return true;
+            }
+        }
+        return false;
+    }
+
+    topic
+        .get_mut("children")
+        .and_then(|children| children.get_mut("attached"))
+        .and_then(Value::as_array_mut)
+        .is_some_and(|children| {
+            children.iter_mut().any(|child| {
+                append_existing_topic_to_topic(child, destination_topic_id, moved_topic)
+            })
+        })
 }
 
 fn set_topic_note_in_topic(topic: &mut Value, topic_id: &str, note: &str) -> bool {
