@@ -357,7 +357,7 @@ Implement a Rust CLI named `xmind` that satisfies the documented product, comman
 - [x] Preserve unrelated assets.
 - [x] Export embedded assets.
 - [x] Return `unsupported_asset_type` for unsupported images.
-- [ ] Add image fixture tests.
+- [x] Add image fixture tests.
 - [ ] Add asset preservation tests.
 
 ## Phase 14: Error Coverage

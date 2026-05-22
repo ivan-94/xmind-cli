@@ -42,6 +42,36 @@ fn tree_json_depth_one_reads_minimal_xmind_fixture() {
 }
 
 #[test]
+fn tree_json_include_assets_reads_topic_image_fixture() {
+    let output = Command::cargo_bin("xmind")
+        .expect("xmind binary is built for CLI tests")
+        .args([
+            "tree",
+            "tests/fixtures/xmind/topic-image.xmind",
+            "--json",
+            "--include-assets",
+            "--depth",
+            "3",
+        ])
+        .output()
+        .expect("tree command runs");
+
+    assert_eq!(output.status.code(), Some(0));
+    assert!(
+        output.stderr.is_empty(),
+        "json tree output should not emit stderr diagnostics: {}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+
+    let body: Value = serde_json::from_slice(&output.stdout).expect("stdout is JSON");
+    let payment = &body["result"]["root"]["children"][0]["children"][0];
+    assert_eq!(payment["id"], "topic-payment");
+    assert_eq!(payment["image"]["asset_id"], "xap:resources/payment.png");
+    assert_eq!(payment["image"]["alt"], "Payment flow diagram");
+    assert_eq!(payment["image"]["title"], "Payment flow");
+}
+
+#[test]
 fn tree_json_can_select_sheet_by_index() {
     let output = Command::cargo_bin("xmind")
         .expect("xmind binary is built for CLI tests")
