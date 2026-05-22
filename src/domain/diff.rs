@@ -27,6 +27,29 @@ impl Diff {
     pub fn events(&self) -> &[DiffEvent] {
         &self.events
     }
+
+    pub fn summary(&self) -> DiffSummary {
+        let mut summary = DiffSummary::default();
+
+        for event in &self.events {
+            match event {
+                DiffEvent::Added { .. } => summary.added += 1,
+                DiffEvent::Removed { .. } => summary.deleted += 1,
+                DiffEvent::Updated { .. } => summary.updated += 1,
+                DiffEvent::Moved { .. } => summary.moved += 1,
+            }
+        }
+
+        summary
+    }
+}
+
+#[derive(Clone, Debug, Default, Eq, PartialEq)]
+pub struct DiffSummary {
+    pub added: usize,
+    pub updated: usize,
+    pub deleted: usize,
+    pub moved: usize,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -125,5 +148,33 @@ mod tests {
         }]);
 
         assert_eq!(diff.events(), &[DiffEvent::Moved { from, to }]);
+    }
+
+    #[test]
+    fn summary_counts_events_by_external_categories() {
+        let added = TopicPath::parse_selector_value("/Q2/New").expect("path parses");
+        let removed = TopicPath::parse_selector_value("/Q2/Old").expect("path parses");
+        let updated = TopicPath::parse_selector_value("/Q2/Payment").expect("path parses");
+        let moved_from = TopicPath::parse_selector_value("/Q2/Risk").expect("path parses");
+        let moved_to = TopicPath::parse_selector_value("/Q3/Risk").expect("path parses");
+        let diff = Diff::from_events(vec![
+            DiffEvent::Added { path: added },
+            DiffEvent::Removed { path: removed },
+            DiffEvent::Updated {
+                path: updated,
+                fields: vec![FieldChange::new("title")],
+            },
+            DiffEvent::Moved {
+                from: moved_from,
+                to: moved_to,
+            },
+        ]);
+
+        let summary = diff.summary();
+
+        assert_eq!(summary.added, 1);
+        assert_eq!(summary.updated, 1);
+        assert_eq!(summary.deleted, 1);
+        assert_eq!(summary.moved, 1);
     }
 }

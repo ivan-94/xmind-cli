@@ -2065,5 +2065,44 @@
         </li>
       </ul>
     </section>
+
+    <section class="entry">
+      <h2>2026-05-22 - Diff summary counts</h2>
+      <h3>Design Decisions</h3>
+      <ul>
+        <li>
+          Added <code>DiffSummary</code> and <code>Diff::summary()</code> to
+          derive <code>added</code>, <code>updated</code>,
+          <code>deleted</code>, and <code>moved</code> counts from structured
+          events.
+        </li>
+        <li>
+          <code>DiffEvent::Removed</code> maps to the external summary field
+          <code>deleted</code> to stay aligned with documented JSON output.
+        </li>
+      </ul>
+
+      <h3>Deviations</h3>
+      <ul>
+        <li>
+          None. This bridges the domain event name and public summary field name
+          explicitly.
+        </li>
+      </ul>
+
+      <h3>Tradeoffs</h3>
+      <ul>
+        <li>
+          Summary values are computed on demand instead of cached, keeping
+          <code>Diff</code> as a single source of truth while the event list is
+          small.
+        </li>
+      </ul>
+
+      <h3>Open Questions</h3>
+      <ul>
+        <li>None.</li>
+      </ul>
+    </section>
   </body>
 </html>
