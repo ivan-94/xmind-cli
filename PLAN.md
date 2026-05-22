@@ -216,7 +216,7 @@ Implement a Rust CLI named `xmind` that satisfies the documented product, comman
 - [x] Implement `DiffEvent::Moved`.
 - [x] Implement summary counts.
 - [x] Implement human outline diff renderer.
-- [ ] Implement JSON diff renderer.
+- [x] Implement JSON diff renderer.
 - [ ] Add tests for add diff.
 - [ ] Add tests for delete diff.
 - [ ] Add tests for update diff.

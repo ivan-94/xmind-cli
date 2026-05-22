@@ -2149,5 +2149,49 @@
         </li>
       </ul>
     </section>
+
+    <section class="entry">
+      <h2>2026-05-22 - JSON diff renderer</h2>
+      <h3>Design Decisions</h3>
+      <ul>
+        <li>
+          Added <code>render_json_diff</code> to render a structured
+          <code>Diff</code> as a JSON object containing <code>summary</code> and
+          <code>diff</code>.
+        </li>
+        <li>
+          Removed domain events are rendered externally as
+          <code>{ "event": "deleted" }</code>, matching the public summary
+          field <code>deleted</code> and existing write-output terminology.
+        </li>
+      </ul>
+
+      <h3>Deviations</h3>
+      <ul>
+        <li>
+          The standalone <code>diff</code> command reference currently shows a
+          <code>changes</code> array, while mutation outputs and current renderer
+          use <code>diff</code>. This inconsistency remains to be resolved in a
+          docs-alignment task.
+        </li>
+      </ul>
+
+      <h3>Tradeoffs</h3>
+      <ul>
+        <li>
+          The renderer returns a <code>serde_json::Value</code> for easy
+          embedding in existing command envelopes without introducing additional
+          DTO structs before runtime wiring.
+        </li>
+      </ul>
+
+      <h3>Open Questions</h3>
+      <ul>
+        <li>
+          Decide whether <code>xmind diff --json</code> should expose
+          <code>diff</code> or <code>changes</code> as the stable event array.
+        </li>
+      </ul>
+    </section>
   </body>
 </html>
