@@ -35,6 +35,9 @@ pub struct TreeCommand {
 
     #[arg(long)]
     pub depth: Option<usize>,
+
+    #[arg(long)]
+    pub include_assets: bool,
 }
 
 #[derive(Debug, Args)]
@@ -69,6 +72,9 @@ pub struct GetCommand {
 
     #[arg(long)]
     pub depth: Option<usize>,
+
+    #[arg(long)]
+    pub include_assets: bool,
 }
 
 #[derive(Debug, Args)]

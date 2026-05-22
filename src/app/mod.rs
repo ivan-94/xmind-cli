@@ -294,6 +294,7 @@ impl Invocation {
                 command.workbook,
                 command.node,
                 command.depth,
+                command.include_assets,
                 sheet_selection,
                 quiet,
             )),
@@ -313,6 +314,7 @@ impl Invocation {
             Command::Tree(command) => Some(Self::tree(
                 command.workbook,
                 command.depth,
+                command.include_assets,
                 sheet_selection,
                 quiet,
             )),
@@ -424,9 +426,11 @@ impl Invocation {
     fn tree(
         workbook: std::path::PathBuf,
         depth: Option<usize>,
+        include_assets: bool,
         sheet_selection: SheetSelection,
         quiet: bool,
     ) -> Self {
+        let _ = include_assets;
         Self {
             command: "tree".to_owned(),
             workbook,
@@ -469,9 +473,11 @@ impl Invocation {
         workbook: std::path::PathBuf,
         node: String,
         depth: Option<usize>,
+        include_assets: bool,
         sheet_selection: SheetSelection,
         quiet: bool,
     ) -> Self {
+        let _ = include_assets;
         Self {
             command: "get".to_owned(),
             workbook,

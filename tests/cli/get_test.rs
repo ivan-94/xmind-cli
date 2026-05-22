@@ -241,6 +241,36 @@ fn image_fixture_exposes_topic_image_and_resource_metadata() {
 }
 
 #[test]
+fn get_json_accepts_include_assets_option() {
+    let output = Command::cargo_bin("xmind")
+        .expect("xmind binary is built for CLI tests")
+        .args([
+            "get",
+            "tests/fixtures/xmind/topic-image.xmind",
+            "--node",
+            "id:topic-payment",
+            "--include-assets",
+            "--json",
+        ])
+        .output()
+        .expect("get command runs");
+
+    assert_eq!(output.status.code(), Some(0));
+    assert!(
+        output.stderr.is_empty(),
+        "json get output should not emit stderr diagnostics: {}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+
+    let body: Value = serde_json::from_slice(&output.stdout).expect("stdout is JSON");
+    assert_eq!(body["ok"], true);
+    assert_eq!(
+        body["result"]["topic"]["image"]["asset_id"],
+        "xap:resources/payment.png"
+    );
+}
+
+#[test]
 fn get_json_missing_selector_returns_not_found_diagnostic() {
     let output = Command::cargo_bin("xmind")
         .expect("xmind binary is built for CLI tests")

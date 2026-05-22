@@ -1839,5 +1839,46 @@
         </li>
       </ul>
     </section>
+
+    <section class="entry">
+      <h2>2026-05-22 - include-assets read option</h2>
+      <h3>Design Decisions</h3>
+      <ul>
+        <li>
+          <code>get</code> and <code>tree</code> now accept the documented
+          <code>--include-assets</code> flag.
+        </li>
+        <li>
+          The current reader already returns topic image references when present,
+          so this slice wires the option into the CLI surface without changing
+          payload shape.
+        </li>
+      </ul>
+
+      <h3>Deviations</h3>
+      <ul>
+        <li>
+          The flag does not yet expand image references with media type, byte
+          size, checksum, or exported asset data. Those fields require later
+          asset metadata/export work.
+        </li>
+      </ul>
+
+      <h3>Tradeoffs</h3>
+      <ul>
+        <li>
+          Accepting the option now keeps command references and clap behavior
+          aligned while avoiding speculative asset DTO fields.
+        </li>
+      </ul>
+
+      <h3>Open Questions</h3>
+      <ul>
+        <li>
+          Confirm whether image references should be hidden unless
+          <code>--include-assets</code> is passed once full asset DTOs exist.
+        </li>
+      </ul>
+    </section>
   </body>
 </html>
