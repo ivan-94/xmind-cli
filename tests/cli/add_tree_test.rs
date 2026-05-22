@@ -1,5 +1,6 @@
 use assert_cmd::Command;
 use serde_json::Value;
+use std::fs;
 
 #[test]
 fn add_tree_yaml_input_dry_run_reports_tree_diff_without_writing() {
@@ -115,4 +116,48 @@ fn add_tree_json_input_dry_run_reports_tree_diff_without_writing() {
         tree["result"]["root"]["children"][0]["children"][0]["title"],
         "Payment"
     );
+}
+
+#[test]
+fn add_tree_rejects_empty_nested_title() {
+    let temp_dir = tempfile::tempdir().expect("temp dir is created");
+    let input = temp_dir.path().join("invalid-tree.yaml");
+    fs::write(
+        &input,
+        r#"
+title: Roadmap
+children:
+  - title: ""
+"#,
+    )
+    .expect("invalid tree fixture is written");
+    let input_arg = input.to_string_lossy().into_owned();
+
+    let output = Command::cargo_bin("xmind")
+        .expect("xmind binary is built for CLI tests")
+        .args([
+            "add-tree",
+            "tests/fixtures/xmind/minimal.xmind",
+            "--parent",
+            "path:/Q2",
+            "--input",
+            &input_arg,
+            "--dry-run",
+            "--json",
+        ])
+        .output()
+        .expect("add-tree command runs");
+
+    assert_eq!(output.status.code(), Some(7));
+    assert!(
+        output.stderr.is_empty(),
+        "json add-tree errors should not emit stderr diagnostics: {}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+
+    let body: Value = serde_json::from_slice(&output.stdout).expect("stdout is JSON");
+    assert_eq!(body["ok"], false);
+    assert_eq!(body["command"], "add-tree");
+    assert_eq!(body["error"]["code"], "invalid_tree_input");
+    assert_eq!(body["error"]["field_path"], "children[0].title");
 }

@@ -3813,5 +3813,44 @@
         </li>
       </ul>
     </section>
+    <section class="entry">
+      <h2>2026-05-22 - TopicTree validation</h2>
+      <h3>Design Decisions</h3>
+      <ul>
+        <li>
+          <code>add-tree</code> now validates parsed tree input recursively and
+          rejects any topic whose <code>title</code> is empty after trimming.
+        </li>
+        <li>
+          Validation failures return <code>invalid_tree_input</code> with a
+          machine-readable <code>field_path</code>, such as
+          <code>children[0].title</code>.
+        </li>
+      </ul>
+
+      <h3>Deviations</h3>
+      <ul>
+        <li>
+          This slice validates required title content. Richer metadata validation
+          for ids, images, and optional fields is handled by later PLAN items.
+        </li>
+      </ul>
+
+      <h3>Tradeoffs</h3>
+      <ul>
+        <li>
+          Parser type errors still come from serde messages; explicit validation
+          is used where parsing can succeed but the product contract rejects the
+          value.
+        </li>
+      </ul>
+
+      <h3>Open Questions</h3>
+      <ul>
+        <li>
+          None for this slice.
+        </li>
+      </ul>
+    </section>
   </body>
 </html>

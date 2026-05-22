@@ -1602,6 +1602,17 @@ fn render_add_tree(invocation: Invocation, json: bool, parent: &str, input: &Pat
             return render_error(invocation, json, error);
         }
     };
+    if let Err(error) = validate_topic_tree_input(&tree) {
+        let error = CliErrorBody::new(
+            ErrorCode::InvalidTreeInput,
+            error.message,
+            true,
+            "Provide a topic tree where every topic has a non-empty title.",
+        )
+        .with_path(input.display().to_string())
+        .with_field_path(error.field_path);
+        return render_error(invocation, json, error);
+    }
 
     let added_paths = collect_added_paths(&parent.path, &tree);
     let created_root_path = added_paths
@@ -1668,6 +1679,42 @@ fn read_tree_input(input: &Path) -> Result<TopicTreeInputDto, String> {
             .map_err(|error| format!("Tree input JSON is invalid: {error}")),
         _ => Err("Tree input must use .yaml, .yml, or .json.".to_owned()),
     }
+}
+
+struct TreeInputValidationError {
+    message: String,
+    field_path: String,
+}
+
+fn validate_topic_tree_input(tree: &TopicTreeInputDto) -> Result<(), TreeInputValidationError> {
+    validate_topic_tree_node(tree, "title")
+}
+
+fn validate_topic_tree_node(
+    tree: &TopicTreeInputDto,
+    title_field_path: &str,
+) -> Result<(), TreeInputValidationError> {
+    if tree.title.trim().is_empty() {
+        return Err(TreeInputValidationError {
+            message: "Topic tree title must not be empty.".to_owned(),
+            field_path: title_field_path.to_owned(),
+        });
+    }
+
+    let child_prefix = title_field_path
+        .strip_suffix(".title")
+        .unwrap_or_default()
+        .to_owned();
+    for (index, child) in tree.children.iter().enumerate() {
+        let child_title_path = if child_prefix.is_empty() {
+            format!("children[{index}].title")
+        } else {
+            format!("{child_prefix}.children[{index}].title")
+        };
+        validate_topic_tree_node(child, &child_title_path)?;
+    }
+
+    Ok(())
 }
 
 fn generated_topic_id(title: &str) -> String {
