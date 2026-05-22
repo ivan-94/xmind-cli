@@ -94,6 +94,11 @@
           并由 <code>tests/cli/doc_examples_test.rs</code> 对现有 fixtures
           逐条运行；其他叙述性文档中的示例仍按 Phase 15 后续 docs sync 处理。
         </li>
+        <li>
+          CLI help 由 <code>tests/cli/help_snapshots_test.rs</code> 和
+          <code>tests/cli/snapshots/help_snapshots_test__*.snap</code>
+          持续检查，覆盖 top-level 与所有已注册 subcommands。
+        </li>
       </ul>
     </section>
 
