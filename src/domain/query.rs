@@ -134,6 +134,11 @@ impl QueryComparison {
             (QueryField::ChildrenCount, QueryOperator::Lte, QueryValue::Number(expected)) => {
                 (topic.children.len() as i64) <= *expected
             }
+            (QueryField::ChildrenCount, QueryOperator::In, QueryValue::NumberList(expected)) => {
+                expected
+                    .iter()
+                    .any(|value| (topic.children.len() as i64) == *value)
+            }
             _ => false,
         }
     }
@@ -262,7 +267,9 @@ impl<'a> QueryParser<'a> {
         let operator = self.parse_operator()?;
         let value = if operator == QueryOperator::Exists {
             QueryValue::None
-        } else if operator == QueryOperator::In && field == QueryField::Depth {
+        } else if operator == QueryOperator::In
+            && matches!(field, QueryField::Depth | QueryField::ChildrenCount)
+        {
             self.parse_number_list_value()?
         } else if operator == QueryOperator::In {
             self.parse_string_list_value()?
