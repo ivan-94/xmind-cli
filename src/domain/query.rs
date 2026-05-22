@@ -116,6 +116,9 @@ impl QueryComparison {
             (QueryField::Depth, QueryOperator::In, QueryValue::NumberList(expected)) => {
                 expected.iter().any(|value| (depth as i64) == *value)
             }
+            (QueryField::ChildrenCount, QueryOperator::Eq, QueryValue::Number(expected)) => {
+                (topic.children.len() as i64) == *expected
+            }
             _ => false,
         }
     }
@@ -128,6 +131,7 @@ enum QueryField {
     Path,
     Note,
     Depth,
+    ChildrenCount,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -247,7 +251,7 @@ impl<'a> QueryParser<'a> {
             self.parse_number_list_value()?
         } else if operator == QueryOperator::In {
             self.parse_string_list_value()?
-        } else if field == QueryField::Depth {
+        } else if matches!(field, QueryField::Depth | QueryField::ChildrenCount) {
             self.parse_number_value()?
         } else {
             self.parse_string_value()?
@@ -271,6 +275,7 @@ impl<'a> QueryParser<'a> {
             "path" => Ok(QueryField::Path),
             "note" => Ok(QueryField::Note),
             "depth" => Ok(QueryField::Depth),
+            "children_count" => Ok(QueryField::ChildrenCount),
             other => Err(QueryParseError::UnsupportedField(other.to_owned())),
         }
     }
