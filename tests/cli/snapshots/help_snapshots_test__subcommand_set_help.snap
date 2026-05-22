@@ -9,24 +9,25 @@ Arguments:
   <WORKBOOK>  
 
 Options:
-      --node <NODE>                  
-      --title <TITLE>                
-      --note <NOTE>                  
-      --append-note <APPEND_NOTE>    
-      --set-labels <SET_LABELS>      
-      --add-label <ADD_LABEL>        
-      --remove-label <REMOVE_LABEL>  
-      --set-markers <SET_MARKERS>    
-      --add-marker <ADD_MARKER>      
-      --dry-run                      
-      --apply                        
-      --backup                       
-      --json                         
-      --format <FORMAT>              [default: text] [possible values: text, json, compact-json, markdown, outline]
-      --fields <FIELDS>              
-      --quiet                        
-      --no-color                     
-      --sheet <SHEET>                
-      --sheet-id <SHEET_ID>          
-      --sheet-index <SHEET_INDEX>    
-  -h, --help                         Print help
+      --node <NODE>                    
+      --title <TITLE>                  
+      --note <NOTE>                    
+      --append-note <APPEND_NOTE>      
+      --set-labels <SET_LABELS>        
+      --add-label <ADD_LABEL>          
+      --remove-label <REMOVE_LABEL>    
+      --set-markers <SET_MARKERS>      
+      --add-marker <ADD_MARKER>        
+      --remove-marker <REMOVE_MARKER>  
+      --dry-run                        
+      --apply                          
+      --backup                         
+      --json                           
+      --format <FORMAT>                [default: text] [possible values: text, json, compact-json, markdown, outline]
+      --fields <FIELDS>                
+      --quiet                          
+      --no-color                       
+      --sheet <SHEET>                  
+      --sheet-id <SHEET_ID>            
+      --sheet-index <SHEET_INDEX>      
+  -h, --help                           Print help

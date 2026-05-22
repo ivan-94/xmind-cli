@@ -175,6 +175,14 @@ pub fn run(cli: Cli) -> i32 {
             let marker = marker.clone();
             render_set_add_marker(invocation, json, &node, marker)
         }
+        Action::SetRemoveMarker {
+            ref node,
+            ref marker,
+        } => {
+            let node = node.clone();
+            let marker = marker.clone();
+            render_set_remove_marker(invocation, json, &node, marker)
+        }
         Action::Delete { ref node } => {
             let node = node.clone();
             render_delete(invocation, json, &node)
@@ -275,6 +283,10 @@ enum Action {
         markers: Vec<String>,
     },
     SetAddMarker {
+        node: String,
+        marker: String,
+    },
+    SetRemoveMarker {
         node: String,
         marker: String,
     },
@@ -483,6 +495,11 @@ impl Invocation {
                     }
                 } else if let Some(marker) = command.add_marker {
                     Action::SetAddMarker {
+                        node: command.node,
+                        marker,
+                    }
+                } else if let Some(marker) = command.remove_marker {
+                    Action::SetRemoveMarker {
                         node: command.node,
                         marker,
                     }
@@ -2004,9 +2021,14 @@ fn render_set_add_marker(invocation: Invocation, json: bool, node: &str, marker:
     render_set_marker_mutation(invocation, json, node, MarkerMutation::Add(marker))
 }
 
+fn render_set_remove_marker(invocation: Invocation, json: bool, node: &str, marker: String) -> i32 {
+    render_set_marker_mutation(invocation, json, node, MarkerMutation::Remove(marker))
+}
+
 enum MarkerMutation {
     Replace(Vec<String>),
     Add(String),
+    Remove(String),
 }
 
 fn render_set_marker_mutation(
@@ -2082,6 +2104,13 @@ fn render_set_marker_mutation(
             }
             markers
         }
+        MarkerMutation::Remove(marker) => resolved
+            .topic
+            .markers
+            .iter()
+            .filter(|existing| *existing != &marker)
+            .cloned()
+            .collect(),
     };
     let path = resolved.path.to_selector_value();
     let human_diff = Diff::from_events(vec![DiffEvent::Updated {
