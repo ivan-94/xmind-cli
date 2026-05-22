@@ -104,7 +104,7 @@ Implement a Rust CLI named `xmind` that satisfies the documented product, comman
 - [x] Implement `TopicId`.
 - [x] Implement `SheetId`.
 - [x] Implement `AssetId`.
-- [ ] Implement `TopicImageRef`.
+- [x] Implement `TopicImageRef`.
 - [ ] Implement `ResourceIndex`.
 - [ ] Implement `PreservationBag`.
 - [x] Implement `TopicPath`.

@@ -1502,5 +1502,47 @@
         </li>
       </ul>
     </section>
+
+    <section class="entry">
+      <h2>2026-05-22 - TopicImageRef domain type</h2>
+      <h3>Design Decisions</h3>
+      <ul>
+        <li>
+          <code>TopicImageRef</code> now has an explicit constructor that groups
+          the asset id with optional accessible text fields
+          <code>alt</code> and <code>title</code>.
+        </li>
+        <li>
+          XMind storage decoding constructs image references through this
+          domain constructor instead of assembling the struct inline.
+        </li>
+      </ul>
+
+      <h3>Deviations</h3>
+      <ul>
+        <li>
+          The type remains reference-only. It does not yet carry media type,
+          byte size, checksum, or package-entry metadata because those belong to
+          the resource metadata/indexing PLAN items.
+        </li>
+      </ul>
+
+      <h3>Tradeoffs</h3>
+      <ul>
+        <li>
+          Keeping image reference metadata small avoids coupling topic reads to
+          resource scanning before the resource index contract is implemented.
+        </li>
+      </ul>
+
+      <h3>Open Questions</h3>
+      <ul>
+        <li>
+          Confirm whether <code>title</code> should remain separate from
+          <code>alt</code> in all import/export formats or collapse to one
+          display label in human renderers.
+        </li>
+      </ul>
+    </section>
   </body>
 </html>
