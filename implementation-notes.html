@@ -341,8 +341,8 @@
         </li>
         <li>
           <code>import --output --dry-run</code> 已解析和校验输入并返回
-          summary，但不会创建目标文件；creation diff 的完整结构仍由后续
-          “empty workbook diff” 任务补齐。
+          summary，但不会创建目标文件；creation diff 以空 workbook 为基线，
+          从新根路径 <code>/</code> 开始列出 added 事件。
         </li>
       </ul>
     </section>

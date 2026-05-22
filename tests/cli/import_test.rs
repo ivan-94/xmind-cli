@@ -192,3 +192,31 @@ fn import_output_dry_run_reports_plan_without_creating_workbook() {
     assert_eq!(body["result"]["output"], output_arg);
     assert_eq!(body["result"]["summary"]["added"], 9);
 }
+
+#[test]
+fn import_output_dry_run_reports_creation_diff_from_empty_workbook() {
+    let temp_dir = tempfile::tempdir().expect("temp dir is created");
+    let output_path = temp_dir.path().join("roadmap.xmind");
+    let output_arg = output_path.to_string_lossy().into_owned();
+
+    let output = Command::cargo_bin("xmind")
+        .expect("xmind binary is built for CLI tests")
+        .args([
+            "import",
+            "--input",
+            "docs/examples/simple-tree.yaml",
+            "--output",
+            &output_arg,
+            "--dry-run",
+            "--json",
+        ])
+        .output()
+        .expect("import command runs");
+
+    assert_eq!(output.status.code(), Some(0));
+    let body: Value = serde_json::from_slice(&output.stdout).expect("stdout is JSON");
+    assert_eq!(body["result"]["diff"][0]["event"], "added");
+    assert_eq!(body["result"]["diff"][0]["path"], "/");
+    assert_eq!(body["result"]["diff"][1]["path"], "/收银台");
+    assert_eq!(body["result"]["diff"][8]["path"], "/对账");
+}

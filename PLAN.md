@@ -342,7 +342,7 @@ Implement a Rust CLI named `xmind` that satisfies the documented product, comman
 - [x] Implement `import --into`.
 - [x] Implement `import --overwrite`.
 - [x] Implement `import --dry-run` no-file behavior.
-- [ ] Implement creation diff from empty workbook.
+- [x] Implement creation diff from empty workbook.
 - [ ] Add import/export round-trip tests.
 - [ ] Add overwrite behavior tests.
 

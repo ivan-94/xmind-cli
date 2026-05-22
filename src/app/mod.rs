@@ -1368,6 +1368,13 @@ fn render_import_output(
     }
 
     let added = count_topic_tree_input(&tree);
+    let diff = collect_created_workbook_paths(&tree, &TopicPath::root())
+        .into_iter()
+        .map(|path| DiffEventDto {
+            event: "added",
+            path,
+        })
+        .collect();
     let root_title = tree.title.clone();
     let workbook = Workbook {
         sheets: vec![Sheet {
@@ -1395,6 +1402,7 @@ fn render_import_output(
             deleted: 0,
             moved: 0,
         },
+        diff,
     };
 
     if json {
@@ -1604,6 +1612,19 @@ fn count_topic_tree_input(tree: &TopicTreeInputDto) -> usize {
         .iter()
         .map(count_topic_tree_input)
         .sum::<usize>()
+}
+
+fn collect_created_workbook_paths(tree: &TopicTreeInputDto, path: &TopicPath) -> Vec<String> {
+    let mut paths = vec![path.to_selector_value()];
+
+    for child in &tree.children {
+        paths.extend(collect_created_workbook_paths(
+            child,
+            &path.join(child.title.clone()),
+        ));
+    }
+
+    paths
 }
 
 fn topic_tree_input_to_topic(tree: TopicTreeInputDto) -> Topic {
@@ -4313,6 +4334,7 @@ struct AddDryRunResultDto {
 struct ImportOutputResultDto {
     output: String,
     summary: SummaryDto,
+    diff: Vec<DiffEventDto>,
 }
 
 #[derive(Debug, Serialize)]
