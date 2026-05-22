@@ -352,7 +352,7 @@ Implement a Rust CLI named `xmind` that satisfies the documented product, comman
 - [x] Detect supported image media types.
 - [x] Implement image checksum.
 - [x] Implement topic image attach.
-- [ ] Implement topic image replace.
+- [x] Implement topic image replace.
 - [ ] Implement topic image clear.
 - [ ] Preserve unrelated assets.
 - [ ] Export embedded assets.

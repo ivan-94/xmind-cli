@@ -692,6 +692,84 @@ fn set_image_apply_attaches_topic_image_asset() {
 }
 
 #[test]
+fn set_image_apply_replaces_existing_topic_image_reference() {
+    let temp_dir = tempfile::tempdir().expect("temp dir is created");
+    let workbook = temp_dir.path().join("topic-image.xmind");
+    fs::copy("tests/fixtures/xmind/topic-image.xmind", &workbook).expect("fixture is copied");
+    let image = temp_dir.path().join("replacement.gif");
+    fs::write(&image, b"GIF89a replacement-image-bytes").expect("image is written");
+    let workbook_arg = workbook.to_string_lossy().into_owned();
+    let image_arg = image.to_string_lossy().into_owned();
+
+    let output = Command::cargo_bin("xmind")
+        .expect("xmind binary is built for CLI tests")
+        .args([
+            "set",
+            &workbook_arg,
+            "--node",
+            "path:/Q2/Payment",
+            "--image",
+            &image_arg,
+            "--image-alt",
+            "Replacement diagram",
+            "--image-title",
+            "Replacement flow",
+            "--apply",
+            "--json",
+        ])
+        .output()
+        .expect("set command runs");
+
+    assert_eq!(output.status.code(), Some(0));
+    assert!(
+        output.stderr.is_empty(),
+        "json set output should not emit stderr diagnostics: {}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+
+    let get_output = Command::cargo_bin("xmind")
+        .expect("xmind binary is built for CLI tests")
+        .args([
+            "get",
+            &workbook_arg,
+            "--node",
+            "path:/Q2/Payment",
+            "--include-assets",
+            "--json",
+        ])
+        .output()
+        .expect("get command runs");
+    let get_body: Value = serde_json::from_slice(&get_output.stdout).expect("stdout is JSON");
+    assert_eq!(
+        get_body["result"]["topic"]["image"]["asset_id"],
+        "xap:resources/replacement.gif"
+    );
+    assert_eq!(
+        get_body["result"]["topic"]["image"]["alt"],
+        "Replacement diagram"
+    );
+    assert_eq!(
+        get_body["result"]["topic"]["image"]["title"],
+        "Replacement flow"
+    );
+
+    let assets_output = Command::cargo_bin("xmind")
+        .expect("xmind binary is built for CLI tests")
+        .args(["export", &workbook_arg, "--format", "assets"])
+        .output()
+        .expect("export assets command runs");
+    let assets_body: Value = serde_json::from_slice(&assets_output.stdout).expect("stdout is JSON");
+    let asset_ids: Vec<&str> = assets_body["assets"]
+        .as_array()
+        .expect("assets is an array")
+        .iter()
+        .map(|asset| asset["asset_id"].as_str().expect("asset id is a string"))
+        .collect();
+    assert!(asset_ids.contains(&"xap:resources/payment.png"));
+    assert!(asset_ids.contains(&"xap:resources/replacement.gif"));
+}
+
+#[test]
 fn set_hyperlink_apply_writes_topic_hyperlink() {
     let temp_dir = tempfile::tempdir().expect("temp dir is created");
     let workbook = temp_dir.path().join("apply-set-hyperlink.xmind");

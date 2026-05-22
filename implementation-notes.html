@@ -372,6 +372,11 @@
           <code>src/app/set_image.rs</code>，避免继续扩大
           <code>src/app/mod.rs</code>。
         </li>
+        <li>
+          替换已有 topic image 时只更新 topic 引用并加入新资源；旧资源按
+          <code>reference-only</code> 约定保留在 workbook 中，后续如需清理应通过显式
+          cleanup 设计处理。
+        </li>
       </ul>
     </section>
   </body>
