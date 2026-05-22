@@ -16,6 +16,15 @@ pub fn read_workbook(path: &Path) -> Result<Workbook, XMindReadError> {
         return Err(XMindReadError::UnsupportedFormat);
     }
 
+    let mut preservation = PreservationBag::default();
+    for index in 0..archive.len() {
+        let entry = archive.by_index(index)?;
+        let name = entry.name();
+        if name != "content.json" {
+            preservation.preserve_package_entry(name.to_owned());
+        }
+    }
+
     let mut content = String::new();
     archive
         .by_name("content.json")
@@ -27,7 +36,7 @@ pub fn read_workbook(path: &Path) -> Result<Workbook, XMindReadError> {
     Ok(Workbook {
         sheets: sheets.into_iter().map(Into::into).collect(),
         resources: ResourceIndex::default(),
-        preservation: PreservationBag::default(),
+        preservation,
     })
 }
 

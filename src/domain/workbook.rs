@@ -33,8 +33,7 @@ impl PreservationBag {
         self.raw_json_fields.insert(field.into(), value);
     }
 
-    #[cfg(test)]
-    fn preserve_package_entry(&mut self, entry_name: impl Into<String>) {
+    pub fn preserve_package_entry(&mut self, entry_name: impl Into<String>) {
         self.package_entries.push(entry_name.into());
     }
 

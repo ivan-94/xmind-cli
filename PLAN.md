@@ -164,7 +164,7 @@ Implement a Rust CLI named `xmind` that satisfies the documented product, comman
 - [x] Return `unsupported_format` for unsupported variants.
 - [x] Decode workbook JSON into storage DTOs.
 - [x] Convert storage DTOs into domain model.
-- [ ] Preserve unknown package entries.
+- [x] Preserve unknown package entries.
 - [ ] Preserve unknown JSON fields.
 - [x] Load sheets.
 - [x] Load root topics.

@@ -1674,5 +1674,45 @@
         </li>
       </ul>
     </section>
+
+    <section class="entry">
+      <h2>2026-05-22 - unknown package entry preservation</h2>
+      <h3>Design Decisions</h3>
+      <ul>
+        <li>
+          The XMind reader now records zip entries other than
+          <code>content.json</code> in the workbook <code>PreservationBag</code>.
+        </li>
+        <li>
+          <code>inspect --json</code> reports
+          <code>can_preserve_unknown: true</code> when the reader has preserved
+          unknown package entries.
+        </li>
+      </ul>
+
+      <h3>Deviations</h3>
+      <ul>
+        <li>
+          The preservation bag currently records entry names only. Reusing the
+          preserved bytes during writes remains a later writer PLAN item.
+        </li>
+      </ul>
+
+      <h3>Tradeoffs</h3>
+      <ul>
+        <li>
+          I kept the public signal as a capability boolean instead of exposing
+          raw package paths in command output.
+        </li>
+      </ul>
+
+      <h3>Open Questions</h3>
+      <ul>
+        <li>
+          Confirm whether future diagnostics should include counts of preserved
+          package entries without exposing their internal names by default.
+        </li>
+      </ul>
+    </section>
   </body>
 </html>
