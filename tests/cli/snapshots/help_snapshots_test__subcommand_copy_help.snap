@@ -12,6 +12,7 @@ Options:
       --node <NODE>                
       --to <TO>                    
       --title <TITLE>              
+      --preserve-ids               
       --dry-run                    
       --apply                      
       --backup                     

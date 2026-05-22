@@ -3322,5 +3322,45 @@
         </li>
       </ul>
     </section>
+
+    <section class="entry">
+      <h2>2026-05-22 - copy preserve ids guardrail</h2>
+      <h3>Design Decisions</h3>
+      <ul>
+        <li>
+          Added <code>xmind copy --preserve-ids</code> as a recognized flag, but
+          reject it for same-workbook copy with <code>patch_conflict</code>.
+        </li>
+        <li>
+          The diagnostic tells agents to omit <code>--preserve-ids</code> so the
+          default id-regeneration path remains safe.
+        </li>
+      </ul>
+
+      <h3>Deviations</h3>
+      <ul>
+        <li>
+          The command reference describes preserve-ids as diagnostic-flow-only;
+          this CLI does not yet expose a cross-workbook diagnostic copy flow
+          where preserving ids would be safe.
+        </li>
+      </ul>
+
+      <h3>Tradeoffs</h3>
+      <ul>
+        <li>
+          Rejecting early is stricter than silently ignoring the flag and avoids
+          accidentally writing duplicate topic ids.
+        </li>
+      </ul>
+
+      <h3>Open Questions</h3>
+      <ul>
+        <li>
+          Decide whether a future export/import workflow should be the only
+          supported path for preserving ids.
+        </li>
+      </ul>
+    </section>
   </body>
 </html>

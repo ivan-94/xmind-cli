@@ -219,11 +219,12 @@ pub fn run(cli: Cli) -> i32 {
             ref node,
             ref destination,
             ref title,
+            preserve_ids,
         } => {
             let node = node.clone();
             let destination = destination.clone();
             let title = title.clone();
-            render_copy(invocation, json, &node, &destination, title)
+            render_copy(invocation, json, &node, &destination, title, preserve_ids)
         }
         Action::Noop => 0,
     }
@@ -341,6 +342,7 @@ enum Action {
         node: String,
         destination: String,
         title: Option<String>,
+        preserve_ids: bool,
     },
     Validate {
         strict: bool,
@@ -604,6 +606,7 @@ impl Invocation {
                     node: command.node,
                     destination: command.to,
                     title: command.title,
+                    preserve_ids: command.preserve_ids,
                 }),
             ),
             Command::Patch(command) => Some(Self::patch(
@@ -1770,7 +1773,18 @@ fn render_copy(
     node: &str,
     destination: &str,
     title: Option<String>,
+    preserve_ids: bool,
 ) -> i32 {
+    if preserve_ids {
+        let error = CliErrorBody::new(
+            ErrorCode::PatchConflict,
+            "copy --preserve-ids would create duplicate topic ids in the same workbook.",
+            true,
+            "Omit --preserve-ids when copying within the same workbook.",
+        );
+        return render_error(invocation, json, error);
+    }
+
     let workbook = match read_workbook_or_render_error(&invocation, json) {
         Ok(workbook) => workbook,
         Err(exit_code) => return exit_code,

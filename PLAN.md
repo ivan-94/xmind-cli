@@ -260,7 +260,7 @@ Implement a Rust CLI named `xmind` that satisfies the documented product, comman
 - [x] Implement `delete --promote-children`.
 - [x] Implement `move`.
 - [x] Implement `copy`.
-- [ ] Implement `copy --preserve-ids` guardrails.
+- [x] Implement `copy --preserve-ids` guardrails.
 - [ ] Implement `--position first`.
 - [ ] Implement `--position last`.
 - [ ] Implement `--position index:N`.

@@ -222,6 +222,9 @@ pub struct CopyCommand {
     #[arg(long)]
     pub title: Option<String>,
 
+    #[arg(long)]
+    pub preserve_ids: bool,
+
     #[command(flatten)]
     pub mode: MutationMode,
 }

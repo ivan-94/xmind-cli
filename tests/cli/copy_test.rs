@@ -60,3 +60,31 @@ fn copy_apply_copies_topic_to_destination_parent_with_new_id() {
     assert_eq!(root_children[2]["title"], "Payment");
     assert_eq!(root_children[2]["path"], "/Payment");
 }
+
+#[test]
+fn copy_preserve_ids_rejects_same_workbook_copy() {
+    let output = Command::cargo_bin("xmind")
+        .expect("xmind binary is built for CLI tests")
+        .args([
+            "copy",
+            "tests/fixtures/xmind/duplicate-titles.xmind",
+            "--node",
+            "id:topic-payment-q1",
+            "--to",
+            "root",
+            "--preserve-ids",
+            "--dry-run",
+            "--json",
+        ])
+        .output()
+        .expect("copy command runs");
+
+    assert_eq!(output.status.code(), Some(8));
+    let body: Value = serde_json::from_slice(&output.stdout).expect("stdout is JSON");
+    assert_eq!(body["ok"], false);
+    assert_eq!(body["error"]["code"], "patch_conflict");
+    assert_eq!(
+        body["error"]["suggested_fix"],
+        "Omit --preserve-ids when copying within the same workbook."
+    );
+}
