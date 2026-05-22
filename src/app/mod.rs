@@ -1328,17 +1328,7 @@ fn render_import_output(
     markdown_mode: Option<MarkdownMode>,
     overwrite: bool,
 ) -> i32 {
-    if invocation.dry_run {
-        let error = CliErrorBody::new(
-            ErrorCode::InvalidUsage,
-            "import --output --dry-run is not implemented in this slice.",
-            true,
-            "Retry with --apply until the import dry-run slice is implemented.",
-        );
-        return render_error(invocation, json, error);
-    }
-
-    if invocation.workbook.exists() && !overwrite {
+    if !invocation.dry_run && invocation.workbook.exists() && !overwrite {
         let error = CliErrorBody::new(
             ErrorCode::WriteFailed,
             format!(
@@ -1389,10 +1379,12 @@ fn render_import_output(
         preservation: PreservationBag::default(),
     };
 
-    if let Err(error) =
-        crate::infra::xmind::encode::write_new_workbook(&invocation.workbook, &workbook)
-    {
-        return render_workbook_write_error(invocation, json, error);
+    if !invocation.dry_run {
+        if let Err(error) =
+            crate::infra::xmind::encode::write_new_workbook(&invocation.workbook, &workbook)
+        {
+            return render_workbook_write_error(invocation, json, error);
+        }
     }
 
     let result = ImportOutputResultDto {
@@ -1410,16 +1402,21 @@ fn render_import_output(
             ok: true,
             command: Some(invocation.command),
             workbook: Some(invocation.workbook.display().to_string()),
-            dry_run: false,
-            applied: true,
+            dry_run: invocation.dry_run,
+            applied: !invocation.dry_run,
             result: Some(result),
             error: None,
             warnings: Vec::new(),
         };
         crate::cli::render_json_envelope(&envelope);
     } else if !invocation.quiet {
+        let verb = if invocation.dry_run {
+            "planned"
+        } else {
+            "created"
+        };
         println!(
-            "created {} with {added} topics",
+            "{verb} {} with {added} topics",
             invocation.workbook.display()
         );
     }

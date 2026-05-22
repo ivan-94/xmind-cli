@@ -339,6 +339,11 @@
           创建新 workbook 的路径：默认拒绝覆盖既有文件，显式传入时替换目标。
           对 <code>--into</code> 导入既有 workbook 的场景不改变语义。
         </li>
+        <li>
+          <code>import --output --dry-run</code> 已解析和校验输入并返回
+          summary，但不会创建目标文件；creation diff 的完整结构仍由后续
+          “empty workbook diff” 任务补齐。
+        </li>
       </ul>
     </section>
   </body>
