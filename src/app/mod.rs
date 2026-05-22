@@ -5412,6 +5412,11 @@ mod tests {
 
         assert!(matches!(error.code, ErrorCode::ValidationFailed));
         assert_eq!(error.exit_code, ErrorCode::ValidationFailed.exit_code());
+        assert!(!error.retryable);
         assert_eq!(error.path.as_deref(), Some("roadmap.xmind"));
+        assert_eq!(
+            error.suggested_fix,
+            "The original workbook was left unchanged. Inspect the mutation and retry."
+        );
     }
 }
