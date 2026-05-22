@@ -101,6 +101,9 @@ pub struct ExportCommand {
 
     #[arg(long)]
     pub output: Option<PathBuf>,
+
+    #[arg(long)]
+    pub overwrite: bool,
 }
 
 #[derive(Debug, Args)]

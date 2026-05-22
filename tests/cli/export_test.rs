@@ -38,6 +38,40 @@ fn export_output_writes_payload_to_file_without_stdout() {
 }
 
 #[test]
+fn export_overwrite_replaces_existing_output_file() {
+    let temp_dir = tempfile::tempdir().expect("temp dir is created");
+    let output_path = temp_dir.path().join("roadmap.md");
+    std::fs::write(&output_path, "old content\n").expect("existing output is written");
+    let output_arg = output_path.to_string_lossy().into_owned();
+
+    let output = Command::cargo_bin("xmind")
+        .expect("xmind binary is built for CLI tests")
+        .args([
+            "export",
+            "tests/fixtures/xmind/minimal.xmind",
+            "--format",
+            "markdown",
+            "--output",
+            &output_arg,
+            "--overwrite",
+        ])
+        .output()
+        .expect("export command runs");
+
+    assert_eq!(output.status.code(), Some(0));
+    assert!(output.stdout.is_empty());
+    assert!(
+        output.stderr.is_empty(),
+        "export should not emit stderr diagnostics: {}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    assert_eq!(
+        std::fs::read_to_string(output_path).expect("output file is overwritten"),
+        "# Roadmap\n\n## Q2\n\n### Payment\n"
+    );
+}
+
+#[test]
 fn export_format_json_writes_raw_tree_payload_to_stdout() {
     let output = Command::cargo_bin("xmind")
         .expect("xmind binary is built for CLI tests")

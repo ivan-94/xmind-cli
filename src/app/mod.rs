@@ -110,10 +110,11 @@ pub fn run(cli: Cli) -> i32 {
         Action::Export {
             ref format,
             ref output,
+            overwrite,
         } => {
             let format = format.clone();
             let output = output.clone();
-            render_export(invocation, json, &format, output)
+            render_export(invocation, json, &format, output, overwrite)
         }
         Action::Backup { ref backup_dir } => {
             let backup_dir = backup_dir.clone();
@@ -418,6 +419,7 @@ enum Action {
     Export {
         format: OutputFormat,
         output: Option<PathBuf>,
+        overwrite: bool,
     },
     Backup {
         backup_dir: Option<std::path::PathBuf>,
@@ -535,6 +537,7 @@ impl Invocation {
                     Action::Export {
                         format: output_format,
                         output: command.output,
+                        overwrite: command.overwrite,
                     },
                 ),
             ),
@@ -1057,6 +1060,7 @@ fn render_export(
     json: bool,
     format: &OutputFormat,
     output: Option<PathBuf>,
+    overwrite: bool,
 ) -> i32 {
     let workbook = match read_workbook_or_render_error(&invocation, json) {
         Ok(workbook) => workbook,
@@ -1073,7 +1077,7 @@ fn render_export(
             let result = TreeResultDto::from_sheet(sheet, None);
             let content = serde_json::to_string_pretty(&result).expect("export result serializes");
             if let Some(output) = output {
-                return write_export_output(invocation, json, output, &content);
+                return write_export_output(invocation, json, output, overwrite, &content);
             }
             if json {
                 let envelope = CommandEnvelope {
@@ -1094,7 +1098,7 @@ fn render_export(
         OutputFormat::Markdown => {
             let content = render_export_markdown(&sheet.root);
             if let Some(output) = output {
-                return write_export_output(invocation, json, output, &content);
+                return write_export_output(invocation, json, output, overwrite, &content);
             }
             if json {
                 let envelope = CommandEnvelope {
@@ -1123,7 +1127,7 @@ fn render_export(
                 "outline"
             };
             if let Some(output) = output {
-                return write_export_output(invocation, json, output, &content);
+                return write_export_output(invocation, json, output, overwrite, &content);
             }
             if json {
                 let envelope = CommandEnvelope {
@@ -1153,7 +1157,7 @@ fn render_export(
             });
             let content = serde_json::to_string_pretty(&result).expect("export result serializes");
             if let Some(output) = output {
-                return write_export_output(invocation, json, output, &content);
+                return write_export_output(invocation, json, output, overwrite, &content);
             }
             if json {
                 let envelope = CommandEnvelope {
@@ -1212,13 +1216,19 @@ fn collect_export_outline_lines(topic: &Topic, indent: usize, lines: &mut Vec<St
     }
 }
 
-fn write_export_output(invocation: Invocation, json: bool, output: PathBuf, content: &str) -> i32 {
-    if output.exists() {
+fn write_export_output(
+    invocation: Invocation,
+    json: bool,
+    output: PathBuf,
+    overwrite: bool,
+    content: &str,
+) -> i32 {
+    if output.exists() && !overwrite {
         let error = CliErrorBody::new(
             ErrorCode::WriteFailed,
             format!("Export output already exists: {}", output.display()),
             false,
-            "Choose a different output path, or use --overwrite once that option is available.",
+            "Choose a different output path, or pass --overwrite to replace the existing file.",
         )
         .with_path(output.display().to_string());
         return render_error(invocation, json, error);

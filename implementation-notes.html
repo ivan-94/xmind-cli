@@ -315,8 +315,8 @@
         </li>
         <li>
           <code>export --output</code> 已支持将当前 export payload 写入新文件；
-          在 <code>--overwrite</code> 实现前，目标已存在会返回
-          <code>write_failed</code>。
+          默认仍拒绝覆盖既有目标并返回 <code>write_failed</code>。
+          调用方可以显式传入 <code>--overwrite</code> 替换既有文件。
         </li>
       </ul>
     </section>
