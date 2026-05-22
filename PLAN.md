@@ -144,7 +144,7 @@ Implement a Rust CLI named `xmind` that satisfies the documented product, comman
   - [ ] `<=`
   - [x] `contains`
   - [x] `starts_with`
-  - [ ] `ends_with`
+  - [x] `ends_with`
   - [ ] `in`
   - [ ] `exists`
 - [ ] Implement query precedence:
