@@ -369,7 +369,7 @@ Implement a Rust CLI named `xmind` that satisfies the documented product, comman
 - [x] Test `ambiguous_sheet`.
 - [x] Test `not_found`.
 - [x] Test `ambiguous_selector`.
-- [ ] Test `invalid_tree_input`.
+- [x] Test `invalid_tree_input`.
 - [x] Test `invalid_patch`.
 - [ ] Test `patch_conflict`.
 - [ ] Test `validation_failed`.
