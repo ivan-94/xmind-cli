@@ -1,5 +1,17 @@
 #![allow(dead_code)]
 
+use sha2::{Digest, Sha256};
+
+pub fn image_checksum(bytes: &[u8]) -> String {
+    let digest = Sha256::digest(bytes);
+    let mut output = String::from("sha256:");
+    for byte in digest {
+        use std::fmt::Write as _;
+        write!(&mut output, "{byte:02x}").expect("writing to String cannot fail");
+    }
+    output
+}
+
 pub fn detect_supported_image_media_type(bytes: &[u8]) -> Option<&'static str> {
     if bytes.starts_with(b"\x89PNG\r\n\x1a\n") {
         return Some("image/png");
@@ -27,7 +39,7 @@ fn looks_like_svg(bytes: &[u8]) -> bool {
 
 #[cfg(test)]
 mod tests {
-    use super::detect_supported_image_media_type;
+    use super::{detect_supported_image_media_type, image_checksum};
 
     #[test]
     fn detects_png_jpeg_gif_and_svg_media_types() {
@@ -52,5 +64,13 @@ mod tests {
     #[test]
     fn rejects_unknown_image_media_type() {
         assert_eq!(detect_supported_image_media_type(b"BMbitmap"), None);
+    }
+
+    #[test]
+    fn image_checksum_returns_sha256_hex_digest() {
+        assert_eq!(
+            image_checksum(b"abc"),
+            "sha256:ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad"
+        );
     }
 }
