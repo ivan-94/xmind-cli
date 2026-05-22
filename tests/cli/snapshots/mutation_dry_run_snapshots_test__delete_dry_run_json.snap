@@ -1,0 +1,30 @@
+---
+source: tests/cli/mutation_dry_run_snapshots_test.rs
+expression: mutation_output(&args)
+---
+{
+  "ok": true,
+  "command": "delete",
+  "workbook": "tests/fixtures/xmind/minimal.xmind",
+  "dry_run": true,
+  "applied": false,
+  "result": {
+    "will_change": true,
+    "deleted": [
+      "/Q2/Payment"
+    ],
+    "summary": {
+      "added": 0,
+      "updated": 0,
+      "deleted": 1,
+      "moved": 0
+    },
+    "diff": [
+      {
+        "event": "deleted",
+        "path": "/Q2/Payment"
+      }
+    ]
+  },
+  "warnings": []
+}

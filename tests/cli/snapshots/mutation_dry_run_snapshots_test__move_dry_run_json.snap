@@ -1,0 +1,33 @@
+---
+source: tests/cli/mutation_dry_run_snapshots_test.rs
+expression: mutation_output(&args)
+---
+{
+  "ok": true,
+  "command": "move",
+  "workbook": "tests/fixtures/xmind/duplicate-titles.xmind",
+  "dry_run": true,
+  "applied": false,
+  "result": {
+    "will_change": true,
+    "moved": {
+      "id": "topic-payment-q1",
+      "from_path": "/Q1/Payment",
+      "to_path": "/Payment"
+    },
+    "summary": {
+      "added": 0,
+      "updated": 0,
+      "deleted": 0,
+      "moved": 1
+    },
+    "diff": [
+      {
+        "event": "moved",
+        "from": "/Q1/Payment",
+        "to": "/Payment"
+      }
+    ]
+  },
+  "warnings": []
+}

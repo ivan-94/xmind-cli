@@ -1,0 +1,36 @@
+---
+source: tests/cli/mutation_dry_run_snapshots_test.rs
+expression: mutation_output(&args)
+---
+{
+  "ok": true,
+  "command": "copy",
+  "workbook": "tests/fixtures/xmind/duplicate-titles.xmind",
+  "dry_run": true,
+  "applied": false,
+  "result": {
+    "will_change": true,
+    "copied_root": {
+      "source_id": "topic-q1",
+      "new_id": "topic-q1-copy",
+      "path": "/Q2/Q1 Copy"
+    },
+    "summary": {
+      "added": 2,
+      "updated": 0,
+      "deleted": 0,
+      "moved": 0
+    },
+    "diff": [
+      {
+        "event": "added",
+        "path": "/Q2/Q1 Copy"
+      },
+      {
+        "event": "added",
+        "path": "/Q2/Q1 Copy/Payment"
+      }
+    ]
+  },
+  "warnings": []
+}

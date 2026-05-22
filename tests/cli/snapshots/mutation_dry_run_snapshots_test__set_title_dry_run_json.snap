@@ -1,0 +1,35 @@
+---
+source: tests/cli/mutation_dry_run_snapshots_test.rs
+expression: mutation_output(&args)
+---
+{
+  "ok": true,
+  "command": "set",
+  "workbook": "tests/fixtures/xmind/minimal.xmind",
+  "dry_run": true,
+  "applied": false,
+  "result": {
+    "will_change": true,
+    "updated": {
+      "id": "topic-payment",
+      "old_path": "/Q2/Payment",
+      "new_path": "/Q2/Checkout",
+      "changed_fields": [
+        "title"
+      ]
+    },
+    "summary": {
+      "added": 0,
+      "updated": 1,
+      "deleted": 0,
+      "moved": 0
+    },
+    "diff": [
+      {
+        "event": "updated",
+        "path": "/Q2/Checkout"
+      }
+    ]
+  },
+  "warnings": []
+}

@@ -3703,5 +3703,40 @@
         </li>
       </ul>
     </section>
+    <section class="entry">
+      <h2>2026-05-22 - JSON dry-run snapshots</h2>
+      <h3>Design Decisions</h3>
+      <ul>
+        <li>
+          Added committed insta snapshots for mutation dry-run JSON envelopes.
+          The snapshot set covers <code>add</code>, <code>set</code>,
+          <code>delete</code>, <code>move</code>, <code>copy</code>, and the
+          current <code>patch add_tree</code> dry-run path.
+        </li>
+      </ul>
+
+      <h3>Deviations</h3>
+      <ul>
+        <li>
+          The patch snapshot covers only <code>add_tree</code> because the patch
+          engine currently supports only that operation in dry-run.
+        </li>
+      </ul>
+
+      <h3>Tradeoffs</h3>
+      <ul>
+        <li>
+          The snapshots use stable fixture workbooks instead of temp files so the
+          serialized workbook paths stay deterministic.
+        </li>
+      </ul>
+
+      <h3>Open Questions</h3>
+      <ul>
+        <li>
+          None for this slice.
+        </li>
+      </ul>
+    </section>
   </body>
 </html>

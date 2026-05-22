@@ -270,7 +270,7 @@ Implement a Rust CLI named `xmind` that satisfies the documented product, comman
 - [x] Implement intermediate topic defaults.
 - [x] Reject unsupported root operations.
 - [x] Add CLI tests for each mutation.
-- [ ] Add JSON dry-run snapshots.
+- [x] Add JSON dry-run snapshots.
 - [x] Add applied write tests.
 
 ## Phase 10: Tree Input

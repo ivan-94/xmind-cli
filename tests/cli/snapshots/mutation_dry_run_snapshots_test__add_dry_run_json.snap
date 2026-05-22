@@ -1,0 +1,36 @@
+---
+source: tests/cli/mutation_dry_run_snapshots_test.rs
+expression: mutation_output(&args)
+---
+{
+  "ok": true,
+  "command": "add",
+  "workbook": "tests/fixtures/xmind/minimal.xmind",
+  "dry_run": true,
+  "applied": false,
+  "result": {
+    "will_change": true,
+    "parent": {
+      "id": "topic-q2",
+      "path": "/Q2",
+      "title": "Q2"
+    },
+    "created": {
+      "path": "/Q2/Refund",
+      "title": "Refund"
+    },
+    "summary": {
+      "added": 1,
+      "updated": 0,
+      "deleted": 0,
+      "moved": 0
+    },
+    "diff": [
+      {
+        "event": "added",
+        "path": "/Q2/Refund"
+      }
+    ]
+  },
+  "warnings": []
+}

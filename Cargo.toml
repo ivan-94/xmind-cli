@@ -61,6 +61,10 @@ name = "read_snapshots_test"
 path = "tests/cli/read_snapshots_test.rs"
 
 [[test]]
+name = "mutation_dry_run_snapshots_test"
+path = "tests/cli/mutation_dry_run_snapshots_test.rs"
+
+[[test]]
 name = "patch_test"
 path = "tests/cli/patch_test.rs"
 

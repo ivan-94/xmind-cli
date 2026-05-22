@@ -1,0 +1,42 @@
+---
+source: tests/cli/mutation_dry_run_snapshots_test.rs
+expression: mutation_output(&args)
+---
+{
+  "ok": true,
+  "command": "patch",
+  "workbook": "tests/fixtures/xmind/minimal.xmind",
+  "dry_run": true,
+  "applied": false,
+  "result": {
+    "will_change": true,
+    "summary": {
+      "added": 3,
+      "updated": 0,
+      "deleted": 0,
+      "moved": 0
+    },
+    "operations": [
+      {
+        "index": 0,
+        "op": "add_tree",
+        "status": "planned"
+      }
+    ],
+    "diff": [
+      {
+        "event": "added",
+        "path": "/Q2/支付能力"
+      },
+      {
+        "event": "added",
+        "path": "/Q2/支付能力/收银台"
+      },
+      {
+        "event": "added",
+        "path": "/Q2/支付能力/退款"
+      }
+    ]
+  },
+  "warnings": []
+}
