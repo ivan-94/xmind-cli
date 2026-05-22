@@ -25,6 +25,7 @@ pub enum TopicClearField {
 pub enum InsertPosition {
     First,
     Last,
+    Index(usize),
 }
 
 pub fn encode_workbook_content(workbook: &Workbook) -> Result<Vec<u8>, XMindWriteError> {
@@ -1068,6 +1069,7 @@ fn insert_child(children: &mut Vec<Value>, child: Value, position: InsertPositio
     match position {
         InsertPosition::First => children.insert(0, child),
         InsertPosition::Last => children.push(child),
+        InsertPosition::Index(index) => children.insert(index, child),
     }
 }
 

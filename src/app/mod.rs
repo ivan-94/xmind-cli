@@ -1295,6 +1295,10 @@ fn render_add(
         }
     };
 
+    if let Err(error) = validate_insert_position(position, parent.topic.children.len()) {
+        return render_error(invocation, json, error);
+    }
+
     let new_topic_id = generated_topic_id(title);
     let plan = MutationPlanner::plan_add_topic(AddTopicRequest {
         parent: parent.topic,
@@ -1444,13 +1448,43 @@ fn parse_insert_position(position: Option<String>) -> Result<InsertPosition, Cli
         None => Ok(InsertPosition::Last),
         Some("first") => Ok(InsertPosition::First),
         Some("last") => Ok(InsertPosition::Last),
+        Some(index) if index.starts_with("index:") => {
+            let value = index.trim_start_matches("index:");
+            let index = value.parse::<usize>().map_err(|_| {
+                CliErrorBody::new(
+                    ErrorCode::InvalidUsage,
+                    format!("Invalid position index: {value}"),
+                    true,
+                    "Use --position index:N where N is a non-negative integer.",
+                )
+            })?;
+            Ok(InsertPosition::Index(index))
+        }
         Some(other) => Err(CliErrorBody::new(
             ErrorCode::InvalidUsage,
             format!("Unsupported position: {other}"),
             true,
-            "Use --position first or --position last.",
+            "Use --position first, --position last, or --position index:N.",
         )),
     }
+}
+
+fn validate_insert_position(
+    position: InsertPosition,
+    child_count: usize,
+) -> Result<(), CliErrorBody> {
+    if let InsertPosition::Index(index) = position {
+        if index > child_count {
+            return Err(CliErrorBody::new(
+                ErrorCode::InvalidUsage,
+                format!("Position index {index} is outside the destination child range."),
+                true,
+                format!("Use an index between 0 and {child_count}."),
+            ));
+        }
+    }
+
+    Ok(())
 }
 
 fn render_delete(
@@ -1748,6 +1782,10 @@ fn render_move(
         }
     };
 
+    if let Err(error) = validate_insert_position(position, destination.topic.children.len()) {
+        return render_error(invocation, json, error);
+    }
+
     if destination
         .path
         .segments()
@@ -1967,6 +2005,10 @@ fn render_copy(
             return render_error(invocation, json, error);
         }
     };
+
+    if let Err(error) = validate_insert_position(position, destination.topic.children.len()) {
+        return render_error(invocation, json, error);
+    }
 
     let copied_title = title.unwrap_or_else(|| source.topic.title.clone());
     if copied_title.is_empty() {

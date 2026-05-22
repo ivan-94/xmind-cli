@@ -263,7 +263,7 @@ Implement a Rust CLI named `xmind` that satisfies the documented product, comman
 - [x] Implement `copy --preserve-ids` guardrails.
 - [x] Implement `--position first`.
 - [x] Implement `--position last`.
-- [ ] Implement `--position index:N`.
+- [x] Implement `--position index:N`.
 - [ ] Implement `--position before:<selector>`.
 - [ ] Implement `--position after:<selector>`.
 - [ ] Implement `--create-missing-path`.

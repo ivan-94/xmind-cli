@@ -3437,5 +3437,44 @@
         </li>
       </ul>
     </section>
+
+    <section class="entry">
+      <h2>2026-05-22 - position index</h2>
+      <h3>Design Decisions</h3>
+      <ul>
+        <li>
+          Implemented <code>--position index:N</code> as a 0-based destination
+          child insertion index for <code>add</code>, <code>move</code>, and
+          <code>copy</code>.
+        </li>
+        <li>
+          Index values are validated against the destination child count before
+          any workbook write occurs.
+        </li>
+      </ul>
+
+      <h3>Deviations</h3>
+      <ul>
+        <li>
+          Selector-relative <code>before:</code> and <code>after:</code> modes
+          remain deferred to their dedicated PLAN items.
+        </li>
+      </ul>
+
+      <h3>Tradeoffs</h3>
+      <ul>
+        <li>
+          Using 0-based indices matches Rust vector insertion and keeps
+          <code>index:0</code> equivalent to <code>first</code>.
+        </li>
+      </ul>
+
+      <h3>Open Questions</h3>
+      <ul>
+        <li>
+          Confirm whether docs should explicitly call out 0-based indexing.
+        </li>
+      </ul>
+    </section>
   </body>
 </html>
