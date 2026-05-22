@@ -4469,7 +4469,7 @@ pub(in crate::app) fn collect_deleted_paths(topic: &Topic, path: &TopicPath) -> 
     paths
 }
 
-fn collect_descendant_paths(topic: &Topic, path: &TopicPath) -> Vec<String> {
+pub(in crate::app) fn collect_descendant_paths(topic: &Topic, path: &TopicPath) -> Vec<String> {
     let mut paths = Vec::new();
 
     for child in &topic.children {

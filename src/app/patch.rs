@@ -11,10 +11,10 @@ use crate::domain::sheet::Sheet;
 use crate::domain::topic::Topic;
 
 use super::{
-    collect_added_paths, collect_copied_paths, collect_deleted_paths, find_topic_by_path,
-    insert_position_from_spec, parse_insert_position, read_workbook_or_render_error, renamed_path,
-    render_error, resolve_topic, select_sheet_or_render_error, Invocation, ResolveOne,
-    TopicTreeInputDto,
+    collect_added_paths, collect_copied_paths, collect_deleted_paths, collect_descendant_paths,
+    find_topic_by_path, insert_position_from_spec, parse_insert_position,
+    read_workbook_or_render_error, renamed_path, render_error, resolve_topic,
+    select_sheet_or_render_error, Invocation, ResolveOne, TopicTreeInputDto,
 };
 
 #[derive(Debug, Deserialize)]
@@ -905,17 +905,6 @@ fn plan_patch_delete(
     op_name: &str,
     op: &PatchOpDto,
 ) -> Result<Vec<String>, i32> {
-    if op.children_only.unwrap_or(false) {
-        let error = CliErrorBody::new(
-            ErrorCode::InvalidPatch,
-            "delete children_only is not implemented in this patch slice.",
-            true,
-            "Omit children_only or set children_only: false.",
-        )
-        .with_operation_context(index, op_name.to_owned())
-        .with_field_path("children_only");
-        return Err(render_error(invocation, json, error));
-    }
     if op.promote_children.unwrap_or(false) {
         let error = CliErrorBody::new(
             ErrorCode::InvalidPatch,
@@ -1004,7 +993,11 @@ fn plan_patch_delete(
         return Err(render_error(invocation, json, error));
     }
 
-    Ok(collect_deleted_paths(resolved.topic, &resolved.path))
+    if op.children_only.unwrap_or(false) {
+        Ok(collect_descendant_paths(resolved.topic, &resolved.path))
+    } else {
+        Ok(collect_deleted_paths(resolved.topic, &resolved.path))
+    }
 }
 
 fn plan_patch_move(

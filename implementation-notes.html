@@ -227,6 +227,11 @@
           任一目标 label 的主题输出 <code>updated</code> diff。其他 metadata
           patch 字段尚未进入文档化输入范围。
         </li>
+        <li>
+          Patch <code>delete</code> 已支持 <code>children_only: true</code>
+          dry-run 规划：保留目标主题，仅为 descendants 输出 <code>deleted</code>
+          diff。
+        </li>
       </ul>
     </section>
   </body>
