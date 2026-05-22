@@ -51,6 +51,9 @@ pub struct FindCommand {
     pub contains: Option<String>,
 
     #[arg(long)]
+    pub query: Option<String>,
+
+    #[arg(long)]
     pub limit: Option<usize>,
 
     #[arg(long)]

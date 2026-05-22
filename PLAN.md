@@ -133,10 +133,10 @@ Implement a Rust CLI named `xmind` that satisfies the documented product, comman
 - [x] Implement selector resolution against a sheet.
 - [x] Implement ambiguous selector candidates.
 - [x] Implement `not_found` diagnostics.
-- [ ] Implement query lexer/parser.
-- [ ] Implement query AST.
+- [x] Implement query lexer/parser.
+- [x] Implement query AST.
 - [ ] Implement query operators:
-  - [ ] `=`
+  - [x] `=`
   - [ ] `!=`
   - [ ] `>`
   - [ ] `>=`
@@ -154,7 +154,7 @@ Implement a Rust CLI named `xmind` that satisfies the documented product, comman
   - [ ] `or`.
 - [ ] Implement query string escaping.
 - [x] Add unit tests for selector parsing.
-- [ ] Add unit tests for query parsing.
+- [x] Add unit tests for query parsing.
 - [ ] Add evaluator tests for all query fields.
 
 ## Phase 5: XMind Package Reader
@@ -191,7 +191,7 @@ Implement a Rust CLI named `xmind` that satisfies the documented product, comman
 - [x] Implement `find --title` exact case-sensitive match.
 - [x] Implement `find --title-contains`.
 - [x] Implement `find --contains`.
-- [ ] Implement `find --query`.
+- [x] Implement `find --query`.
 - [x] Implement `--depth`.
 - [x] Implement `--limit`.
 - [x] Implement `--offset`.

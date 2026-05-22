@@ -8,6 +8,7 @@ use crate::cli::{
     CandidateDto, Cli, CliErrorBody, Command, CommandEnvelope, ErrorCode, OutputFormat,
 };
 use crate::domain::path::TopicPath;
+use crate::domain::query::QueryExpr;
 use crate::domain::selector::Selector;
 use crate::domain::sheet::Sheet;
 use crate::domain::topic::Topic;
@@ -63,12 +64,14 @@ pub fn run(cli: Cli) -> i32 {
             ref title,
             ref title_contains,
             ref contains,
+            ref query,
             limit,
             offset,
         } => {
             let title = title.clone();
             let title_contains = title_contains.clone();
             let contains = contains.clone();
+            let query = query.clone();
             render_find(
                 invocation,
                 json,
@@ -76,6 +79,7 @@ pub fn run(cli: Cli) -> i32 {
                     title,
                     title_contains,
                     contains,
+                    query,
                     limit,
                     offset,
                     fields: fields.clone(),
@@ -118,6 +122,7 @@ struct FindInvocationArgs {
     title: Option<String>,
     title_contains: Option<String>,
     contains: Option<String>,
+    query: Option<String>,
     limit: Option<usize>,
     offset: Option<usize>,
 }
@@ -133,6 +138,7 @@ enum Action {
         title: Option<String>,
         title_contains: Option<String>,
         contains: Option<String>,
+        query: Option<String>,
         limit: Option<usize>,
         offset: Option<usize>,
     },
@@ -231,6 +237,7 @@ impl Invocation {
                     title: command.title,
                     title_contains: command.title_contains,
                     contains: command.contains,
+                    query: command.query,
                     limit: command.limit,
                     offset: command.offset,
                 },
@@ -434,6 +441,7 @@ impl Invocation {
                 title: args.title,
                 title_contains: args.title_contains,
                 contains: args.contains,
+                query: args.query,
                 limit: args.limit,
                 offset: args.offset,
             },
@@ -715,6 +723,7 @@ fn render_find(invocation: Invocation, json: bool, options: FindRenderOptions) -
         options.title.as_deref(),
         options.title_contains.as_deref(),
         options.contains.as_deref(),
+        options.query.as_deref(),
     ) {
         Ok(criterion) => criterion,
         Err(error) => return render_error(invocation, json, error),
@@ -735,6 +744,7 @@ fn render_find(invocation: Invocation, json: bool, options: FindRenderOptions) -
         &sheet.root,
         &TopicPath::root(),
         &sheet.title,
+        0,
         &criterion,
         &mut matches,
     );
@@ -1310,6 +1320,7 @@ struct FindRenderOptions {
     title: Option<String>,
     title_contains: Option<String>,
     contains: Option<String>,
+    query: Option<String>,
     limit: Option<usize>,
     offset: Option<usize>,
     fields: Vec<String>,
@@ -1320,6 +1331,7 @@ enum FindCriterion<'a> {
     TitleExact(&'a str),
     TitleContains(&'a str),
     Contains(&'a str),
+    Query(QueryExpr),
 }
 
 impl<'a> FindCriterion<'a> {
@@ -1327,27 +1339,39 @@ impl<'a> FindCriterion<'a> {
         title: Option<&'a str>,
         title_contains: Option<&'a str>,
         contains: Option<&'a str>,
+        query: Option<&'a str>,
     ) -> Result<Self, CliErrorBody> {
-        match (title, title_contains, contains) {
-            (Some(title), None, None) => Ok(Self::TitleExact(title)),
-            (None, Some(title_contains), None) => Ok(Self::TitleContains(title_contains)),
-            (None, None, Some(contains)) => Ok(Self::Contains(contains)),
-            (None, None, None) => Err(CliErrorBody::new(
+        match (title, title_contains, contains, query) {
+            (Some(title), None, None, None) => Ok(Self::TitleExact(title)),
+            (None, Some(title_contains), None, None) => Ok(Self::TitleContains(title_contains)),
+            (None, None, Some(contains), None) => Ok(Self::Contains(contains)),
+            (None, None, None, Some(query)) => {
+                let expr = QueryExpr::parse(query).map_err(|error| {
+                    CliErrorBody::new(
+                        ErrorCode::InvalidUsage,
+                        format!("find query is invalid: {error}"),
+                        true,
+                        "Use a valid query expression such as title = \"Payment\".",
+                    )
+                })?;
+                Ok(Self::Query(expr))
+            }
+            (None, None, None, None) => Err(CliErrorBody::new(
                 ErrorCode::InvalidUsage,
                 "find requires a search criterion.",
                 true,
-                "Retry with --title, --title-contains, or --contains.",
+                "Retry with --title, --title-contains, --contains, or --query.",
             )),
             _ => Err(CliErrorBody::new(
                 ErrorCode::InvalidUsage,
                 "find accepts only one search criterion at a time.",
                 true,
-                "Retry with only one of --title, --title-contains, or --contains.",
+                "Retry with only one of --title, --title-contains, --contains, or --query.",
             )),
         }
     }
 
-    fn matches_topic(&self, topic: &Topic) -> bool {
+    fn matches_topic(&self, topic: &Topic, path: &TopicPath, depth: usize) -> bool {
         match self {
             Self::TitleExact(expected) => topic.title == *expected,
             Self::TitleContains(needle) => topic.title.contains(needle),
@@ -1358,6 +1382,7 @@ impl<'a> FindCriterion<'a> {
                         .as_deref()
                         .is_some_and(|note| note.contains(needle))
             }
+            Self::Query(expr) => expr.matches_topic(topic, path, depth),
         }
     }
 }
@@ -1633,10 +1658,11 @@ fn collect_find_matches(
     topic: &Topic,
     path: &TopicPath,
     sheet_title: &str,
+    depth: usize,
     criterion: &FindCriterion<'_>,
     matches: &mut Vec<FindMatchDto>,
 ) {
-    if criterion.matches_topic(topic) {
+    if criterion.matches_topic(topic, path, depth) {
         matches.push(FindMatchDto {
             id: topic.id.0.clone(),
             path: path.to_selector_value(),
@@ -1648,7 +1674,14 @@ fn collect_find_matches(
 
     for child in &topic.children {
         let child_path = path.join(child.title.clone());
-        collect_find_matches(child, &child_path, sheet_title, criterion, matches);
+        collect_find_matches(
+            child,
+            &child_path,
+            sheet_title,
+            depth + 1,
+            criterion,
+            matches,
+        );
     }
 }
 
