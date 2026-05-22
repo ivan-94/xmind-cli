@@ -371,7 +371,7 @@ Implement a Rust CLI named `xmind` that satisfies the documented product, comman
 - [x] Test `ambiguous_selector`.
 - [x] Test `invalid_tree_input`.
 - [x] Test `invalid_patch`.
-- [ ] Test `patch_conflict`.
+- [x] Test `patch_conflict`.
 - [ ] Test `validation_failed`.
 - [ ] Test `write_failed`.
 - [ ] Test `unsupported_asset_type`.
