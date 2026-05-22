@@ -3121,5 +3121,45 @@
         </li>
       </ul>
     </section>
+
+    <section class="entry">
+      <h2>2026-05-22 - delete apply</h2>
+      <h3>Design Decisions</h3>
+      <ul>
+        <li>
+          Implemented default <code>xmind delete --apply</code> as subtree
+          deletion: the selected topic and all descendants are removed together.
+        </li>
+        <li>
+          Apply uses the same transactional package rewrite and candidate
+          validation path as other mutations.
+        </li>
+      </ul>
+
+      <h3>Deviations</h3>
+      <ul>
+        <li>
+          <code>--children-only</code> and <code>--promote-children</code> remain
+          separate follow-up PLAN items.
+        </li>
+      </ul>
+
+      <h3>Tradeoffs</h3>
+      <ul>
+        <li>
+          The writer removes the topic from its parent's attached-children array,
+          which naturally drops the entire stored subtree without walking and
+          rewriting each descendant.
+        </li>
+      </ul>
+
+      <h3>Open Questions</h3>
+      <ul>
+        <li>
+          Confirm whether default subtree deletion should also clean up orphaned
+          resources when image attachment support lands.
+        </li>
+      </ul>
+    </section>
   </body>
 </html>

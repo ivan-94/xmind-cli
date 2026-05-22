@@ -300,6 +300,40 @@ pub fn clear_topic_fields(
     Ok(())
 }
 
+pub fn delete_topic(workbook_path: &Path, topic_id: &str) -> Result<(), XMindWriteError> {
+    let file = File::open(workbook_path)?;
+    let mut archive = zip::ZipArchive::new(file)?;
+    let mut entries = Vec::new();
+    let mut content_json = None;
+
+    for index in 0..archive.len() {
+        let mut entry = archive.by_index(index)?;
+        let name = entry.name().to_owned();
+        let mut bytes = Vec::new();
+        entry.read_to_end(&mut bytes)?;
+
+        if name == "content.json" {
+            let mut content: Value = serde_json::from_slice(&bytes)?;
+            if !delete_topic_in_content(&mut content, topic_id) {
+                return Err(XMindWriteError::TopicNotFound(topic_id.to_owned()));
+            }
+            content_json = Some(serde_json::to_vec_pretty(&content)?);
+        } else {
+            entries.push((name, bytes));
+        }
+    }
+
+    let Some(content_json) = content_json else {
+        return Err(XMindWriteError::MissingContent);
+    };
+
+    let temp_path = temp_workbook_path(workbook_path);
+    write_package(&temp_path, content_json, entries)?;
+    replace_with_validated_candidate(workbook_path, &temp_path, validate_candidate_package)?;
+
+    Ok(())
+}
+
 fn append_topic_to_content(
     content: &mut Value,
     parent_topic_id: &str,
@@ -390,6 +424,18 @@ fn clear_topic_fields_in_content(
         sheet
             .get_mut("rootTopic")
             .is_some_and(|root| clear_topic_fields_in_topic(root, topic_id, fields))
+    })
+}
+
+fn delete_topic_in_content(content: &mut Value, topic_id: &str) -> bool {
+    let Some(sheets) = content.as_array_mut() else {
+        return false;
+    };
+
+    sheets.iter_mut().any(|sheet| {
+        sheet
+            .get_mut("rootTopic")
+            .is_some_and(|root| delete_topic_below(root, topic_id))
     })
 }
 
@@ -518,6 +564,28 @@ fn clear_topic_fields_in_topic(
                 .iter_mut()
                 .any(|child| clear_topic_fields_in_topic(child, topic_id, fields))
         })
+}
+
+fn delete_topic_below(topic: &mut Value, topic_id: &str) -> bool {
+    let Some(children) = topic
+        .get_mut("children")
+        .and_then(|children| children.get_mut("attached"))
+        .and_then(Value::as_array_mut)
+    else {
+        return false;
+    };
+
+    if let Some(index) = children
+        .iter()
+        .position(|child| child.get("id").and_then(Value::as_str) == Some(topic_id))
+    {
+        children.remove(index);
+        return true;
+    }
+
+    children
+        .iter_mut()
+        .any(|child| delete_topic_below(child, topic_id))
 }
 
 fn set_topic_note_in_topic(topic: &mut Value, topic_id: &str, note: &str) -> bool {

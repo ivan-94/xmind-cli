@@ -1,5 +1,6 @@
 use assert_cmd::Command;
 use serde_json::Value;
+use std::fs;
 
 #[test]
 fn delete_dry_run_reports_deleted_topic_diff_without_writing() {
@@ -49,5 +50,55 @@ fn delete_dry_run_reports_deleted_topic_diff_without_writing() {
     assert_eq!(
         tree["result"]["root"]["children"][0]["children"][0]["title"],
         "Payment"
+    );
+}
+
+#[test]
+fn delete_apply_removes_topic_subtree() {
+    let temp_dir = tempfile::tempdir().expect("temp dir is created");
+    let workbook = temp_dir.path().join("apply-delete.xmind");
+    fs::copy("tests/fixtures/xmind/minimal.xmind", &workbook).expect("fixture is copied");
+    let workbook_arg = workbook.to_string_lossy().into_owned();
+
+    let output = Command::cargo_bin("xmind")
+        .expect("xmind binary is built for CLI tests")
+        .args([
+            "delete",
+            &workbook_arg,
+            "--node",
+            "id:topic-q2",
+            "--apply",
+            "--json",
+        ])
+        .output()
+        .expect("delete command runs");
+
+    assert_eq!(output.status.code(), Some(0));
+    assert!(
+        output.stderr.is_empty(),
+        "json delete output should not emit stderr diagnostics: {}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+
+    let body: Value = serde_json::from_slice(&output.stdout).expect("stdout is JSON");
+    assert_eq!(body["ok"], true);
+    assert_eq!(body["command"], "delete");
+    assert_eq!(body["applied"], true);
+    assert_eq!(body["result"]["deleted"][0], "/Q2");
+    assert_eq!(body["result"]["deleted"][1], "/Q2/Payment");
+    assert_eq!(body["result"]["summary"]["deleted"], 2);
+
+    let tree_output = Command::cargo_bin("xmind")
+        .expect("xmind binary is built for CLI tests")
+        .args(["tree", &workbook_arg, "--json", "--depth", "2"])
+        .output()
+        .expect("tree command runs after apply");
+    let tree: Value = serde_json::from_slice(&tree_output.stdout).expect("tree stdout is JSON");
+    assert_eq!(
+        tree["result"]["root"]["children"]
+            .as_array()
+            .expect("children is an array")
+            .len(),
+        0
     );
 }

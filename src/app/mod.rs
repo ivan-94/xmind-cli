@@ -1373,16 +1373,6 @@ fn clear_field_name(field: TopicClearField) -> &'static str {
 }
 
 fn render_delete(invocation: Invocation, json: bool, node: &str) -> i32 {
-    if !invocation.dry_run {
-        let error = CliErrorBody::new(
-            ErrorCode::InvalidUsage,
-            "Only delete --dry-run is implemented in this slice.",
-            true,
-            "Retry with --dry-run, or wait for the delete apply slice.",
-        );
-        return render_error(invocation, json, error);
-    }
-
     let workbook = match read_workbook_or_render_error(&invocation, json) {
         Ok(workbook) => workbook,
         Err(exit_code) => return exit_code,
@@ -1461,7 +1451,7 @@ fn render_delete(invocation: Invocation, json: bool, node: &str) -> i32 {
             path,
         })
         .collect::<Vec<_>>();
-    let result = DeleteDryRunResultDto {
+    let mut result = DeleteDryRunResultDto {
         will_change: !deleted.is_empty(),
         deleted,
         summary: SummaryDto {
@@ -1471,7 +1461,20 @@ fn render_delete(invocation: Invocation, json: bool, node: &str) -> i32 {
             moved: 0,
         },
         diff,
+        backup_path: None,
     };
+
+    if !invocation.dry_run {
+        result.backup_path = match create_mutation_backup(&invocation) {
+            Ok(backup_path) => backup_path,
+            Err(error) => return render_backup_error(invocation, json, error),
+        };
+        if let Err(error) =
+            crate::infra::xmind::encode::delete_topic(&invocation.workbook, &resolved.topic.id.0)
+        {
+            return render_workbook_write_error(invocation, json, error);
+        }
+    }
 
     if json {
         let envelope = CommandEnvelope {
@@ -1479,7 +1482,7 @@ fn render_delete(invocation: Invocation, json: bool, node: &str) -> i32 {
             command: Some(invocation.command),
             workbook: Some(invocation.workbook.display().to_string()),
             dry_run: invocation.dry_run,
-            applied: false,
+            applied: !invocation.dry_run,
             result: Some(result),
             error: None,
             warnings: Vec::new(),
@@ -3034,6 +3037,8 @@ struct DeleteDryRunResultDto {
     deleted: Vec<String>,
     summary: SummaryDto,
     diff: Vec<DiffEventDto>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    backup_path: Option<String>,
 }
 
 #[derive(Debug, Serialize)]
