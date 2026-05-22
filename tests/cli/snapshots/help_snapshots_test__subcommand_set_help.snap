@@ -17,6 +17,7 @@ Options:
       --add-label <ADD_LABEL>        
       --remove-label <REMOVE_LABEL>  
       --set-markers <SET_MARKERS>    
+      --add-marker <ADD_MARKER>      
       --dry-run                      
       --apply                        
       --backup                       

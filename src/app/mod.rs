@@ -167,6 +167,14 @@ pub fn run(cli: Cli) -> i32 {
             let markers = markers.clone();
             render_set_markers(invocation, json, &node, markers)
         }
+        Action::SetAddMarker {
+            ref node,
+            ref marker,
+        } => {
+            let node = node.clone();
+            let marker = marker.clone();
+            render_set_add_marker(invocation, json, &node, marker)
+        }
         Action::Delete { ref node } => {
             let node = node.clone();
             render_delete(invocation, json, &node)
@@ -265,6 +273,10 @@ enum Action {
     SetMarkers {
         node: String,
         markers: Vec<String>,
+    },
+    SetAddMarker {
+        node: String,
+        marker: String,
     },
     Delete {
         node: String,
@@ -468,6 +480,11 @@ impl Invocation {
                     Action::SetMarkers {
                         node: command.node,
                         markers: parse_csv_values(&markers),
+                    }
+                } else if let Some(marker) = command.add_marker {
+                    Action::SetAddMarker {
+                        node: command.node,
+                        marker,
                     }
                 } else {
                     Action::Noop
@@ -1980,6 +1997,24 @@ fn render_set_label_mutation(
 }
 
 fn render_set_markers(invocation: Invocation, json: bool, node: &str, markers: Vec<String>) -> i32 {
+    render_set_marker_mutation(invocation, json, node, MarkerMutation::Replace(markers))
+}
+
+fn render_set_add_marker(invocation: Invocation, json: bool, node: &str, marker: String) -> i32 {
+    render_set_marker_mutation(invocation, json, node, MarkerMutation::Add(marker))
+}
+
+enum MarkerMutation {
+    Replace(Vec<String>),
+    Add(String),
+}
+
+fn render_set_marker_mutation(
+    invocation: Invocation,
+    json: bool,
+    node: &str,
+    mutation: MarkerMutation,
+) -> i32 {
     let workbook = match read_workbook_or_render_error(&invocation, json) {
         Ok(workbook) => workbook,
         Err(exit_code) => return exit_code,
@@ -2038,6 +2073,16 @@ fn render_set_markers(invocation: Invocation, json: bool, node: &str, markers: V
         }
     };
 
+    let markers = match mutation {
+        MarkerMutation::Replace(markers) => markers,
+        MarkerMutation::Add(marker) => {
+            let mut markers = resolved.topic.markers.clone();
+            if !markers.iter().any(|existing| existing == &marker) {
+                markers.push(marker);
+            }
+            markers
+        }
+    };
     let path = resolved.path.to_selector_value();
     let human_diff = Diff::from_events(vec![DiffEvent::Updated {
         path: resolved.path.clone(),

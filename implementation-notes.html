@@ -2958,5 +2958,44 @@
         </li>
       </ul>
     </section>
+
+    <section class="entry">
+      <h2>2026-05-22 - add marker option</h2>
+      <h3>Design Decisions</h3>
+      <ul>
+        <li>
+          Implemented <code>xmind set --add-marker &lt;marker&gt;</code> through a
+          shared marker mutation renderer and the transactional marker writer.
+        </li>
+        <li>
+          Adding a marker preserves existing marker order and appends only when
+          the marker id is not already present.
+        </li>
+      </ul>
+
+      <h3>Deviations</h3>
+      <ul>
+        <li>
+          Duplicate add-marker requests are idempotent rather than creating
+          duplicate marker entries.
+        </li>
+      </ul>
+
+      <h3>Tradeoffs</h3>
+      <ul>
+        <li>
+          Treating markers as ordered-set values keeps retry behavior safe while
+          preserving stable output order.
+        </li>
+      </ul>
+
+      <h3>Open Questions</h3>
+      <ul>
+        <li>
+          Decide whether duplicate-marker idempotency belongs in the public
+          command reference.
+        </li>
+      </ul>
+    </section>
   </body>
 </html>
