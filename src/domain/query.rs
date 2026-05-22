@@ -46,6 +46,10 @@ impl QueryComparison {
             (QueryField::Title, QueryOperator::EndsWith, QueryValue::String(suffix)) => {
                 topic.title.ends_with(suffix)
             }
+            (QueryField::Title, QueryOperator::In, QueryValue::StringList(expected)) => {
+                expected.iter().any(|value| topic.title == *value)
+            }
+            _ => false,
         }
     }
 }
@@ -62,11 +66,13 @@ enum QueryOperator {
     Contains,
     StartsWith,
     EndsWith,
+    In,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 enum QueryValue {
     String(String),
+    StringList(Vec<String>),
 }
 
 #[derive(Debug, Eq, PartialEq, thiserror::Error)]
@@ -109,7 +115,11 @@ impl<'a> QueryParser<'a> {
     fn parse_comparison(&mut self) -> Result<QueryComparison, QueryParseError> {
         let field = self.parse_field()?;
         let operator = self.parse_operator()?;
-        let value = self.parse_string_value()?;
+        let value = if operator == QueryOperator::In {
+            self.parse_string_list_value()?
+        } else {
+            self.parse_string_value()?
+        };
 
         Ok(QueryComparison {
             field,
@@ -142,6 +152,7 @@ impl<'a> QueryParser<'a> {
             "contains" => Ok(QueryOperator::Contains),
             "starts_with" => Ok(QueryOperator::StartsWith),
             "ends_with" => Ok(QueryOperator::EndsWith),
+            "in" => Ok(QueryOperator::In),
             other => Err(QueryParseError::UnsupportedOperator(other.to_owned())),
         }
     }
@@ -174,6 +185,39 @@ impl<'a> QueryParser<'a> {
             Err(QueryParseError::IncompleteEscape)
         } else {
             Err(QueryParseError::UnterminatedString)
+        }
+    }
+
+    fn parse_string_list_value(&mut self) -> Result<QueryValue, QueryParseError> {
+        self.skip_whitespace();
+
+        if !self.consume_char('[') {
+            return Err(QueryParseError::ExpectedStringValue);
+        }
+
+        let mut values = Vec::new();
+
+        loop {
+            self.skip_whitespace();
+            if self.consume_char(']') {
+                return Ok(QueryValue::StringList(values));
+            }
+
+            let QueryValue::String(value) = self.parse_string_value()? else {
+                unreachable!("parse_string_value returns a string value");
+            };
+            values.push(value);
+
+            self.skip_whitespace();
+            if self.consume_char(',') {
+                continue;
+            }
+
+            if self.consume_char(']') {
+                return Ok(QueryValue::StringList(values));
+            }
+
+            return Err(QueryParseError::ExpectedStringValue);
         }
     }
 
@@ -307,6 +351,19 @@ mod tests {
     #[test]
     fn title_ends_with_matches_suffix() {
         let expr = QueryExpr::parse(r#"title ends_with "ment""#).expect("query parses");
+        let topic = Topic {
+            id: TopicId("topic-payment".to_owned()),
+            title: "Payment".to_owned(),
+            note: None,
+            children: Vec::new(),
+        };
+
+        assert!(expr.matches_topic(&topic, &TopicPath::root(), 0));
+    }
+
+    #[test]
+    fn title_in_matches_list_member() {
+        let expr = QueryExpr::parse(r#"title in ["Payment", "Other"]"#).expect("query parses");
         let topic = Topic {
             id: TopicId("topic-payment".to_owned()),
             title: "Payment".to_owned(),
