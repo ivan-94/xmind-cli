@@ -156,6 +156,9 @@ pub struct SetCommand {
     #[arg(long)]
     pub add_label: Option<String>,
 
+    #[arg(long)]
+    pub remove_label: Option<String>,
+
     #[command(flatten)]
     pub mode: MutationMode,
 }

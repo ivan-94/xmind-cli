@@ -2879,5 +2879,43 @@
         </li>
       </ul>
     </section>
+
+    <section class="entry">
+      <h2>2026-05-22 - remove label option</h2>
+      <h3>Design Decisions</h3>
+      <ul>
+        <li>
+          Implemented <code>xmind set --remove-label &lt;label&gt;</code> through
+          the shared label mutation path and transactional label writer.
+        </li>
+        <li>
+          Removing a label preserves the order of all remaining labels.
+        </li>
+      </ul>
+
+      <h3>Deviations</h3>
+      <ul>
+        <li>
+          Removing a missing label is idempotent and produces the unchanged label
+          list rather than a not-found diagnostic.
+        </li>
+      </ul>
+
+      <h3>Tradeoffs</h3>
+      <ul>
+        <li>
+          Idempotent removal keeps retry behavior simple for agents and mirrors
+          set-like label semantics.
+        </li>
+      </ul>
+
+      <h3>Open Questions</h3>
+      <ul>
+        <li>
+          Decide whether missing-label removal should be explicitly documented as
+          a no-op.
+        </li>
+      </ul>
+    </section>
   </body>
 </html>

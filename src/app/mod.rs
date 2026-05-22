@@ -151,6 +151,14 @@ pub fn run(cli: Cli) -> i32 {
             let label = label.clone();
             render_set_add_label(invocation, json, &node, label)
         }
+        Action::SetRemoveLabel {
+            ref node,
+            ref label,
+        } => {
+            let node = node.clone();
+            let label = label.clone();
+            render_set_remove_label(invocation, json, &node, label)
+        }
         Action::Delete { ref node } => {
             let node = node.clone();
             render_delete(invocation, json, &node)
@@ -239,6 +247,10 @@ enum Action {
         labels: Vec<String>,
     },
     SetAddLabel {
+        node: String,
+        label: String,
+    },
+    SetRemoveLabel {
         node: String,
         label: String,
     },
@@ -432,6 +444,11 @@ impl Invocation {
                     }
                 } else if let Some(label) = command.add_label {
                     Action::SetAddLabel {
+                        node: command.node,
+                        label,
+                    }
+                } else if let Some(label) = command.remove_label {
+                    Action::SetRemoveLabel {
                         node: command.node,
                         label,
                     }
@@ -1785,9 +1802,14 @@ fn render_set_add_label(invocation: Invocation, json: bool, node: &str, label: S
     render_set_label_mutation(invocation, json, node, LabelMutation::Add(label))
 }
 
+fn render_set_remove_label(invocation: Invocation, json: bool, node: &str, label: String) -> i32 {
+    render_set_label_mutation(invocation, json, node, LabelMutation::Remove(label))
+}
+
 enum LabelMutation {
     Replace(Vec<String>),
     Add(String),
+    Remove(String),
 }
 
 fn render_set_label_mutation(
@@ -1863,6 +1885,13 @@ fn render_set_label_mutation(
             }
             labels
         }
+        LabelMutation::Remove(label) => resolved
+            .topic
+            .labels
+            .iter()
+            .filter(|existing| *existing != &label)
+            .cloned()
+            .collect(),
     };
     let path = resolved.path.to_selector_value();
     let human_diff = Diff::from_events(vec![DiffEvent::Updated {
