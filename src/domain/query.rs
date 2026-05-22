@@ -5,12 +5,13 @@ use super::topic::Topic;
 pub enum QueryExpr {
     Comparison(QueryComparison),
     And(Box<QueryExpr>, Box<QueryExpr>),
+    Or(Box<QueryExpr>, Box<QueryExpr>),
 }
 
 impl QueryExpr {
     pub fn parse(input: &str) -> Result<Self, QueryParseError> {
         let mut parser = QueryParser::new(input);
-        let expr = parser.parse_and_expr()?;
+        let expr = parser.parse_or_expr()?;
         parser.expect_end()?;
         Ok(expr)
     }
@@ -20,6 +21,9 @@ impl QueryExpr {
             Self::Comparison(comparison) => comparison.matches_topic(topic, path, depth),
             Self::And(left, right) => {
                 left.matches_topic(topic, path, depth) && right.matches_topic(topic, path, depth)
+            }
+            Self::Or(left, right) => {
+                left.matches_topic(topic, path, depth) || right.matches_topic(topic, path, depth)
             }
         }
     }
@@ -139,6 +143,17 @@ struct QueryParser<'a> {
 impl<'a> QueryParser<'a> {
     fn new(input: &'a str) -> Self {
         Self { input, position: 0 }
+    }
+
+    fn parse_or_expr(&mut self) -> Result<QueryExpr, QueryParseError> {
+        let mut expr = self.parse_and_expr()?;
+
+        while self.consume_keyword("or") {
+            let right = self.parse_and_expr()?;
+            expr = QueryExpr::Or(Box::new(expr), Box::new(right));
+        }
+
+        Ok(expr)
     }
 
     fn parse_and_expr(&mut self) -> Result<QueryExpr, QueryParseError> {
@@ -523,6 +538,20 @@ mod tests {
 
         assert!(expr.matches_topic(&topic, &TopicPath::root(), 2));
         assert!(!expr.matches_topic(&topic, &TopicPath::root(), 1));
+    }
+
+    #[test]
+    fn or_accepts_either_side_matching() {
+        let expr =
+            QueryExpr::parse(r#"title = "Payment" or title = "Missing""#).expect("query parses");
+        let topic = Topic {
+            id: TopicId("topic-payment".to_owned()),
+            title: "Payment".to_owned(),
+            note: None,
+            children: Vec::new(),
+        };
+
+        assert!(expr.matches_topic(&topic, &TopicPath::root(), 0));
     }
 
     #[test]
