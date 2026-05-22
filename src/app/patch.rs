@@ -30,6 +30,7 @@ pub(super) struct PatchOpDto {
     pub(super) target: Option<String>,
     pub(super) to: Option<String>,
     pub(super) position: Option<String>,
+    pub(super) path: Option<String>,
     pub(super) title: Option<String>,
     pub(super) fields: Option<Map<String, Value>>,
     pub(super) tree: Option<TopicTreeInputDto>,
@@ -223,6 +224,23 @@ pub(super) fn render_patch(invocation: Invocation, json: bool, ops_path: &Path) 
             }
         } else if op_name == "copy" {
             match plan_patch_copy(invocation.clone(), json, sheet, index, op_name, op) {
+                Ok(added_paths) => {
+                    diff.extend(
+                        added_paths
+                            .into_iter()
+                            .map(|path| PatchDiffEventDto::path_event("added", path)),
+                    );
+                    operations.push(PatchOperationDto {
+                        index,
+                        op: op_name.to_owned(),
+                        status: "planned",
+                    });
+                    continue;
+                }
+                Err(exit_code) => return exit_code,
+            }
+        } else if op_name == "ensure_path" {
+            match plan_patch_ensure_path(invocation.clone(), json, sheet, index, op_name, op) {
                 Ok(added_paths) => {
                     diff.extend(
                         added_paths
@@ -1336,6 +1354,71 @@ fn plan_patch_copy(
         &destination.path,
         &copied_title,
     ))
+}
+
+fn plan_patch_ensure_path(
+    invocation: Invocation,
+    json: bool,
+    sheet: &Sheet,
+    index: usize,
+    op_name: &str,
+    op: &PatchOpDto,
+) -> Result<Vec<String>, i32> {
+    let Some(path) = &op.path else {
+        let error = CliErrorBody::new(
+            ErrorCode::InvalidPatch,
+            "ensure_path operation is missing path.",
+            true,
+            "Add a canonical path like path: /Q2/Payment.",
+        )
+        .with_operation_context(index, op_name.to_owned())
+        .with_field_path("path");
+        return Err(render_error(invocation, json, error));
+    };
+
+    let target_path = match TopicPath::parse_selector_value(path) {
+        Ok(path) => path,
+        Err(error) => {
+            let error = CliErrorBody::new(
+                ErrorCode::InvalidPatch,
+                format!("ensure_path path is invalid: {error}"),
+                true,
+                "Use an absolute canonical path such as /Q2/Payment, without the path: prefix.",
+            )
+            .with_operation_context(index, op_name.to_owned())
+            .with_field_path("path");
+            return Err(render_error(invocation, json, error));
+        }
+    };
+
+    Ok(collect_missing_path_additions(&sheet.root, &target_path))
+}
+
+fn collect_missing_path_additions(root: &Topic, target_path: &TopicPath) -> Vec<String> {
+    let mut current = root;
+    let mut current_path = TopicPath::root();
+    let mut added_paths = Vec::new();
+    let mut missing = false;
+
+    for segment in target_path.segments() {
+        if !missing {
+            if let Some(child) = current
+                .children
+                .iter()
+                .find(|child| child.title == segment.as_str())
+            {
+                current = child;
+                current_path = current_path.join(segment.clone());
+                continue;
+            }
+            missing = true;
+        }
+
+        current_path = current_path.join(segment.clone());
+        added_paths.push(current_path.to_selector_value());
+    }
+
+    added_paths
 }
 
 fn collect_merge_tree_diff(

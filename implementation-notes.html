@@ -210,6 +210,11 @@
           <code>preserve_ids: true</code> 沿用现有同 workbook duplicate-id
           冲突规则，返回 <code>patch_conflict</code>。
         </li>
+        <li>
+          Patch <code>ensure_path</code> 当前实现 dry-run 规划：解析不带
+          <code>path:</code> 前缀的 canonical path，并只为缺失路径段输出
+          <code>added</code> diff；已存在路径会产生零 diff 的 planned operation。
+        </li>
       </ul>
     </section>
   </body>
