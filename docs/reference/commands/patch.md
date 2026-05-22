@@ -4,7 +4,7 @@
 
 - Conversation: XMind CLI product design discussion
 - Scope: Command reference for declarative batch operations
-- Last updated: 2026-05-21
+- Last updated: 2026-05-22
 
 ## Purpose
 
@@ -13,8 +13,8 @@ Apply a declarative operation file to a workbook.
 ## Synopsis
 
 ```bash
-xmind patch <workbook.xmind> --ops <ops.yaml|ops.json> --dry-run
-xmind patch <workbook.xmind> --ops <ops.yaml|ops.json> --apply --backup
+xmind patch [options] --ops <ops.yaml|ops.json> --dry-run <workbook.xmind>
+xmind patch [options] --ops <ops.yaml|ops.json> --apply --backup <workbook.xmind>
 ```
 
 ## Options
@@ -22,8 +22,8 @@ xmind patch <workbook.xmind> --ops <ops.yaml|ops.json> --apply --backup
 - `--ops <file>`: patch file.
 - `--dry-run`: validate and preview.
 - `--apply`: write changes.
-- `--atomic`: apply all or none; preferred default.
-- `--backup`, `--backup-dir`, `--validate-after`, `--json`.
+- `--backup`: create a backup before applying.
+- Global output and sheet options are documented in `../global-options.md`.
 
 ## Supported Operations
 

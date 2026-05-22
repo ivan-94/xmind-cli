@@ -4,7 +4,7 @@
 
 - Conversation: XMind CLI product design discussion
 - Scope: Command reference for listing workbook sheets
-- Last updated: 2026-05-21
+- Last updated: 2026-05-22
 
 ## Purpose
 
@@ -13,14 +13,12 @@ List sheets in workbook order.
 ## Synopsis
 
 ```bash
-xmind sheets <workbook.xmind> [--json]
+xmind sheets [options] <workbook.xmind>
 ```
 
 ## Options
 
-- `--json`: emit sheet objects.
-- `--fields id,title,index,topic_count`: choose fields.
-- `--format compact-json`: compact the `result` payload when used with `--json`.
+- Global output and sheet options are documented in `../global-options.md`.
 
 ## Output
 

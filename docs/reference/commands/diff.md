@@ -4,32 +4,21 @@
 
 - Conversation: XMind CLI product design discussion
 - Scope: Command reference for comparing workbooks or planned operations
-- Last updated: 2026-05-21
+- Last updated: 2026-05-22
 
 ## Purpose
 
-Show structural differences between two workbooks or between a workbook and a patch preview.
+Show structural differences for the workbook in the currently implemented diff surface.
 
 ## Synopsis
 
 ```bash
-xmind diff <before.xmind> <after.xmind> [--json]
-xmind diff <workbook.xmind> --ops <ops.yaml> [--json]
+xmind diff [options] <workbook.xmind>
 ```
-
-Exactly one diff mode is required:
-
-- two workbook positional arguments, or
-- one workbook positional argument plus `--ops`.
-
-`xmind diff <workbook.xmind>` without `--ops` is invalid and fails with `invalid_usage`.
 
 ## Options
 
-- `--ops <file>`: show diff that patch would produce.
-- `--sheet <title>`: limit diff to one sheet.
-- `--format text|markdown`: human payload format.
-- `--json`: emit structured diff.
+- Global output and sheet options are documented in `../global-options.md`.
 
 ## Output
 
@@ -61,4 +50,4 @@ Exactly one diff mode is required:
 
 ## Notes for Agents
 
-Use `diff --ops` when reviewing generated patch files before applying them.
+Use `patch --dry-run --json` when reviewing generated patch files before applying them.

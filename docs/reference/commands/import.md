@@ -4,7 +4,7 @@
 
 - Conversation: XMind CLI product design discussion
 - Scope: Command reference for importing structured content
-- Last updated: 2026-05-21
+- Last updated: 2026-05-22
 
 ## Purpose
 
@@ -13,22 +13,20 @@ Create a new workbook or update an existing workbook from Markdown, YAML, or JSO
 ## Synopsis
 
 ```bash
-xmind import --input outline.md --output roadmap.xmind (--dry-run | --apply)
-xmind import --input tree.yaml --into roadmap.xmind --parent "path:/Q2" (--dry-run | --apply)
+xmind import [options] --input outline.md --output roadmap.xmind (--dry-run | --apply)
+xmind import [options] --input tree.yaml --into roadmap.xmind --parent "path:/Q2" (--dry-run | --apply)
 ```
 
 ## Options
 
 - `--input <file>`: input file.
-- `--format markdown|yaml|json|auto`: input format.
-- `--markdown-mode heading|list|hybrid|auto`: Markdown parsing mode.
 - `--output <file>`: create output workbook.
-- `--overwrite`: replace existing `--output` workbook.
 - `--into <workbook.xmind>`: import into existing workbook.
 - `--parent <selector>`: parent when importing into existing workbook.
-- `--if-exists error|skip|merge|replace|rename`: duplicate handling.
+- `--overwrite`: replace existing `--output` workbook.
+- `--markdown-mode heading|list|hybrid|auto`: Markdown parsing mode.
 - `--dry-run` or `--apply`: exactly one is required.
-- `--backup`, `--validate-after`, `--json`.
+- Global output and sheet options are documented in `../global-options.md`.
 
 ## Output
 

@@ -4,7 +4,7 @@
 
 - Conversation: XMind CLI product design discussion
 - Scope: Command reference for restoring backups
-- Last updated: 2026-05-21
+- Last updated: 2026-05-22
 
 ## Purpose
 
@@ -13,16 +13,14 @@ Restore a workbook from a backup.
 ## Synopsis
 
 ```bash
-xmind restore <backup.xmind> --output <workbook.xmind> (--dry-run | --apply) [--json]
+xmind restore [options] (--dry-run | --apply) <workbook.xmind>
 ```
 
 ## Options
 
-- `--output <workbook.xmind>`: restore target path.
-- `--overwrite`: replace existing output.
 - `--dry-run` or `--apply`: exactly one is required.
-- `--validate-after`: validate restored workbook.
-- `--json`: emit restore metadata.
+- `--backup`: create a backup before applying.
+- Global output and sheet options are documented in `../global-options.md`.
 
 ## Output
 
@@ -48,4 +46,4 @@ xmind restore <backup.xmind> --output <workbook.xmind> (--dry-run | --apply) [--
 
 ## Notes for Agents
 
-Never restore over a user file without `--overwrite` being explicit.
+The current CLI restores in place against the workbook positional argument; there is no separate `--output` or `--overwrite` flag in the help surface.

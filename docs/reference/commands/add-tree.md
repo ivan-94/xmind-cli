@@ -4,7 +4,7 @@
 
 - Conversation: XMind CLI product design discussion
 - Scope: Command reference for adding a subtree
-- Last updated: 2026-05-21
+- Last updated: 2026-05-22
 
 ## Purpose
 
@@ -13,8 +13,8 @@ Insert a whole subtree under a parent topic.
 ## Synopsis
 
 ```bash
-xmind add-tree <workbook.xmind> --parent <selector> --input <tree.yaml|tree.json> (--dry-run | --apply) [options]
-xmind add-tree <workbook.xmind> --parent <selector> --from-markdown <outline.md> (--dry-run | --apply) [options]
+xmind add-tree [options] --parent <selector> --input <tree.yaml|tree.json> (--dry-run | --apply) <workbook.xmind>
+xmind add-tree [options] --parent <selector> --from-markdown <outline.md> (--dry-run | --apply) <workbook.xmind>
 ```
 
 ## Options
@@ -23,12 +23,9 @@ xmind add-tree <workbook.xmind> --parent <selector> --from-markdown <outline.md>
 - `--input <file>`: YAML or JSON tree input.
 - `--from-markdown <file>`: Markdown outline input.
 - `--markdown-mode heading|list|hybrid|auto`: Markdown parsing mode.
-- `--position <position>`: insertion position.
-- `--if-exists error|skip|merge|replace|rename`: duplicate handling.
-- `--match-by id|path|title|title_path`: matching strategy.
-- `--create-missing-path`: create missing parent path.
 - `--dry-run` or `--apply`: exactly one is required.
-- `--backup`, `--validate-after`, `--json`.
+- `--backup`: create a backup before applying.
+- Global output and sheet options are documented in `../global-options.md`.
 
 ## Output
 

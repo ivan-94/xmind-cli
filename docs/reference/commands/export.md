@@ -4,29 +4,23 @@
 
 - Conversation: XMind CLI product design discussion
 - Scope: Command reference for exporting workbook content
-- Last updated: 2026-05-21
+- Last updated: 2026-05-22
 
 ## Purpose
 
-Export a workbook, sheet, or subtree to a portable representation.
+Export a workbook to a portable representation.
 
 ## Synopsis
 
 ```bash
-xmind export <workbook.xmind> --format json|markdown|outline|text|assets [options]
+xmind export [options] <workbook.xmind>
 ```
 
 ## Options
 
-- `--format json|markdown|outline|text|assets`: export payload format.
-- `--sheet <title>`: selected sheet.
-- `--node <selector>`: selected subtree.
-- `--depth <n>`: limit descendants.
 - `--output <file>`: write to file.
 - `--overwrite`: replace existing output file or asset directory.
-- `--include-notes`: include notes.
-- `--include-metadata`: include labels, markers, hyperlinks.
-- `--include-assets`: include topic image references in structured exports.
+- Global output and sheet options are documented in `../global-options.md`.
 
 ## Output
 

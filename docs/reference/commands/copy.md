@@ -4,7 +4,7 @@
 
 - Conversation: XMind CLI product design discussion
 - Scope: Command reference for copying topics or subtrees
-- Last updated: 2026-05-21
+- Last updated: 2026-05-22
 
 ## Purpose
 
@@ -13,7 +13,7 @@ Copy a topic and its descendants to another parent.
 ## Synopsis
 
 ```bash
-xmind copy <workbook.xmind> --node <selector> --to <selector> (--dry-run | --apply) [--title <new-title>]
+xmind copy [options] --node <selector> --to <selector> (--dry-run | --apply) <workbook.xmind>
 ```
 
 ## Options
@@ -24,7 +24,8 @@ xmind copy <workbook.xmind> --node <selector> --to <selector> (--dry-run | --app
 - `--position <position>`: destination order.
 - `--preserve-ids`: normally false; preserve ids only for diagnostic export flows.
 - `--dry-run` or `--apply`: exactly one is required.
-- `--backup`, `--validate-after`, `--json`.
+- `--backup`: create a backup before applying.
+- Global output and sheet options are documented in `../global-options.md`.
 
 ## Output
 

@@ -4,7 +4,7 @@
 
 - Conversation: XMind CLI product design discussion
 - Scope: Command reference for updating topic fields
-- Last updated: 2026-05-21
+- Last updated: 2026-05-22
 
 ## Purpose
 
@@ -13,7 +13,7 @@ Update fields on one topic.
 ## Synopsis
 
 ```bash
-xmind set <workbook.xmind> --node <selector> (--dry-run | --apply) [field options]
+xmind set [options] --node <selector> (--dry-run | --apply) <workbook.xmind>
 ```
 
 ## Options
@@ -31,9 +31,11 @@ xmind set <workbook.xmind> --node <selector> (--dry-run | --apply) [field option
 - `--hyperlink <url>`: replace hyperlink.
 - `--image <file>`: attach or replace topic image.
 - `--image-alt <text>`: alt text for topic image.
+- `--image-title <text>`: title metadata for topic image.
 - `--clear labels|markers|note|hyperlink|image`: clear fields.
 - `--dry-run` or `--apply`: exactly one is required.
-- `--backup`, `--validate-after`, `--json`.
+- `--backup`: create a backup before applying.
+- Global output and sheet options are documented in `../global-options.md`.
 
 ## Output
 

@@ -4,7 +4,7 @@
 
 - Conversation: XMind CLI product design discussion
 - Scope: Command reference for moving topics or subtrees
-- Last updated: 2026-05-21
+- Last updated: 2026-05-22
 
 ## Purpose
 
@@ -13,7 +13,7 @@ Move a topic and its descendants to another parent or sibling position.
 ## Synopsis
 
 ```bash
-xmind move <workbook.xmind> --node <selector> --to <selector> (--dry-run | --apply) [--position <position>]
+xmind move [options] --node <selector> --to <selector> (--dry-run | --apply) <workbook.xmind>
 ```
 
 ## Options
@@ -22,7 +22,8 @@ xmind move <workbook.xmind> --node <selector> --to <selector> (--dry-run | --app
 - `--to <selector>`: destination parent selector.
 - `--position <position>`: destination order.
 - `--dry-run` or `--apply`: exactly one is required.
-- `--backup`, `--validate-after`, `--json`.
+- `--backup`: create a backup before applying.
+- Global output and sheet options are documented in `../global-options.md`.
 
 ## Output
 

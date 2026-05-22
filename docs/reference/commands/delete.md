@@ -4,7 +4,7 @@
 
 - Conversation: XMind CLI product design discussion
 - Scope: Command reference for deleting topics
-- Last updated: 2026-05-21
+- Last updated: 2026-05-22
 
 ## Purpose
 
@@ -13,7 +13,7 @@ Delete a topic. By default this deletes the selected topic and its descendants a
 ## Synopsis
 
 ```bash
-xmind delete <workbook.xmind> --node <selector> (--dry-run | --apply) [options]
+xmind delete [options] --node <selector> (--dry-run | --apply) <workbook.xmind>
 ```
 
 ## Options
@@ -22,7 +22,8 @@ xmind delete <workbook.xmind> --node <selector> (--dry-run | --apply) [options]
 - `--children-only`: delete descendants but keep the topic.
 - `--promote-children`: delete the topic but move its children to its parent.
 - `--dry-run` or `--apply`: exactly one is required.
-- `--backup`, `--validate-after`, `--json`.
+- `--backup`: create a backup before applying.
+- Global output and sheet options are documented in `../global-options.md`.
 
 ## Output
 

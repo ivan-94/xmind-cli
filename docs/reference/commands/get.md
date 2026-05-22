@@ -4,7 +4,7 @@
 
 - Conversation: XMind CLI product design discussion
 - Scope: Command reference for reading one topic
-- Last updated: 2026-05-21
+- Last updated: 2026-05-22
 
 ## Purpose
 
@@ -13,17 +13,15 @@ Return one topic and optionally its descendants.
 ## Synopsis
 
 ```bash
-xmind get <workbook.xmind> --node <selector> [--depth <n>] [--json]
+xmind get [options] --node <selector> <workbook.xmind>
 ```
 
 ## Options
 
 - `--node <selector>`: required topic selector.
 - `--depth <n>`: include descendants up to depth.
-- `--fields <fields>`: choose topic fields.
 - `--include-assets`: include topic image and asset references.
-- `--format compact-json`: compact the `result` payload when used with `--json`.
-- `--json`: emit structured topic.
+- Global output and sheet options are documented in `../global-options.md`.
 
 ## Output
 

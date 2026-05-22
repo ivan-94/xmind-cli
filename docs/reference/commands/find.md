@@ -4,7 +4,7 @@
 
 - Conversation: XMind CLI product design discussion
 - Scope: Command reference for searching topics
-- Last updated: 2026-05-21
+- Last updated: 2026-05-22
 
 ## Purpose
 
@@ -13,7 +13,7 @@ Search topics by title, note, labels, markers, path, hyperlink, depth, or query 
 ## Synopsis
 
 ```bash
-xmind find <workbook.xmind> [--sheet <title>] [--title <text>] [--query <expr>] [--json]
+xmind find [options] <workbook.xmind>
 ```
 
 ## Options
@@ -23,9 +23,8 @@ xmind find <workbook.xmind> [--sheet <title>] [--title <text>] [--query <expr>] 
 - `--contains <text>`: case-sensitive substring search across title and note.
 - `--query <expr>`: query selector expression.
 - `--limit <n>`: maximum matches.
-- `--fields <fields>`: choose result fields.
-- `--format compact-json`: compact the `result` payload when used with `--json`.
-- `--json`: emit structured matches.
+- `--offset <n>`: skip matches before returning results.
+- Global output and sheet options are documented in `../global-options.md`.
 
 ## Output
 

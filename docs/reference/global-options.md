@@ -4,7 +4,7 @@
 
 - Conversation: XMind CLI product design discussion
 - Scope: Options shared across commands
-- Last updated: 2026-05-21
+- Last updated: 2026-05-22
 
 ## Output Options
 
@@ -16,7 +16,7 @@
 --no-color
 ```
 
-`--json` is the primary automation contract and means the whole command result uses the standard JSON envelope. `--format` controls command-specific payload formats, not the command envelope. Legal `--format` values are command-specific and documented on each command page.
+`--json` is the primary automation contract and means the whole command result uses the standard JSON envelope. `--format` controls command-specific payload formats, not the command envelope. Current help exposes `text`, `json`, `compact-json`, `markdown`, `outline`, and `assets`.
 
 `--quiet` suppresses nonessential human progress text. It must not suppress JSON stdout, structured errors, or requested export payloads. `--no-color` disables ANSI color in human-readable output and has no effect on JSON output.
 
@@ -46,20 +46,15 @@ Selector syntax is documented in `concepts/selectors.md`.
 --dry-run
 --apply
 --backup
---backup-dir <dir>
---validate-after
---preserve-unknown
---in-place
 --output <file>
+--overwrite
 ```
 
-Every workbook-mutating command requires exactly one of `--dry-run` or `--apply`; omitting both is invalid. The full contract is documented in `mutation-semantics.md`.
+Every workbook-mutating command requires exactly one of `--dry-run` or `--apply`; omitting both is invalid. `backup` has command-specific `--backup-dir`; `export` and `import --output` expose command-specific output flags. The full mutation contract is documented in `mutation-semantics.md`.
 
 ## Batch Options
 
 ```text
---if-exists error|skip|merge|replace|rename
---match-by id|path|title|title_path
 --create-missing-path
 --position first|last|index:N|before:<selector>|after:<selector>
 ```

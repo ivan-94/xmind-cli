@@ -4,7 +4,7 @@
 
 - Conversation: XMind CLI product design discussion
 - Scope: Command reference for workbook validation
-- Last updated: 2026-05-21
+- Last updated: 2026-05-22
 
 ## Purpose
 
@@ -13,13 +13,13 @@ Validate workbook readability and structural integrity.
 ## Synopsis
 
 ```bash
-xmind validate <workbook.xmind> [--json]
+xmind validate [options] <workbook.xmind>
 ```
 
 ## Options
 
 - `--strict`: treat warnings as failures.
-- `--json`: emit structured validation result.
+- Global output and sheet options are documented in `../global-options.md`.
 
 ## Checks
 
@@ -56,5 +56,4 @@ xmind validate <workbook.xmind> [--json]
 
 ## Notes for Agents
 
-Run this after write operations when the command did not use `--validate-after`.
-
+Run this after write operations when you need an explicit validation result.

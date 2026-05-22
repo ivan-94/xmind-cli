@@ -4,7 +4,7 @@
 
 - Conversation: XMind CLI product design discussion
 - Scope: Command reference for creating backups
-- Last updated: 2026-05-21
+- Last updated: 2026-05-22
 
 ## Purpose
 
@@ -19,8 +19,7 @@ xmind backup <workbook.xmind> [--backup-dir <dir>] [--json]
 ## Options
 
 - `--backup-dir <dir>`: destination directory.
-- `--name <name>`: optional backup name.
-- `--json`: emit backup metadata.
+- Global output and sheet options are documented in `../global-options.md`.
 
 ## Output
 
@@ -45,4 +44,3 @@ xmind backup <workbook.xmind> [--backup-dir <dir>] [--json]
 ## Notes for Agents
 
 Prefer write-command `--backup` for normal edits. Use `backup` directly before risky manual experiments.
-

@@ -388,11 +388,11 @@ Implement a Rust CLI named `xmind` that satisfies the documented product, comman
 
 ## Phase 15: Documentation Synchronization
 
-- [ ] Ensure `xmind --help` matches command references.
+- [x] Ensure `xmind --help` matches command references.
 - [ ] Ensure command examples run against fixtures.
 - [ ] Add generated or checked CLI help snapshots.
 - [ ] Update docs if implementation constraints require contract changes.
-- [ ] Keep `docs/reference/commands/*.md` aligned with clap options.
+- [x] Keep `docs/reference/commands/*.md` aligned with clap options.
 - [ ] Keep `docs/schemas/*.md` aligned with serializable DTOs.
 - [ ] Keep `docs/technical/*.md` aligned with implemented modules.
 

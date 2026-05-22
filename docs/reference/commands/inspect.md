@@ -4,7 +4,7 @@
 
 - Conversation: XMind CLI product design discussion
 - Scope: Command reference for workbook inspection
-- Last updated: 2026-05-21
+- Last updated: 2026-05-22
 
 ## Purpose
 
@@ -13,7 +13,7 @@ Summarize workbook structure, detected format, sheet count, and high-level capab
 ## Synopsis
 
 ```bash
-xmind inspect <workbook.xmind> [--json]
+xmind inspect [options] <workbook.xmind>
 ```
 
 ## When to Use
@@ -26,9 +26,7 @@ Use first when an agent receives an unknown XMind file.
 
 ## Options
 
-- `--json`: emit structured output.
-- `--fields`: limit fields.
-- `--format compact-json`: compact the `result` payload when used with `--json`.
+- Global output and sheet options are documented in `../global-options.md`.
 
 ## Output
 

@@ -84,6 +84,11 @@
           Patch 文件读取按扩展名分派：<code>.yaml/.yml</code> 走 YAML，
           <code>.json</code> 走 JSON，避免 JSON patch 被 YAML 兼容性误接受。
         </li>
+        <li>
+          Phase 15 起命令参考以 clap help 快照为当前实现真相；未暴露在
+          <code>xmind ... --help</code> 的旧规划参数不再出现在
+          <code>docs/reference/commands/*.md</code> 的 synopsis/options 中。
+        </li>
       </ul>
     </section>
 

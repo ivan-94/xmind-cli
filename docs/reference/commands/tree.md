@@ -4,7 +4,7 @@
 
 - Conversation: XMind CLI product design discussion
 - Scope: Command reference for displaying topic trees
-- Last updated: 2026-05-21
+- Last updated: 2026-05-22
 
 ## Purpose
 
@@ -13,18 +13,14 @@ Display a sheet tree or a subtree.
 ## Synopsis
 
 ```bash
-xmind tree <workbook.xmind> [--sheet <title>] [--node <selector>] [--depth <n>] [--json]
+xmind tree [options] <workbook.xmind>
 ```
 
 ## Options
 
-- `--sheet`, `--sheet-id`, `--sheet-index`: select sheet.
-- `--node <selector>`: root of subtree to display.
 - `--depth <n>`: maximum descendant depth.
-- `--fields <fields>`: include selected fields.
 - `--include-assets`: include topic image and asset references.
-- `--format compact-json`: compact the `result` payload when used with `--json`.
-- `--json`: emit structured tree.
+- Global output and sheet options are documented in `../global-options.md`.
 
 ## Output
 

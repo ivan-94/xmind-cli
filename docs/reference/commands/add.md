@@ -4,7 +4,7 @@
 
 - Conversation: XMind CLI product design discussion
 - Scope: Command reference for adding one topic
-- Last updated: 2026-05-21
+- Last updated: 2026-05-22
 
 ## Purpose
 
@@ -13,24 +13,18 @@ Add one topic under a parent.
 ## Synopsis
 
 ```bash
-xmind add <workbook.xmind> --parent <selector> --title <title> (--dry-run | --apply) [options]
+xmind add [options] --parent <selector> --title <title> (--dry-run | --apply) <workbook.xmind>
 ```
 
 ## Options
 
 - `--parent <selector>`: parent topic.
 - `--title <title>`: new topic title.
-- `--note <text>`: optional note.
-- `--label <label>`: repeatable label.
-- `--marker <marker>`: repeatable marker.
-- `--hyperlink <url>`: optional hyperlink.
-- `--image <file>`: attach a topic image from a local file.
-- `--image-alt <text>`: alt text for the topic image.
 - `--position <position>`: `first`, `last`, `index:N`, `before:<selector>`, or `after:<selector>`.
 - `--create-missing-path`: create missing path parent segments.
-- `--if-exists error|skip|merge|replace|rename`: duplicate handling.
 - `--dry-run` or `--apply`: exactly one is required.
-- `--backup`, `--validate-after`, `--json`.
+- `--backup`: create a backup before applying.
+- Global output and sheet options are documented in `../global-options.md`.
 
 ## Output
 
