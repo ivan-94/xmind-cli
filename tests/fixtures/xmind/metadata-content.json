@@ -20,7 +20,15 @@
                       "content": "Supports card payments and refund workflows."
                     }
                   },
-                  "labels": ["MVP", "Payments"]
+                  "labels": ["MVP", "Payments"],
+                  "markers": [
+                    {
+                      "markerId": "priority-1"
+                    },
+                    {
+                      "markerId": "task-start"
+                    }
+                  ]
                 }
               ]
             }

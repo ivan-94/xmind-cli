@@ -541,6 +541,7 @@ mod tests {
             title: "Payment".to_owned(),
             note: None,
             labels: Vec::new(),
+            markers: Vec::new(),
             children: Vec::new(),
         };
 
@@ -555,6 +556,7 @@ mod tests {
             title: "Payment".to_owned(),
             note: None,
             labels: Vec::new(),
+            markers: Vec::new(),
             children: Vec::new(),
         };
 
@@ -569,6 +571,7 @@ mod tests {
             title: "Payment".to_owned(),
             note: None,
             labels: Vec::new(),
+            markers: Vec::new(),
             children: Vec::new(),
         };
 
@@ -583,6 +586,7 @@ mod tests {
             title: "Payment".to_owned(),
             note: None,
             labels: Vec::new(),
+            markers: Vec::new(),
             children: Vec::new(),
         };
 
@@ -597,6 +601,7 @@ mod tests {
             title: "Payment".to_owned(),
             note: None,
             labels: Vec::new(),
+            markers: Vec::new(),
             children: Vec::new(),
         };
 
@@ -611,6 +616,7 @@ mod tests {
             title: "Payment".to_owned(),
             note: None,
             labels: Vec::new(),
+            markers: Vec::new(),
             children: Vec::new(),
         };
 
@@ -625,6 +631,7 @@ mod tests {
             title: "Payment".to_owned(),
             note: Some("Refund details".to_owned()),
             labels: Vec::new(),
+            markers: Vec::new(),
             children: Vec::new(),
         };
 
@@ -639,6 +646,7 @@ mod tests {
             title: "Payment".to_owned(),
             note: None,
             labels: Vec::new(),
+            markers: Vec::new(),
             children: Vec::new(),
         };
 
@@ -653,6 +661,7 @@ mod tests {
             title: "Payment".to_owned(),
             note: None,
             labels: Vec::new(),
+            markers: Vec::new(),
             children: Vec::new(),
         };
 
@@ -667,6 +676,7 @@ mod tests {
             title: "Payment".to_owned(),
             note: None,
             labels: Vec::new(),
+            markers: Vec::new(),
             children: Vec::new(),
         };
 
@@ -683,6 +693,7 @@ mod tests {
             title: "Payment".to_owned(),
             note: None,
             labels: Vec::new(),
+            markers: Vec::new(),
             children: Vec::new(),
         };
 
@@ -697,6 +708,7 @@ mod tests {
             title: "Payment".to_owned(),
             note: None,
             labels: Vec::new(),
+            markers: Vec::new(),
             children: Vec::new(),
         };
 
@@ -712,6 +724,7 @@ mod tests {
             title: "Payment".to_owned(),
             note: None,
             labels: Vec::new(),
+            markers: Vec::new(),
             children: Vec::new(),
         };
 
@@ -726,6 +739,7 @@ mod tests {
             title: "Payment".to_owned(),
             note: None,
             labels: Vec::new(),
+            markers: Vec::new(),
             children: Vec::new(),
         };
 
@@ -740,6 +754,7 @@ mod tests {
             title: "Roadmap".to_owned(),
             note: None,
             labels: Vec::new(),
+            markers: Vec::new(),
             children: Vec::new(),
         };
 
@@ -754,6 +769,7 @@ mod tests {
             title: "Roadmap".to_owned(),
             note: None,
             labels: Vec::new(),
+            markers: Vec::new(),
             children: Vec::new(),
         };
 

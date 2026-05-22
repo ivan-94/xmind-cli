@@ -16,18 +16,21 @@ expression: read_output(&args)
             {
               "id": "topic-payment",
               "labels": [],
+              "markers": [],
               "path": "/Q2/Payment",
               "title": "Payment"
             }
           ],
           "id": "topic-q2",
           "labels": [],
+          "markers": [],
           "path": "/Q2",
           "title": "Q2"
         }
       ],
       "id": "topic-root",
       "labels": [],
+      "markers": [],
       "path": "/",
       "title": "Roadmap"
     },

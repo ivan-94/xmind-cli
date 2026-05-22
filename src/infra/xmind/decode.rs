@@ -73,7 +73,15 @@ struct StorageTopic {
     #[serde(default)]
     labels: Vec<String>,
     #[serde(default)]
+    markers: Vec<StorageMarker>,
+    #[serde(default)]
     children: StorageChildren,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct StorageMarker {
+    marker_id: String,
 }
 
 #[derive(Debug, Deserialize)]
@@ -95,6 +103,11 @@ impl From<StorageTopic> for Topic {
                 .notes
                 .and_then(|notes| notes.plain.map(|plain| plain.content)),
             labels: value.labels,
+            markers: value
+                .markers
+                .into_iter()
+                .map(|marker| marker.marker_id)
+                .collect(),
             children: value
                 .children
                 .attached

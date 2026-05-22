@@ -1250,5 +1250,49 @@
         </li>
       </ul>
     </section>
+
+    <section class="entry">
+      <h2>2026-05-22 - topic marker loading</h2>
+      <h3>Design Decisions</h3>
+      <ul>
+        <li>
+          Modern XMind topic markers are read from topic-level
+          <code>markers</code> objects with a <code>markerId</code> field.
+          The CLI domain and JSON output expose those marker ids as a simple
+          string array.
+        </li>
+        <li>
+          The metadata fixture uses two marker ids on the existing
+          <code>Payment</code> topic so the public <code>get --json</code>
+          path verifies package decode and renderer behavior together.
+        </li>
+      </ul>
+
+      <h3>Deviations</h3>
+      <ul>
+        <li>
+          This slice only loads and renders marker ids. Marker query
+          predicates, semantic marker aliases, and marker mutation remain
+          separate PLAN items.
+        </li>
+      </ul>
+
+      <h3>Tradeoffs</h3>
+      <ul>
+        <li>
+          I kept marker values as raw ids such as <code>priority-1</code>
+          rather than translating them to display names. Raw ids are stable for
+          agents and match the existing command references.
+        </li>
+      </ul>
+
+      <h3>Open Questions</h3>
+      <ul>
+        <li>
+          Confirm whether future marker search should match only raw marker ids
+          or also product-owned aliases for common priority/task markers.
+        </li>
+      </ul>
+    </section>
   </body>
 </html>

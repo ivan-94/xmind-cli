@@ -16,5 +16,5 @@ contains `Roadmap` plus `Backlog` sheets for sheet selection tests.
 contains two `Roadmap` sheets for ambiguous sheet selector tests.
 
 `metadata.xmind` is generated from `metadata-content.json` and contains a
-plain-text note plus labels on the `Payment` topic for metadata read/search
-tests.
+plain-text note, labels, and markers on the `Payment` topic for metadata
+read/search tests.
