@@ -159,6 +159,14 @@ pub fn run(cli: Cli) -> i32 {
             let label = label.clone();
             render_set_remove_label(invocation, json, &node, label)
         }
+        Action::SetMarkers {
+            ref node,
+            ref markers,
+        } => {
+            let node = node.clone();
+            let markers = markers.clone();
+            render_set_markers(invocation, json, &node, markers)
+        }
         Action::Delete { ref node } => {
             let node = node.clone();
             render_delete(invocation, json, &node)
@@ -253,6 +261,10 @@ enum Action {
     SetRemoveLabel {
         node: String,
         label: String,
+    },
+    SetMarkers {
+        node: String,
+        markers: Vec<String>,
     },
     Delete {
         node: String,
@@ -451,6 +463,11 @@ impl Invocation {
                     Action::SetRemoveLabel {
                         node: command.node,
                         label,
+                    }
+                } else if let Some(markers) = command.set_markers {
+                    Action::SetMarkers {
+                        node: command.node,
+                        markers: parse_csv_values(&markers),
                     }
                 } else {
                     Action::Noop
@@ -1617,6 +1634,7 @@ fn render_set_title(invocation: Invocation, json: bool, node: &str, title: &str)
             new_path: Some(new_path.clone()),
             new_note: None,
             new_labels: None,
+            new_markers: None,
             changed_fields: vec!["title"],
         },
         summary: SummaryDto {
@@ -1746,6 +1764,7 @@ fn render_set_note(invocation: Invocation, json: bool, node: &str, note: &str) -
             new_path: None,
             new_note: None,
             new_labels: None,
+            new_markers: None,
             changed_fields: vec!["note"],
         },
         summary: SummaryDto {
@@ -1907,6 +1926,7 @@ fn render_set_label_mutation(
             new_path: None,
             new_note: None,
             new_labels: Some(labels),
+            new_markers: None,
             changed_fields: vec!["labels"],
         },
         summary: SummaryDto {
@@ -1935,6 +1955,132 @@ fn render_set_label_mutation(
                 .new_labels
                 .as_ref()
                 .expect("set-labels result carries new labels"),
+        ) {
+            return render_workbook_write_error(invocation, json, error);
+        }
+    }
+
+    if json {
+        let envelope = CommandEnvelope {
+            ok: true,
+            command: Some(invocation.command),
+            workbook: Some(invocation.workbook.display().to_string()),
+            dry_run: invocation.dry_run,
+            applied: !invocation.dry_run,
+            result: Some(result),
+            error: None,
+            warnings: Vec::new(),
+        };
+        crate::cli::render_json_envelope(&envelope);
+    } else if !invocation.quiet {
+        println!("{}", render_human_outline(&human_diff));
+    }
+
+    0
+}
+
+fn render_set_markers(invocation: Invocation, json: bool, node: &str, markers: Vec<String>) -> i32 {
+    let workbook = match read_workbook_or_render_error(&invocation, json) {
+        Ok(workbook) => workbook,
+        Err(exit_code) => return exit_code,
+    };
+
+    let sheet = match select_sheet_or_render_error(&workbook, &invocation, json) {
+        Ok(sheet) => sheet,
+        Err(exit_code) => return exit_code,
+    };
+
+    let selector = match Selector::parse(node) {
+        Ok(selector) => selector,
+        Err(error) => {
+            let error = CliErrorBody::new(
+                ErrorCode::InvalidUsage,
+                format!("Node selector is invalid: {error}"),
+                true,
+                "Use a valid selector such as root, id:<topic-id>, path:/Q2, or title:Payment.",
+            );
+            return render_error(invocation, json, error);
+        }
+    };
+
+    let resolved = match resolve_topic(&sheet.root, &selector) {
+        ResolveOne::Found(resolved) => resolved,
+        ResolveOne::NotFound => {
+            let error = CliErrorBody::new(
+                ErrorCode::NotFound,
+                format!("Selector did not match a topic: {}", selector.render()),
+                true,
+                "Run tree or find to rediscover the topic selector, then retry.",
+            )
+            .with_selector(selector.render());
+            return render_error(invocation, json, error);
+        }
+        ResolveOne::Ambiguous(candidates) => {
+            let error = CliErrorBody::new(
+                ErrorCode::AmbiguousSelector,
+                "Selector matched multiple topics.",
+                true,
+                "Retry with one of the candidate ids.",
+            )
+            .with_selector(selector.render())
+            .with_candidates(
+                candidates
+                    .into_iter()
+                    .map(|candidate| CandidateDto {
+                        id: candidate.topic.id.0.clone(),
+                        path: candidate.path.to_selector_value(),
+                        title: candidate.topic.title.clone(),
+                        sheet: Some(sheet.title.clone()),
+                    })
+                    .collect(),
+            );
+            return render_error(invocation, json, error);
+        }
+    };
+
+    let path = resolved.path.to_selector_value();
+    let human_diff = Diff::from_events(vec![DiffEvent::Updated {
+        path: resolved.path.clone(),
+        fields: vec![FieldChange::new("markers")],
+    }]);
+    let mut result = SetTitleDryRunResultDto {
+        will_change: resolved.topic.markers != markers,
+        updated: UpdatedTopicDto {
+            id: resolved.topic.id.0.clone(),
+            path: Some(path.clone()),
+            old_path: None,
+            new_path: None,
+            new_note: None,
+            new_labels: None,
+            new_markers: Some(markers),
+            changed_fields: vec!["markers"],
+        },
+        summary: SummaryDto {
+            added: 0,
+            updated: 1,
+            deleted: 0,
+            moved: 0,
+        },
+        diff: vec![DiffEventDto {
+            event: "updated",
+            path,
+        }],
+        backup_path: None,
+    };
+
+    if !invocation.dry_run {
+        result.backup_path = match create_mutation_backup(&invocation) {
+            Ok(backup_path) => backup_path,
+            Err(error) => return render_backup_error(invocation, json, error),
+        };
+        if let Err(error) = crate::infra::xmind::encode::set_topic_markers(
+            &invocation.workbook,
+            &resolved.topic.id.0,
+            result
+                .updated
+                .new_markers
+                .as_ref()
+                .expect("set-markers result carries new markers"),
         ) {
             return render_workbook_write_error(invocation, json, error);
         }
@@ -2038,6 +2184,7 @@ fn render_set_append_note(
             new_path: None,
             new_note: Some(new_note.clone()),
             new_labels: None,
+            new_markers: None,
             changed_fields: vec!["note"],
         },
         summary: SummaryDto {
@@ -2516,6 +2663,8 @@ struct UpdatedTopicDto {
     new_note: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     new_labels: Option<Vec<String>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    new_markers: Option<Vec<String>>,
     changed_fields: Vec<&'static str>,
 }
 

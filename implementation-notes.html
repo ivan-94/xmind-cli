@@ -2917,5 +2917,46 @@
         </li>
       </ul>
     </section>
+
+    <section class="entry">
+      <h2>2026-05-22 - set markers option</h2>
+      <h3>Design Decisions</h3>
+      <ul>
+        <li>
+          Implemented <code>xmind set --set-markers &lt;csv&gt;</code> for apply
+          using the same transaction, backup, and validation path as other set
+          mutations.
+        </li>
+        <li>
+          Marker values are written to XMind storage as
+          <code>{"markerId": value}</code> objects and returned in JSON as
+          <code>new_markers</code>.
+        </li>
+      </ul>
+
+      <h3>Deviations</h3>
+      <ul>
+        <li>
+          Marker CSV parsing currently follows the same simple trim-and-drop-empty
+          behavior as labels.
+        </li>
+      </ul>
+
+      <h3>Tradeoffs</h3>
+      <ul>
+        <li>
+          Reusing CSV semantics keeps label and marker commands predictable while
+          postponing richer escaping until the command reference requires it.
+        </li>
+      </ul>
+
+      <h3>Open Questions</h3>
+      <ul>
+        <li>
+          Decide whether marker ids should be validated against a known XMind
+          marker vocabulary or accepted as opaque ids.
+        </li>
+      </ul>
+    </section>
   </body>
 </html>

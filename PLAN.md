@@ -250,7 +250,7 @@ Implement a Rust CLI named `xmind` that satisfies the documented product, comman
 - [x] Implement `set --set-labels`.
 - [x] Implement `set --add-label`.
 - [x] Implement `set --remove-label`.
-- [ ] Implement `set --set-markers`.
+- [x] Implement `set --set-markers`.
 - [ ] Implement `set --add-marker`.
 - [ ] Implement `set --remove-marker`.
 - [ ] Implement `set --hyperlink`.
