@@ -152,7 +152,7 @@ Implement a Rust CLI named `xmind` that satisfies the documented product, comman
   - [x] `not`,
   - [x] `and`,
   - [x] `or`.
-- [ ] Implement query string escaping.
+- [x] Implement query string escaping.
 - [x] Add unit tests for selector parsing.
 - [x] Add unit tests for query parsing.
 - [ ] Add evaluator tests for all query fields.

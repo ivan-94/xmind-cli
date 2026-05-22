@@ -95,44 +95,14 @@ impl QueryComparison {
                 .as_deref()
                 .is_some_and(|note| note.contains(needle)),
             (QueryField::Note, QueryOperator::Exists, QueryValue::None) => topic.note.is_some(),
-            (QueryField::Depth, QueryOperator::Gt, QueryValue::Number(expected)) => {
-                (depth as i64) > *expected
-            }
-            (QueryField::Depth, QueryOperator::Eq, QueryValue::Number(expected)) => {
-                (depth as i64) == *expected
-            }
-            (QueryField::Depth, QueryOperator::Ne, QueryValue::Number(expected)) => {
-                (depth as i64) != *expected
-            }
-            (QueryField::Depth, QueryOperator::Gte, QueryValue::Number(expected)) => {
-                (depth as i64) >= *expected
-            }
-            (QueryField::Depth, QueryOperator::Lt, QueryValue::Number(expected)) => {
-                (depth as i64) < *expected
-            }
-            (QueryField::Depth, QueryOperator::Lte, QueryValue::Number(expected)) => {
-                (depth as i64) <= *expected
+            (QueryField::Depth, operator, QueryValue::Number(expected)) => {
+                matches_number(depth as i64, operator, *expected)
             }
             (QueryField::Depth, QueryOperator::In, QueryValue::NumberList(expected)) => {
                 expected.iter().any(|value| (depth as i64) == *value)
             }
-            (QueryField::ChildrenCount, QueryOperator::Eq, QueryValue::Number(expected)) => {
-                (topic.children.len() as i64) == *expected
-            }
-            (QueryField::ChildrenCount, QueryOperator::Ne, QueryValue::Number(expected)) => {
-                (topic.children.len() as i64) != *expected
-            }
-            (QueryField::ChildrenCount, QueryOperator::Gt, QueryValue::Number(expected)) => {
-                (topic.children.len() as i64) > *expected
-            }
-            (QueryField::ChildrenCount, QueryOperator::Gte, QueryValue::Number(expected)) => {
-                (topic.children.len() as i64) >= *expected
-            }
-            (QueryField::ChildrenCount, QueryOperator::Lt, QueryValue::Number(expected)) => {
-                (topic.children.len() as i64) < *expected
-            }
-            (QueryField::ChildrenCount, QueryOperator::Lte, QueryValue::Number(expected)) => {
-                (topic.children.len() as i64) <= *expected
+            (QueryField::ChildrenCount, operator, QueryValue::Number(expected)) => {
+                matches_number(topic.children.len() as i64, operator, *expected)
             }
             (QueryField::ChildrenCount, QueryOperator::In, QueryValue::NumberList(expected)) => {
                 expected
@@ -141,6 +111,18 @@ impl QueryComparison {
             }
             _ => false,
         }
+    }
+}
+
+fn matches_number(actual: i64, operator: &QueryOperator, expected: i64) -> bool {
+    match operator {
+        QueryOperator::Eq => actual == expected,
+        QueryOperator::Ne => actual != expected,
+        QueryOperator::Gt => actual > expected,
+        QueryOperator::Gte => actual >= expected,
+        QueryOperator::Lt => actual < expected,
+        QueryOperator::Lte => actual <= expected,
+        _ => false,
     }
 }
 
@@ -197,6 +179,9 @@ pub enum QueryParseError {
 
     #[error("query string contains an incomplete escape sequence")]
     IncompleteEscape,
+
+    #[error("query string contains an unsupported escape sequence: \\{0}")]
+    UnsupportedEscape(char),
 
     #[error("query string is missing a closing quote")]
     UnterminatedString,
@@ -337,7 +322,10 @@ impl<'a> QueryParser<'a> {
 
         while let Some(character) = self.next_char() {
             if escaped {
-                value.push(character);
+                match character {
+                    '\\' | '"' => value.push(character),
+                    other => return Err(QueryParseError::UnsupportedEscape(other)),
+                }
                 escaped = false;
                 continue;
             }

@@ -1,5 +1,6 @@
 use assert_cmd::Command;
 use serde_json::Value;
+use std::fs;
 
 #[test]
 fn find_json_title_returns_exact_case_sensitive_matches() {
@@ -376,6 +377,94 @@ fn find_json_query_title_in_returns_list_matches() {
         1
     );
     assert_eq!(body["result"]["matches"][0]["id"], "topic-payment");
+}
+
+#[test]
+fn find_json_query_rejects_unsupported_string_escape() {
+    let output = Command::cargo_bin("xmind")
+        .expect("xmind binary is built for CLI tests")
+        .args([
+            "find",
+            "tests/fixtures/xmind/minimal.xmind",
+            "--query",
+            r#"title = "Pay\m""#,
+            "--json",
+        ])
+        .output()
+        .expect("find command runs");
+
+    assert_eq!(output.status.code(), Some(2));
+    assert!(
+        output.stderr.is_empty(),
+        "json find error should not emit stderr diagnostics: {}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+
+    let body: Value = serde_json::from_slice(&output.stdout).expect("stdout is JSON");
+    assert_eq!(body["ok"], false);
+    assert_eq!(body["command"], "find");
+    assert_eq!(body["error"]["code"], "invalid_usage");
+    assert!(body["error"]["message"]
+        .as_str()
+        .expect("message is a string")
+        .contains("unsupported escape sequence"));
+}
+
+#[test]
+fn find_json_query_matches_escaped_quote_and_backslash() {
+    let temp_dir = tempfile::tempdir().expect("temp dir is created");
+    let workbook = temp_dir.path().join("query-escaping.xmind");
+    fs::copy("tests/fixtures/xmind/minimal.xmind", &workbook).expect("fixture is copied");
+    let workbook_arg = workbook.to_string_lossy().into_owned();
+
+    let add_output = Command::cargo_bin("xmind")
+        .expect("xmind binary is built for CLI tests")
+        .args([
+            "add",
+            &workbook_arg,
+            "--parent",
+            "path:/Q2",
+            "--title",
+            "He said \"Pay\"\\Now",
+            "--apply",
+            "--json",
+        ])
+        .output()
+        .expect("add command runs");
+    assert_eq!(add_output.status.code(), Some(0));
+
+    let output = Command::cargo_bin("xmind")
+        .expect("xmind binary is built for CLI tests")
+        .args([
+            "find",
+            &workbook_arg,
+            "--query",
+            r#"title = "He said \"Pay\"\\Now""#,
+            "--json",
+        ])
+        .output()
+        .expect("find command runs");
+
+    assert_eq!(output.status.code(), Some(0));
+    assert!(
+        output.stderr.is_empty(),
+        "json find output should not emit stderr diagnostics: {}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+
+    let body: Value = serde_json::from_slice(&output.stdout).expect("stdout is JSON");
+    assert_eq!(body["ok"], true);
+    assert_eq!(
+        body["result"]["matches"]
+            .as_array()
+            .expect("matches is an array")
+            .len(),
+        1
+    );
+    assert_eq!(
+        body["result"]["matches"][0]["title"],
+        "He said \"Pay\"\\Now"
+    );
 }
 
 #[test]
