@@ -1788,7 +1788,7 @@ fn clear_field_name(field: TopicClearField) -> &'static str {
 }
 
 #[derive(Clone)]
-enum PositionSpec {
+pub(in crate::app) enum PositionSpec {
     First,
     Last,
     Index(usize),
@@ -1796,7 +1796,9 @@ enum PositionSpec {
     After(Selector),
 }
 
-fn parse_insert_position(position: Option<String>) -> Result<PositionSpec, CliErrorBody> {
+pub(in crate::app) fn parse_insert_position(
+    position: Option<String>,
+) -> Result<PositionSpec, CliErrorBody> {
     match position.as_deref() {
         None => Ok(PositionSpec::Last),
         Some("first") => Ok(PositionSpec::First),
@@ -1846,7 +1848,7 @@ fn parse_insert_position(position: Option<String>) -> Result<PositionSpec, CliEr
     }
 }
 
-fn insert_position_from_spec(
+pub(in crate::app) fn insert_position_from_spec(
     position: PositionSpec,
     destination: &ResolvedTopic<'_>,
     root: &Topic,

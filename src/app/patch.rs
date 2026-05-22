@@ -11,9 +11,9 @@ use crate::domain::sheet::Sheet;
 use crate::domain::topic::Topic;
 
 use super::{
-    collect_added_paths, collect_deleted_paths, find_topic_by_path, read_workbook_or_render_error,
-    renamed_path, render_error, resolve_topic, select_sheet_or_render_error, Invocation,
-    ResolveOne, TopicTreeInputDto,
+    collect_added_paths, collect_deleted_paths, find_topic_by_path, insert_position_from_spec,
+    parse_insert_position, read_workbook_or_render_error, renamed_path, render_error,
+    resolve_topic, select_sheet_or_render_error, Invocation, ResolveOne, TopicTreeInputDto,
 };
 
 #[derive(Debug, Deserialize)]
@@ -27,6 +27,8 @@ pub(super) struct PatchOpDto {
     pub(super) node: Option<String>,
     pub(super) parent: Option<String>,
     pub(super) target: Option<String>,
+    pub(super) to: Option<String>,
+    pub(super) position: Option<String>,
     pub(super) title: Option<String>,
     pub(super) fields: Option<Map<String, Value>>,
     pub(super) tree: Option<TopicTreeInputDto>,
@@ -120,10 +122,7 @@ pub(super) fn render_patch(invocation: Invocation, json: bool, ops_path: &Path) 
         } else if op_name == "add" {
             match plan_patch_add(invocation.clone(), json, sheet, index, op_name, op) {
                 Ok(path) => {
-                    diff.push(PatchDiffEventDto {
-                        event: "added",
-                        path,
-                    });
+                    diff.push(PatchDiffEventDto::path_event("added", path));
                     operations.push(PatchOperationDto {
                         index,
                         op: op_name.to_owned(),
@@ -136,10 +135,7 @@ pub(super) fn render_patch(invocation: Invocation, json: bool, ops_path: &Path) 
         } else if op_name == "set" {
             match plan_patch_set(invocation.clone(), json, sheet, index, op_name, op) {
                 Ok(path) => {
-                    diff.push(PatchDiffEventDto {
-                        event: "updated",
-                        path,
-                    });
+                    diff.push(PatchDiffEventDto::path_event("updated", path));
                     operations.push(PatchOperationDto {
                         index,
                         op: op_name.to_owned(),
@@ -152,14 +148,16 @@ pub(super) fn render_patch(invocation: Invocation, json: bool, ops_path: &Path) 
         } else if op_name == "replace_tree" {
             match plan_patch_replace_tree(invocation.clone(), json, sheet, index, op_name, op) {
                 Ok((deleted_paths, added_paths)) => {
-                    diff.extend(deleted_paths.into_iter().map(|path| PatchDiffEventDto {
-                        event: "deleted",
-                        path,
-                    }));
-                    diff.extend(added_paths.into_iter().map(|path| PatchDiffEventDto {
-                        event: "added",
-                        path,
-                    }));
+                    diff.extend(
+                        deleted_paths
+                            .into_iter()
+                            .map(|path| PatchDiffEventDto::path_event("deleted", path)),
+                    );
+                    diff.extend(
+                        added_paths
+                            .into_iter()
+                            .map(|path| PatchDiffEventDto::path_event("added", path)),
+                    );
                     operations.push(PatchOperationDto {
                         index,
                         op: op_name.to_owned(),
@@ -172,14 +170,16 @@ pub(super) fn render_patch(invocation: Invocation, json: bool, ops_path: &Path) 
         } else if op_name == "merge_tree" {
             match plan_patch_merge_tree(invocation.clone(), json, sheet, index, op_name, op) {
                 Ok((updated_paths, added_paths)) => {
-                    diff.extend(updated_paths.into_iter().map(|path| PatchDiffEventDto {
-                        event: "updated",
-                        path,
-                    }));
-                    diff.extend(added_paths.into_iter().map(|path| PatchDiffEventDto {
-                        event: "added",
-                        path,
-                    }));
+                    diff.extend(
+                        updated_paths
+                            .into_iter()
+                            .map(|path| PatchDiffEventDto::path_event("updated", path)),
+                    );
+                    diff.extend(
+                        added_paths
+                            .into_iter()
+                            .map(|path| PatchDiffEventDto::path_event("added", path)),
+                    );
                     operations.push(PatchOperationDto {
                         index,
                         op: op_name.to_owned(),
@@ -192,10 +192,24 @@ pub(super) fn render_patch(invocation: Invocation, json: bool, ops_path: &Path) 
         } else if op_name == "delete" {
             match plan_patch_delete(invocation.clone(), json, sheet, index, op_name, op) {
                 Ok(deleted_paths) => {
-                    diff.extend(deleted_paths.into_iter().map(|path| PatchDiffEventDto {
-                        event: "deleted",
-                        path,
-                    }));
+                    diff.extend(
+                        deleted_paths
+                            .into_iter()
+                            .map(|path| PatchDiffEventDto::path_event("deleted", path)),
+                    );
+                    operations.push(PatchOperationDto {
+                        index,
+                        op: op_name.to_owned(),
+                        status: "planned",
+                    });
+                    continue;
+                }
+                Err(exit_code) => return exit_code,
+            }
+        } else if op_name == "move" {
+            match plan_patch_move(invocation.clone(), json, sheet, index, op_name, op) {
+                Ok((from, to)) => {
+                    diff.push(PatchDiffEventDto::moved(from, to));
                     operations.push(PatchOperationDto {
                         index,
                         op: op_name.to_owned(),
@@ -276,10 +290,11 @@ pub(super) fn render_patch(invocation: Invocation, json: bool, ops_path: &Path) 
         }
 
         let added_paths = collect_added_paths(parent_path, tree);
-        diff.extend(added_paths.into_iter().map(|path| PatchDiffEventDto {
-            event: "added",
-            path,
-        }));
+        diff.extend(
+            added_paths
+                .into_iter()
+                .map(|path| PatchDiffEventDto::path_event("added", path)),
+        );
         operations.push(PatchOperationDto {
             index,
             op: "add_tree".to_owned(),
@@ -340,7 +355,32 @@ struct PatchOperationDto {
 #[derive(Debug, serde::Serialize)]
 struct PatchDiffEventDto {
     event: &'static str,
-    path: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    path: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    from: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    to: Option<String>,
+}
+
+impl PatchDiffEventDto {
+    fn path_event(event: &'static str, path: String) -> Self {
+        Self {
+            event,
+            path: Some(path),
+            from: None,
+            to: None,
+        }
+    }
+
+    fn moved(from: String, to: String) -> Self {
+        Self {
+            event: "moved",
+            path: None,
+            from: Some(from),
+            to: Some(to),
+        }
+    }
 }
 
 fn summarize_patch_diff(diff: &[PatchDiffEventDto]) -> PatchSummaryDto {
@@ -891,6 +931,194 @@ fn plan_patch_delete(
     }
 
     Ok(collect_deleted_paths(resolved.topic, &resolved.path))
+}
+
+fn plan_patch_move(
+    invocation: Invocation,
+    json: bool,
+    sheet: &Sheet,
+    index: usize,
+    op_name: &str,
+    op: &PatchOpDto,
+) -> Result<(String, String), i32> {
+    let position = match parse_insert_position(op.position.clone()) {
+        Ok(position) => position,
+        Err(error) => {
+            return Err(render_error(
+                invocation,
+                json,
+                error.with_operation_context(index, op_name.to_owned()),
+            ));
+        }
+    };
+
+    let Some(node) = &op.node else {
+        let error = CliErrorBody::new(
+            ErrorCode::InvalidPatch,
+            "move operation is missing node.",
+            true,
+            "Add a node selector like node: path:/Q2/Payment.",
+        )
+        .with_operation_context(index, op_name.to_owned());
+        return Err(render_error(invocation, json, error));
+    };
+    let Some(destination) = &op.to else {
+        let error = CliErrorBody::new(
+            ErrorCode::InvalidPatch,
+            "move operation is missing to.",
+            true,
+            "Add a destination selector like to: path:/Q3.",
+        )
+        .with_operation_context(index, op_name.to_owned());
+        return Err(render_error(invocation, json, error));
+    };
+
+    let selector = match Selector::parse(node) {
+        Ok(selector) => selector,
+        Err(error) => {
+            let error = CliErrorBody::new(
+                ErrorCode::InvalidPatch,
+                format!("move node selector is invalid: {error}"),
+                true,
+                "Use a valid selector such as id:<topic-id>, path:/Q2, or title:Payment.",
+            )
+            .with_operation_context(index, op_name.to_owned());
+            return Err(render_error(invocation, json, error));
+        }
+    };
+    let destination_selector = match Selector::parse(destination) {
+        Ok(selector) => selector,
+        Err(error) => {
+            let error = CliErrorBody::new(
+                ErrorCode::InvalidPatch,
+                format!("move destination selector is invalid: {error}"),
+                true,
+                "Use a valid destination selector such as root, id:<topic-id>, or path:/Q2.",
+            )
+            .with_operation_context(index, op_name.to_owned());
+            return Err(render_error(invocation, json, error));
+        }
+    };
+
+    let source = match resolve_topic(&sheet.root, &selector) {
+        ResolveOne::Found(resolved) => resolved,
+        ResolveOne::NotFound => {
+            let error = CliErrorBody::new(
+                ErrorCode::NotFound,
+                format!("move selector did not match a topic: {}", selector.render()),
+                true,
+                "Run tree or find to rediscover the selector, then retry.",
+            )
+            .with_operation_context(index, op_name.to_owned())
+            .with_selector(selector.render());
+            return Err(render_error(invocation, json, error));
+        }
+        ResolveOne::Ambiguous(candidates) => {
+            let error = CliErrorBody::new(
+                ErrorCode::AmbiguousSelector,
+                "move selector matched multiple topics.",
+                true,
+                "Retry with a selector that resolves to exactly one topic.",
+            )
+            .with_operation_context(index, op_name.to_owned())
+            .with_selector(selector.render())
+            .with_candidates(
+                candidates
+                    .into_iter()
+                    .map(|candidate| CandidateDto {
+                        id: candidate.topic.id.0.clone(),
+                        path: candidate.path.to_selector_value(),
+                        title: candidate.topic.title.clone(),
+                        sheet: Some(sheet.title.clone()),
+                    })
+                    .collect(),
+            );
+            return Err(render_error(invocation, json, error));
+        }
+    };
+    if source.path.is_root() {
+        let error = CliErrorBody::new(
+            ErrorCode::RootOperationNotAllowed,
+            "Moving the root topic is not allowed.",
+            true,
+            "Use a non-root node selector.",
+        )
+        .with_operation_context(index, op_name.to_owned())
+        .with_selector(selector.render());
+        return Err(render_error(invocation, json, error));
+    }
+
+    let destination = match resolve_topic(&sheet.root, &destination_selector) {
+        ResolveOne::Found(resolved) => resolved,
+        ResolveOne::NotFound => {
+            let error = CliErrorBody::new(
+                ErrorCode::NotFound,
+                format!(
+                    "move destination selector did not match a topic: {}",
+                    destination_selector.render()
+                ),
+                true,
+                "Run tree or find to rediscover the destination selector, then retry.",
+            )
+            .with_operation_context(index, op_name.to_owned())
+            .with_selector(destination_selector.render());
+            return Err(render_error(invocation, json, error));
+        }
+        ResolveOne::Ambiguous(candidates) => {
+            let error = CliErrorBody::new(
+                ErrorCode::AmbiguousSelector,
+                "move destination selector matched multiple topics.",
+                true,
+                "Retry with a selector that resolves to exactly one topic.",
+            )
+            .with_operation_context(index, op_name.to_owned())
+            .with_selector(destination_selector.render())
+            .with_candidates(
+                candidates
+                    .into_iter()
+                    .map(|candidate| CandidateDto {
+                        id: candidate.topic.id.0.clone(),
+                        path: candidate.path.to_selector_value(),
+                        title: candidate.topic.title.clone(),
+                        sheet: Some(sheet.title.clone()),
+                    })
+                    .collect(),
+            );
+            return Err(render_error(invocation, json, error));
+        }
+    };
+
+    if let Err(error) = insert_position_from_spec(position, &destination, &sheet.root) {
+        return Err(render_error(
+            invocation,
+            json,
+            error.with_operation_context(index, op_name.to_owned()),
+        ));
+    }
+
+    if destination
+        .path
+        .segments()
+        .starts_with(source.path.segments())
+    {
+        let error = CliErrorBody::new(
+            ErrorCode::PatchConflict,
+            "Cannot move a topic into itself or one of its descendants.",
+            true,
+            "Choose a destination outside the source subtree.",
+        )
+        .with_operation_context(index, op_name.to_owned())
+        .with_selector(destination_selector.render());
+        return Err(render_error(invocation, json, error));
+    }
+
+    Ok((
+        source.path.to_selector_value(),
+        destination
+            .path
+            .join(source.topic.title.clone())
+            .to_selector_value(),
+    ))
 }
 
 fn collect_merge_tree_diff(

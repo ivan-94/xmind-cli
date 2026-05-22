@@ -309,7 +309,7 @@ Implement a Rust CLI named `xmind` that satisfies the documented product, comman
 - [x] Implement patch `replace_tree`.
 - [x] Implement patch `merge_tree`.
 - [x] Implement patch `delete`.
-- [ ] Implement patch `move`.
+- [x] Implement patch `move`.
 - [ ] Implement patch `copy`.
 - [ ] Implement patch `ensure_path`.
 - [ ] Implement patch `sort_children`.

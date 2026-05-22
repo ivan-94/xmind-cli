@@ -198,6 +198,12 @@
           <code>children_only</code> 与 <code>promote_children</code>
           仍按 PLAN 后续任务处理，当前会返回 <code>invalid_patch</code>。
         </li>
+        <li>
+          Patch <code>move</code> 当前实现 dry-run 规划，并将 moved diff
+          表达为 <code>{event, from, to}</code>，而不是 path-only 事件；
+          position 解析和“不能移动到自身/后代”冲突规则复用现有
+          <code>xmind move</code> 行为。
+        </li>
       </ul>
     </section>
   </body>
