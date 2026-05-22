@@ -127,6 +127,10 @@ pub fn run(cli: Cli) -> i32 {
             let append_note = append_note.clone();
             render_set_append_note(invocation, json, &node, &append_note)
         }
+        Action::Delete { ref node } => {
+            let node = node.clone();
+            render_delete(invocation, json, &node)
+        }
         Action::Noop => 0,
     }
 }
@@ -196,6 +200,9 @@ enum Action {
     SetAppendNote {
         node: String,
         append_note: String,
+    },
+    Delete {
+        node: String,
     },
     Validate {
         strict: bool,
@@ -367,13 +374,16 @@ impl Invocation {
                     Action::Noop
                 }),
             ),
-            Command::Delete(command) => Some(Self::mutation(
-                "delete",
-                command.workbook,
-                command.mode.dry_run,
-                sheet_selection,
-                quiet,
-            )),
+            Command::Delete(command) => Some(
+                Self::mutation(
+                    "delete",
+                    command.workbook,
+                    command.mode.dry_run,
+                    sheet_selection,
+                    quiet,
+                )
+                .with_action(Action::Delete { node: command.node }),
+            ),
             Command::Move(command) => Some(Self::mutation(
                 "move",
                 command.workbook,
@@ -1049,6 +1059,128 @@ fn generated_topic_id(title: &str) -> String {
     } else {
         format!("topic-{slug}")
     }
+}
+
+fn render_delete(invocation: Invocation, json: bool, node: &str) -> i32 {
+    if !invocation.dry_run {
+        let error = CliErrorBody::new(
+            ErrorCode::InvalidUsage,
+            "Only delete --dry-run is implemented in this slice.",
+            true,
+            "Retry with --dry-run, or wait for the delete apply slice.",
+        );
+        return render_error(invocation, json, error);
+    }
+
+    let workbook = match read_workbook_or_render_error(&invocation, json) {
+        Ok(workbook) => workbook,
+        Err(exit_code) => return exit_code,
+    };
+
+    let sheet = match select_sheet_or_render_error(&workbook, &invocation, json) {
+        Ok(sheet) => sheet,
+        Err(exit_code) => return exit_code,
+    };
+
+    let selector = match Selector::parse(node) {
+        Ok(selector) => selector,
+        Err(error) => {
+            let error = CliErrorBody::new(
+                ErrorCode::InvalidUsage,
+                format!("Node selector is invalid: {error}"),
+                true,
+                "Use a valid selector such as id:<topic-id>, path:/Q2, or title:Payment.",
+            );
+            return render_error(invocation, json, error);
+        }
+    };
+
+    let resolved = match resolve_topic(&sheet.root, &selector) {
+        ResolveOne::Found(resolved) => resolved,
+        ResolveOne::NotFound => {
+            let error = CliErrorBody::new(
+                ErrorCode::NotFound,
+                format!("Selector did not match a topic: {}", selector.render()),
+                true,
+                "Run tree or find to rediscover the topic selector, then retry.",
+            )
+            .with_selector(selector.render());
+            return render_error(invocation, json, error);
+        }
+        ResolveOne::Ambiguous(candidates) => {
+            let error = CliErrorBody::new(
+                ErrorCode::AmbiguousSelector,
+                "Selector matched multiple topics.",
+                true,
+                "Retry with one of the candidate ids.",
+            )
+            .with_selector(selector.render())
+            .with_candidates(
+                candidates
+                    .into_iter()
+                    .map(|candidate| CandidateDto {
+                        id: candidate.topic.id.0.clone(),
+                        path: candidate.path.to_selector_value(),
+                        title: candidate.topic.title.clone(),
+                        sheet: Some(sheet.title.clone()),
+                    })
+                    .collect(),
+            );
+            return render_error(invocation, json, error);
+        }
+    };
+
+    if resolved.path.is_root() {
+        let error = CliErrorBody::new(
+            ErrorCode::RootOperationNotAllowed,
+            "Deleting the root topic is not allowed.",
+            true,
+            "Use a non-root node selector, or use --children-only when that slice is available.",
+        )
+        .with_selector(selector.render());
+        return render_error(invocation, json, error);
+    }
+
+    let deleted = collect_deleted_paths(resolved.topic, &resolved.path);
+    let diff = deleted
+        .iter()
+        .cloned()
+        .map(|path| DiffEventDto {
+            event: "deleted",
+            path,
+        })
+        .collect::<Vec<_>>();
+    let result = DeleteDryRunResultDto {
+        will_change: !deleted.is_empty(),
+        deleted,
+        summary: SummaryDto {
+            added: 0,
+            updated: 0,
+            deleted: diff.len(),
+            moved: 0,
+        },
+        diff,
+    };
+
+    if json {
+        let envelope = CommandEnvelope {
+            ok: true,
+            command: Some(invocation.command),
+            workbook: Some(invocation.workbook.display().to_string()),
+            dry_run: invocation.dry_run,
+            applied: false,
+            result: Some(result),
+            error: None,
+            warnings: Vec::new(),
+        };
+        crate::cli::render_json_envelope(&envelope);
+    } else if !invocation.quiet {
+        for path in &result.deleted {
+            println!("- {path}");
+        }
+    }
+
+    0
 }
 
 fn render_set_title(invocation: Invocation, json: bool, node: &str, title: &str) -> i32 {
@@ -1796,6 +1928,14 @@ struct AddDryRunResultDto {
 }
 
 #[derive(Debug, Serialize)]
+struct DeleteDryRunResultDto {
+    will_change: bool,
+    deleted: Vec<String>,
+    summary: SummaryDto,
+    diff: Vec<DiffEventDto>,
+}
+
+#[derive(Debug, Serialize)]
 struct TopicRefDto {
     id: String,
     path: String,
@@ -2461,6 +2601,19 @@ fn collect_added_paths(parent_path: &TopicPath, tree: &TopicTreeInputDto) -> Vec
 
     for child in &tree.children {
         paths.extend(collect_added_paths(&root_path, child));
+    }
+
+    paths
+}
+
+fn collect_deleted_paths(topic: &Topic, path: &TopicPath) -> Vec<String> {
+    let mut paths = vec![path.to_selector_value()];
+
+    for child in &topic.children {
+        paths.extend(collect_deleted_paths(
+            child,
+            &path.join(child.title.clone()),
+        ));
     }
 
     paths

@@ -2,12 +2,13 @@
 source: tests/cli/help_snapshots_test.rs
 expression: "help_output(&[subcommand, \"--help\"])"
 ---
-Usage: xmind delete [OPTIONS] <--dry-run|--apply> <WORKBOOK>
+Usage: xmind delete [OPTIONS] --node <NODE> <--dry-run|--apply> <WORKBOOK>
 
 Arguments:
   <WORKBOOK>  
 
 Options:
+      --node <NODE>                
       --dry-run                    
       --apply                      
       --json                       

@@ -2229,5 +2229,43 @@
         <li>None.</li>
       </ul>
     </section>
+
+    <section class="entry">
+      <h2>2026-05-22 - delete diff tests</h2>
+      <h3>Design Decisions</h3>
+      <ul>
+        <li>
+          Added a CLI test for <code>delete --dry-run --json</code> that verifies
+          deleted paths, summary counts, diff event shape, and no file writes.
+        </li>
+        <li>
+          Added the minimal <code>--node</code> delete command surface and
+          dry-run preview needed to exercise delete diff behavior.
+        </li>
+      </ul>
+
+      <h3>Deviations</h3>
+      <ul>
+        <li>
+          <code>delete --apply</code>, <code>--children-only</code>, and
+          <code>--promote-children</code> remain unimplemented and are still
+          tracked by later Phase 9 tasks.
+        </li>
+      </ul>
+
+      <h3>Tradeoffs</h3>
+      <ul>
+        <li>
+          The dry-run implementation lists the target subtree paths and returns
+          <code>deleted</code> diff events without mutating the workbook, keeping
+          this slice focused on diff test coverage.
+        </li>
+      </ul>
+
+      <h3>Open Questions</h3>
+      <ul>
+        <li>None.</li>
+      </ul>
+    </section>
   </body>
 </html>
