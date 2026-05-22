@@ -1,0 +1,84 @@
+[package]
+name = "xmind-cli"
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+description = "Agent-native CLI for inspecting and editing XMind workbooks"
+publish = false
+
+[package.metadata.xmind-cli]
+spec_sources = [
+  "docs/README.md",
+  "docs/product",
+  "docs/concepts",
+  "docs/reference",
+  "docs/schemas",
+  "docs/technical",
+]
+
+[[bin]]
+name = "xmind"
+path = "src/main.rs"
+
+[[test]]
+name = "foundation_test"
+path = "tests/cli/foundation_test.rs"
+
+[[test]]
+name = "help_snapshots_test"
+path = "tests/cli/help_snapshots_test.rs"
+
+[[test]]
+name = "invalid_usage_test"
+path = "tests/cli/invalid_usage_test.rs"
+
+[[test]]
+name = "runtime_errors_test"
+path = "tests/cli/runtime_errors_test.rs"
+
+[[test]]
+name = "tree_test"
+path = "tests/cli/tree_test.rs"
+
+[[test]]
+name = "sheets_test"
+path = "tests/cli/sheets_test.rs"
+
+[[test]]
+name = "inspect_test"
+path = "tests/cli/inspect_test.rs"
+
+[[test]]
+name = "find_test"
+path = "tests/cli/find_test.rs"
+
+[[test]]
+name = "patch_test"
+path = "tests/cli/patch_test.rs"
+
+[[test]]
+name = "get_test"
+path = "tests/cli/get_test.rs"
+
+[[test]]
+name = "validate_test"
+path = "tests/cli/validate_test.rs"
+
+[dependencies]
+clap = { version = "=4.5.4", features = ["derive"] }
+serde = { version = "=1.0.203", features = ["derive"] }
+serde_json = "=1.0.117"
+serde_yaml = "=0.9.34"
+thiserror = "=1.0.61"
+zip = { version = "=0.6.6", default-features = false, features = ["deflate"] }
+
+# Keep serde_yaml's indexmap stack compatible with Cargo/Rust 1.80.
+indexmap = "=2.2.6"
+hashbrown = "=0.14.5"
+
+[dev-dependencies]
+assert_cmd = "=2.0.14"
+predicates = "=3.1.0"
+tempfile = "=3.10.1"
+insta = { version = "=1.39.0", features = ["json"] }
+proptest = "=1.4.0"

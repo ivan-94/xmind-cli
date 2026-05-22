@@ -1,0 +1,39 @@
+---
+source: tests/cli/help_snapshots_test.rs
+assertion_line: 16
+expression: "help_output(&[subcommand, \"--help\"])"
+---
+Usage: xmind find [OPTIONS] <WORKBOOK>
+
+Arguments:
+  <WORKBOOK>  
+
+Options:
+      --title <TITLE>
+          
+      --title-contains <TITLE_CONTAINS>
+          
+      --contains <CONTAINS>
+          
+      --limit <LIMIT>
+          
+      --offset <OFFSET>
+          
+      --json
+          
+      --format <FORMAT>
+          [default: text] [possible values: text, json, compact-json, markdown, outline]
+      --fields <FIELDS>
+          
+      --quiet
+          
+      --no-color
+          
+      --sheet <SHEET>
+          
+      --sheet-id <SHEET_ID>
+          
+      --sheet-index <SHEET_INDEX>
+          
+  -h, --help
+          Print help

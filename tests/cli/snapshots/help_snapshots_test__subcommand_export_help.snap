@@ -1,0 +1,19 @@
+---
+source: tests/cli/help_snapshots_test.rs
+expression: "help_output(&[subcommand, \"--help\"])"
+---
+Usage: xmind export [OPTIONS] <WORKBOOK>
+
+Arguments:
+  <WORKBOOK>  
+
+Options:
+      --json                       
+      --format <FORMAT>            [default: text] [possible values: text, json, compact-json, markdown, outline]
+      --fields <FIELDS>            
+      --quiet                      
+      --no-color                   
+      --sheet <SHEET>              
+      --sheet-id <SHEET_ID>        
+      --sheet-index <SHEET_INDEX>  
+  -h, --help                       Print help

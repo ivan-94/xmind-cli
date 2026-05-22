@@ -1,0 +1,124 @@
+use assert_cmd::Command;
+use serde_json::Value;
+
+#[test]
+fn inspect_json_summarizes_workbook_without_printing_tree() {
+    let output = Command::cargo_bin("xmind")
+        .expect("xmind binary is built for CLI tests")
+        .args([
+            "inspect",
+            "tests/fixtures/xmind/multiple-sheets.xmind",
+            "--json",
+        ])
+        .output()
+        .expect("inspect command runs");
+
+    assert_eq!(output.status.code(), Some(0));
+    assert!(
+        output.stderr.is_empty(),
+        "json inspect output should not emit stderr diagnostics: {}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+
+    let body: Value = serde_json::from_slice(&output.stdout).expect("stdout is JSON");
+    assert_eq!(body["ok"], true);
+    assert_eq!(body["command"], "inspect");
+    assert_eq!(
+        body["workbook"],
+        "tests/fixtures/xmind/multiple-sheets.xmind"
+    );
+    assert_eq!(body["dry_run"], false);
+    assert_eq!(body["applied"], false);
+    assert_eq!(body["result"]["format"], "xmind-zen");
+    assert_eq!(body["result"]["sheet_count"], 2);
+    assert_eq!(body["result"]["sheets"][0]["id"], "sheet-roadmap");
+    assert_eq!(body["result"]["sheets"][0]["title"], "Roadmap");
+    assert_eq!(body["result"]["sheets"][0]["topic_count"], 2);
+    assert_eq!(body["result"]["sheets"][1]["id"], "sheet-backlog");
+    assert_eq!(body["result"]["sheets"][1]["title"], "Backlog");
+    assert_eq!(body["result"]["sheets"][1]["topic_count"], 2);
+    assert_eq!(body["result"]["capabilities"]["can_read_topics"], true);
+    assert_eq!(
+        body["result"]["capabilities"]["can_preserve_unknown"],
+        false
+    );
+    assert!(body["result"].get("root").is_none());
+}
+
+#[test]
+fn inspect_json_compact_format_limits_workbook_fields() {
+    let output = Command::cargo_bin("xmind")
+        .expect("xmind binary is built for CLI tests")
+        .args([
+            "inspect",
+            "tests/fixtures/xmind/multiple-sheets.xmind",
+            "--json",
+            "--format",
+            "compact-json",
+            "--fields",
+            "format,sheet_count",
+        ])
+        .output()
+        .expect("inspect command runs");
+
+    assert_eq!(output.status.code(), Some(0));
+    assert!(
+        output.stderr.is_empty(),
+        "json inspect output should not emit stderr diagnostics: {}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+
+    let body: Value = serde_json::from_slice(&output.stdout).expect("stdout is JSON");
+    assert_eq!(body["ok"], true);
+    assert_eq!(body["command"], "inspect");
+    assert_eq!(body["result"]["format"], "xmind-zen");
+    assert_eq!(body["result"]["sheet_count"], 2);
+    assert!(body["result"].get("sheets").is_none());
+    assert!(body["result"].get("capabilities").is_none());
+}
+
+#[test]
+fn inspect_quiet_suppresses_human_success_output_without_suppressing_json() {
+    let human_output = Command::cargo_bin("xmind")
+        .expect("xmind binary is built for CLI tests")
+        .args([
+            "inspect",
+            "tests/fixtures/xmind/multiple-sheets.xmind",
+            "--quiet",
+        ])
+        .output()
+        .expect("inspect command runs");
+
+    assert_eq!(human_output.status.code(), Some(0));
+    assert!(
+        human_output.stdout.is_empty(),
+        "quiet human output should suppress success text: {}",
+        String::from_utf8_lossy(&human_output.stdout)
+    );
+    assert!(
+        human_output.stderr.is_empty(),
+        "quiet human output should not emit stderr on success: {}",
+        String::from_utf8_lossy(&human_output.stderr)
+    );
+
+    let json_output = Command::cargo_bin("xmind")
+        .expect("xmind binary is built for CLI tests")
+        .args([
+            "inspect",
+            "tests/fixtures/xmind/multiple-sheets.xmind",
+            "--quiet",
+            "--json",
+        ])
+        .output()
+        .expect("inspect command runs");
+
+    assert_eq!(json_output.status.code(), Some(0));
+    assert!(
+        !json_output.stdout.is_empty(),
+        "quiet must not suppress JSON stdout"
+    );
+
+    let body: Value = serde_json::from_slice(&json_output.stdout).expect("stdout is JSON");
+    assert_eq!(body["ok"], true);
+    assert_eq!(body["command"], "inspect");
+}

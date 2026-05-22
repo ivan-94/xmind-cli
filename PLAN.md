@@ -28,69 +28,69 @@ Implement a Rust CLI named `xmind` that satisfies the documented product, comman
 
 ## Phase 0: Repository Foundation
 
-- [ ] Create `Cargo.toml`.
-- [ ] Set package name, binary name, edition, license, and metadata.
-- [ ] Add `rust-toolchain.toml`.
-- [ ] Add `rustfmt.toml`.
-- [ ] Add `clippy.toml`.
-- [ ] Add initial `deny.toml`.
-- [ ] Add `.gitignore` for Rust build artifacts.
-- [ ] Create `src/main.rs`.
-- [ ] Create initial module tree under `src/`.
-- [ ] Add `tests/fixtures/` directory.
-- [ ] Add `tests/cli/` directory.
-- [ ] Add local quality gate script or documented command.
-- [ ] Verify `cargo fmt --all -- --check`.
-- [ ] Verify `cargo clippy --workspace --all-targets --all-features -- -D warnings`.
-- [ ] Verify `cargo test --workspace --all-features`.
+- [x] Create `Cargo.toml`.
+- [x] Set package name, binary name, edition, license, and metadata.
+- [x] Add `rust-toolchain.toml`.
+- [x] Add `rustfmt.toml`.
+- [x] Add `clippy.toml`.
+- [x] Add initial `deny.toml`.
+- [x] Add `.gitignore` for Rust build artifacts.
+- [x] Create `src/main.rs`.
+- [x] Create initial module tree under `src/`.
+- [x] Add `tests/fixtures/` directory.
+- [x] Add `tests/cli/` directory.
+- [x] Add local quality gate script or documented command.
+- [x] Verify `cargo fmt --all -- --check`.
+- [x] Verify `cargo clippy --workspace --all-targets --all-features -- -D warnings`.
+- [x] Verify `cargo test --workspace --all-features`.
 
 ## Phase 1: CLI Skeleton
 
-- [ ] Add `clap` dependency.
-- [ ] Define top-level `xmind` CLI.
-- [ ] Implement subcommand enum:
-  - [ ] `inspect`
-  - [ ] `sheets`
-  - [ ] `tree`
-  - [ ] `find`
-  - [ ] `get`
-  - [ ] `add`
-  - [ ] `add-tree`
-  - [ ] `set`
-  - [ ] `delete`
-  - [ ] `move`
-  - [ ] `copy`
-  - [ ] `patch`
-  - [ ] `diff`
-  - [ ] `validate`
-  - [ ] `export`
-  - [ ] `import`
-  - [ ] `backup`
-  - [ ] `restore`
-- [ ] Implement global options:
-  - [ ] `--json`
-  - [ ] `--format`
-  - [ ] `--fields`
-  - [ ] `--quiet`
-  - [ ] `--no-color`
-  - [ ] `--sheet`
-  - [ ] `--sheet-id`
-  - [ ] `--sheet-index`
-- [ ] Enforce `--dry-run | --apply` required group for mutating commands.
-- [ ] Ensure invalid CLI usage maps to `invalid_usage`.
-- [ ] Add help snapshot tests for top-level command.
-- [ ] Add help snapshot tests for each subcommand.
+- [x] Add `clap` dependency.
+- [x] Define top-level `xmind` CLI.
+- [x] Implement subcommand enum:
+  - [x] `inspect`
+  - [x] `sheets`
+  - [x] `tree`
+  - [x] `find`
+  - [x] `get`
+  - [x] `add`
+  - [x] `add-tree`
+  - [x] `set`
+  - [x] `delete`
+  - [x] `move`
+  - [x] `copy`
+  - [x] `patch`
+  - [x] `diff`
+  - [x] `validate`
+  - [x] `export`
+  - [x] `import`
+  - [x] `backup`
+  - [x] `restore`
+- [x] Implement global options:
+  - [x] `--json`
+  - [x] `--format`
+  - [x] `--fields`
+  - [x] `--quiet`
+  - [x] `--no-color`
+  - [x] `--sheet`
+  - [x] `--sheet-id`
+  - [x] `--sheet-index`
+- [x] Enforce `--dry-run | --apply` required group for mutating commands.
+- [x] Ensure invalid CLI usage maps to `invalid_usage`.
+- [x] Add help snapshot tests for top-level command.
+- [x] Add help snapshot tests for each subcommand.
 
 ## Phase 2: Output and Error Foundation
 
-- [ ] Add typed `CommandEnvelope<T>`.
-- [ ] Add typed `CliErrorBody`.
-- [ ] Add typed `CliWarning`.
-- [ ] Add `ErrorCode` enum with snake_case serialization.
-- [ ] Add exit code mapping.
-- [ ] Implement JSON renderer.
-- [ ] Implement human text renderer scaffold.
-- [ ] Implement `--quiet` behavior for human output.
+- [x] Add typed `CommandEnvelope<T>`.
+- [x] Add typed `CliErrorBody`.
+- [x] Add typed `CliWarning`.
+- [x] Add `ErrorCode` enum with snake_case serialization.
+- [x] Add exit code mapping.
+- [x] Implement JSON renderer.
+- [x] Implement human text renderer scaffold.
+- [x] Implement `--quiet` behavior for human output.
 - [ ] Implement `--no-color` behavior for human output.
 - [ ] Add snapshot tests for success JSON envelope.
 - [ ] Add snapshot tests for failure JSON envelope.
@@ -98,41 +98,41 @@ Implement a Rust CLI named `xmind` that satisfies the documented product, comman
 
 ## Phase 3: Domain Core
 
-- [ ] Implement `Workbook`.
-- [ ] Implement `Sheet`.
-- [ ] Implement `Topic`.
-- [ ] Implement `TopicId`.
-- [ ] Implement `SheetId`.
+- [x] Implement `Workbook`.
+- [x] Implement `Sheet`.
+- [x] Implement `Topic`.
+- [x] Implement `TopicId`.
+- [x] Implement `SheetId`.
 - [ ] Implement `AssetId`.
 - [ ] Implement `TopicImageRef`.
 - [ ] Implement `ResourceIndex`.
 - [ ] Implement `PreservationBag`.
-- [ ] Implement `TopicPath`.
-- [ ] Implement path parse/render.
-- [ ] Implement path escaping for `/`.
-- [ ] Implement path escaping for backslash.
-- [ ] Implement root path `/`.
-- [ ] Add property tests for path round trip.
-- [ ] Add tests for title `/` path segment.
-- [ ] Add tests proving canonical paths exclude root topic title.
+- [x] Implement `TopicPath`.
+- [x] Implement path parse/render.
+- [x] Implement path escaping for `/`.
+- [x] Implement path escaping for backslash.
+- [x] Implement root path `/`.
+- [x] Add property tests for path round trip.
+- [x] Add tests for title `/` path segment.
+- [x] Add tests proving canonical paths exclude root topic title.
 
 ## Phase 4: Selector and Query Engine
 
-- [ ] Implement `Selector` enum:
-  - [ ] `root`
-  - [ ] `id:`
-  - [ ] `path:`
-  - [ ] `title:`
+- [x] Implement `Selector` enum:
+  - [x] `root`
+  - [x] `id:`
+  - [x] `path:`
+  - [x] `title:`
   - [ ] `query:`
-- [ ] Implement selector parser.
-- [ ] Implement selector render for diagnostics.
-- [ ] Implement sheet selection:
-  - [ ] by title,
-  - [ ] by id,
-  - [ ] by index.
-- [ ] Implement selector resolution against a sheet.
-- [ ] Implement ambiguous selector candidates.
-- [ ] Implement `not_found` diagnostics.
+- [x] Implement selector parser.
+- [x] Implement selector render for diagnostics.
+- [x] Implement sheet selection:
+  - [x] by title,
+  - [x] by id,
+  - [x] by index.
+- [x] Implement selector resolution against a sheet.
+- [x] Implement ambiguous selector candidates.
+- [x] Implement `not_found` diagnostics.
 - [ ] Implement query lexer/parser.
 - [ ] Implement query AST.
 - [ ] Implement query operators:
@@ -153,54 +153,59 @@ Implement a Rust CLI named `xmind` that satisfies the documented product, comman
   - [ ] `and`,
   - [ ] `or`.
 - [ ] Implement query string escaping.
-- [ ] Add unit tests for selector parsing.
+- [x] Add unit tests for selector parsing.
 - [ ] Add unit tests for query parsing.
 - [ ] Add evaluator tests for all query fields.
 
 ## Phase 5: XMind Package Reader
 
-- [ ] Add zip package reader.
-- [ ] Detect supported modern XMind package format.
+- [x] Add zip package reader.
+- [x] Detect supported modern XMind package format.
 - [ ] Return `unsupported_format` for unsupported variants.
-- [ ] Decode workbook JSON into storage DTOs.
-- [ ] Convert storage DTOs into domain model.
+- [x] Decode workbook JSON into storage DTOs.
+- [x] Convert storage DTOs into domain model.
 - [ ] Preserve unknown package entries.
 - [ ] Preserve unknown JSON fields.
-- [ ] Load sheets.
-- [ ] Load root topics.
-- [ ] Load child topics.
-- [ ] Load topic title.
-- [ ] Load topic notes.
+- [x] Load sheets.
+- [x] Load root topics.
+- [x] Load child topics.
+- [x] Load topic title.
+- [x] Load topic notes.
 - [ ] Load labels.
 - [ ] Load markers.
 - [ ] Load hyperlinks.
 - [ ] Load topic image references where supported.
 - [ ] Load resource metadata.
-- [ ] Add minimal `.xmind` fixture.
-- [ ] Add multiple-sheet `.xmind` fixture.
-- [ ] Add metadata `.xmind` fixture.
+- [x] Add minimal `.xmind` fixture.
+- [x] Add multiple-sheet `.xmind` fixture.
+- [x] Add metadata `.xmind` fixture.
 - [ ] Add image `.xmind` fixture.
-- [ ] Add read fixture tests.
+- [x] Add read fixture tests.
 
 ## Phase 6: Read Commands
 
-- [ ] Implement `inspect`.
-- [ ] Implement `sheets`.
-- [ ] Implement `tree`.
-- [ ] Implement `get`.
-- [ ] Implement `find --title` exact case-sensitive match.
-- [ ] Implement `find --title-contains`.
-- [ ] Implement `find --contains`.
+- [x] Implement `inspect`.
+- [x] Implement `sheets`.
+- [x] Implement `tree`.
+- [x] Implement `get`.
+- [x] Implement `find --title` exact case-sensitive match.
+- [x] Implement `find --title-contains`.
+- [x] Implement `find --contains`.
 - [ ] Implement `find --query`.
-- [ ] Implement `--depth`.
-- [ ] Implement `--limit`.
-- [ ] Implement `--offset`.
-- [ ] Implement `--fields` validation.
-- [ ] Implement `--format compact-json` payload shaping.
+- [x] Implement `--depth`.
+- [x] Implement `--limit`.
+- [x] Implement `--offset`.
+- [x] Implement `--fields` validation.
+- [x] Implement `--format compact-json` payload shaping:
+  - [x] `find` match fields.
+  - [x] `tree` topic fields.
+  - [x] `get` topic fields.
+  - [x] `sheets` sheet fields.
+  - [x] `inspect` workbook fields.
 - [ ] Implement `--include-assets`.
 - [ ] Add CLI snapshot tests for each read command.
-- [ ] Add ambiguous sheet tests.
-- [ ] Add ambiguous selector tests.
+- [x] Add ambiguous sheet tests.
+- [x] Add ambiguous selector tests.
 
 ## Phase 7: Diff Engine
 
@@ -229,7 +234,8 @@ Implement a Rust CLI named `xmind` that satisfies the documented product, comman
 - [ ] Implement backup writer.
 - [ ] Implement `--backup-dir`.
 - [ ] Ensure `--validate-after` failure leaves original file untouched.
-- [ ] Implement `validate` command.
+- [x] Implement `validate` command.
+  - [x] Accept documented `validate --strict` option.
 - [ ] Add tests for dry-run not writing.
 - [ ] Add tests for validation failure rollback.
 - [ ] Add tests for backup creation.
@@ -287,9 +293,9 @@ Implement a Rust CLI named `xmind` that satisfies the documented product, comman
 
 ## Phase 11: Patch Engine
 
-- [ ] Parse patch YAML.
+- [x] Parse patch YAML.
 - [ ] Parse patch JSON.
-- [ ] Validate top-level `ops`.
+- [x] Validate top-level `ops`.
 - [ ] Normalize aliases:
   - [ ] `delete_tree -> delete`
   - [ ] `move_tree -> move`
@@ -297,7 +303,7 @@ Implement a Rust CLI named `xmind` that satisfies the documented product, comman
 - [ ] Implement `assert_exists`.
 - [ ] Implement `assert_not_exists`.
 - [ ] Implement patch `add`.
-- [ ] Implement patch `add_tree`.
+- [x] Implement patch `add_tree`.
 - [ ] Implement patch `set`.
 - [ ] Implement patch `replace_tree`.
 - [ ] Implement patch `merge_tree`.
@@ -355,14 +361,14 @@ Implement a Rust CLI named `xmind` that satisfies the documented product, comman
 ## Phase 14: Error Coverage
 
 - [ ] Test `invalid_usage`.
-- [ ] Test `file_not_found`.
+- [x] Test `file_not_found`.
 - [ ] Test `parse_failed`.
-- [ ] Test `sheet_not_found`.
-- [ ] Test `ambiguous_sheet`.
-- [ ] Test `not_found`.
-- [ ] Test `ambiguous_selector`.
+- [x] Test `sheet_not_found`.
+- [x] Test `ambiguous_sheet`.
+- [x] Test `not_found`.
+- [x] Test `ambiguous_selector`.
 - [ ] Test `invalid_tree_input`.
-- [ ] Test `invalid_patch`.
+- [x] Test `invalid_patch`.
 - [ ] Test `patch_conflict`.
 - [ ] Test `validation_failed`.
 - [ ] Test `write_failed`.
@@ -374,9 +380,9 @@ Implement a Rust CLI named `xmind` that satisfies the documented product, comman
   - [ ] `retryable`
   - [ ] `suggested_fix`
   - [ ] `exit_code`
-- [ ] Verify selector errors include candidates.
-- [ ] Verify patch errors include `operation_index`.
-- [ ] Verify schema errors include `field_path`.
+- [x] Verify selector errors include candidates.
+- [x] Verify patch errors include `operation_index`.
+- [x] Verify schema errors include `field_path`.
 
 ## Phase 15: Documentation Synchronization
 
@@ -406,13 +412,13 @@ Implement a Rust CLI named `xmind` that satisfies the documented product, comman
 
 The first implementation slice should prove the whole architecture with the smallest useful loop:
 
-- [ ] Rust project foundation.
-- [ ] JSON envelope and typed errors.
-- [ ] Minimal XMind fixture reader.
-- [ ] `tree --json --depth`.
-- [ ] `patch --dry-run` for `add_tree`.
-- [ ] Structured diff output.
-- [ ] Quality gate passing.
+- [x] Rust project foundation.
+- [x] JSON envelope and typed errors.
+- [x] Minimal XMind fixture reader.
+- [x] `tree --json --depth`.
+- [x] `patch --dry-run` for `add_tree`.
+- [x] Structured diff output.
+- [x] Quality gate passing.
 
 Target command loop:
 
@@ -433,4 +439,3 @@ xmind patch tests/fixtures/xmind/minimal.xmind --ops docs/examples/patch-add-tre
 - [ ] Unknown XMind data is preserved across supported edits.
 - [ ] `cargo fmt`, `cargo clippy`, `cargo test`, and `cargo doc` pass.
 - [ ] Command references and CLI help are synchronized.
-

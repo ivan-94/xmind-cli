@@ -1,0 +1,1208 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>XMind CLI Implementation Notes</title>
+    <style>
+      body {
+        font-family:
+          -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        line-height: 1.5;
+        max-width: 920px;
+        margin: 32px auto;
+        padding: 0 20px;
+        color: #202124;
+      }
+
+      h1,
+      h2 {
+        line-height: 1.2;
+      }
+
+      code {
+        background: #f1f3f4;
+        border-radius: 4px;
+        padding: 1px 4px;
+      }
+
+      .entry {
+        border-top: 1px solid #dadce0;
+        padding-top: 16px;
+        margin-top: 20px;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>XMind CLI Implementation Notes</h1>
+    <p>
+      Running notes for implementation choices, spec interpretations,
+      intentional deviations, tradeoffs, and open questions.
+    </p>
+
+    <section class="entry">
+      <h2>2026-05-21 - Phase 0 and CLI skeleton tracer bullet</h2>
+      <h3>Design Decisions</h3>
+      <ul>
+        <li>
+          The first TDD tracer bullet is top-level help through
+          <code>xmind --help</code>. This verifies the binary name, clap wiring,
+          command inventory, and integration test path through the public CLI.
+        </li>
+        <li>
+          The crate uses Rust edition 2021 for now. The spec allowed edition
+          2024 only if the initial toolchain supports it cleanly; the available
+          local Homebrew Rust is 1.80.1, so edition 2021 is the compatible
+          choice.
+        </li>
+        <li>
+          The initial module tree is intentionally shallow and mostly empty.
+          Placeholder structs were avoided because <code>clippy -D warnings</code>
+          would treat unused scaffold types as failures before the behavior
+          slices need those types.
+        </li>
+        <li>
+          Dependency versions are pinned exactly for the initial slice. Cargo
+          1.80.1 otherwise resolves some transitive crates to newer releases
+          that require edition 2024 manifest support.
+        </li>
+      </ul>
+
+      <h3>Deviations</h3>
+      <ul>
+        <li>
+          The spec describes the full CLI contract, but this slice only gives
+          subcommands enough arguments to parse and show help. Command behavior
+          is not implemented yet.
+        </li>
+        <li>
+          <code>rust-toolchain.toml</code> pins 1.80.1 to match the available
+          local Rust, rather than using a newer stable release.
+        </li>
+      </ul>
+
+      <h3>Tradeoffs</h3>
+      <ul>
+        <li>
+          I chose a CLI help test before internal unit tests because it proves
+          the crate, binary target, clap dependency, and test harness in one
+          small public-interface slice.
+        </li>
+        <li>
+          I added a simple <code>scripts/quality-gate.sh</code> wrapper instead
+          of a heavier task runner so the first gate is transparent and easy to
+          replace later.
+        </li>
+      </ul>
+
+      <h3>Open Questions</h3>
+      <ul>
+        <li>
+          The machine's Homebrew Rust installation is broken:
+          <code>cargo</code> and <code>rustc</code> fail because
+          Rust 1.80.1 is linked against an LLVM/libunwind layout that no longer
+          exists under <code>/opt/homebrew/opt/llvm</code>. I did not mutate the
+          global Homebrew installation as part of this implementation slice.
+        </li>
+        <li>
+          Verification was completed with an official temporary Rust 1.80.1
+          toolchain installed under <code>/tmp/xmind-rust.IhpKxT/toolchain</code>.
+          The passing gate was <code>scripts/quality-gate.sh</code>, which runs
+          <code>cargo fmt --all -- --check</code>,
+          <code>cargo clippy --workspace --all-targets --all-features -- -D warnings</code>,
+          and <code>cargo test --workspace --all-features</code>.
+        </li>
+      </ul>
+    </section>
+
+    <section class="entry">
+      <h2>2026-05-21 - Phase 1 help snapshots</h2>
+      <h3>Design Decisions</h3>
+      <ul>
+        <li>
+          Help snapshots live under <code>tests/cli/snapshots/</code> and are
+          driven by a single CLI integration test target. This keeps the public
+          command surface visible without coupling tests to internal clap types.
+        </li>
+        <li>
+          The subcommand snapshot test loops over the documented command list
+          so adding or removing a command is a deliberate test edit.
+        </li>
+      </ul>
+
+      <h3>Deviations</h3>
+      <ul>
+        <li>
+          The snapshots currently capture skeleton help text with minimal
+          argument descriptions. They should become richer as each command's
+          real options are implemented.
+        </li>
+      </ul>
+
+      <h3>Tradeoffs</h3>
+      <ul>
+        <li>
+          I used snapshot tests before implementing command behavior because
+          Phase 1 is about stabilizing the CLI shape. Behavior tests should be
+          added command-by-command in later slices.
+        </li>
+      </ul>
+
+      <h3>Open Questions</h3>
+      <ul>
+        <li>
+          Command-specific option wording is still provisional until the
+          implementation reaches each command reference.
+        </li>
+      </ul>
+    </section>
+
+    <section class="entry">
+      <h2>2026-05-21 - invalid_usage JSON envelope</h2>
+      <h3>Design Decisions</h3>
+      <ul>
+        <li>
+          Clap parse errors are handled at the binary boundary with
+          <code>Cli::try_parse_from</code>. This preserves clap for normal human
+          diagnostics while allowing <code>--json</code> usage errors to emit the
+          documented agent error envelope on stdout.
+        </li>
+        <li>
+          <code>ErrorCode</code> includes the full documented error catalog now,
+          with snake_case serialization and exit-code mapping, even though only
+          <code>invalid_usage</code> is constructed in this slice.
+        </li>
+      </ul>
+
+      <h3>Deviations</h3>
+      <ul>
+        <li>
+          Command and workbook context for clap errors is inferred from argv.
+          This is sufficient for straightforward invalid option values, but more
+          complex parse failures may need richer clap context later.
+        </li>
+      </ul>
+
+      <h3>Tradeoffs</h3>
+      <ul>
+        <li>
+          I kept human invalid-usage rendering as clap's native output instead
+          of routing all parse failures through the JSON envelope. The documented
+          structured stream rule only applies when <code>--json</code> is used.
+        </li>
+      </ul>
+
+      <h3>Open Questions</h3>
+      <ul>
+        <li>
+          We may want to standardize whether JSON parse-error messages should
+          preserve clap's exact text or normalize to shorter product-owned
+          messages before the CLI contract becomes stable.
+        </li>
+      </ul>
+    </section>
+
+    <section class="entry">
+      <h2>2026-05-21 - runtime file_not_found envelope</h2>
+      <h3>Design Decisions</h3>
+      <ul>
+        <li>
+          Runtime command handling now returns an explicit process exit code
+          from <code>app::run</code>. The binary boundary owns
+          <code>std::process::exit</code>, while the app layer owns command
+          context and typed runtime errors.
+        </li>
+        <li>
+          <code>CommandEnvelope&lt;T&gt;</code>, <code>CliErrorBody</code>, and
+          <code>CliWarning</code> are shared renderer DTOs. The first runtime
+          user is <code>file_not_found</code> for
+          <code>xmind validate &lt;missing&gt; --json</code>.
+        </li>
+      </ul>
+
+      <h3>Deviations</h3>
+      <ul>
+        <li>
+          Runtime behavior still stops at the file-existence boundary. Existing
+          files return success without workbook parsing until the XMind reader
+          slice is implemented.
+        </li>
+      </ul>
+
+      <h3>Tradeoffs</h3>
+      <ul>
+        <li>
+          I added a human error renderer scaffold now, but kept it minimal:
+          <code>&lt;command&gt;: &lt;message&gt;</code>. Rich human diagnostics,
+          quiet behavior, and color handling remain separate Phase 2 work.
+        </li>
+      </ul>
+
+      <h3>Open Questions</h3>
+      <ul>
+        <li>
+          The current <code>file_not_found</code> error is retryable because an
+          agent can correct the path and retry. Confirm if unreadable existing
+          files should share this code or use a distinct future diagnostic.
+        </li>
+      </ul>
+    </section>
+
+    <section class="entry">
+      <h2>2026-05-21 - minimal XMind reader and tree output</h2>
+      <h3>Design Decisions</h3>
+      <ul>
+        <li>
+          The first reader supports modern JSON-based XMind packages by opening
+          the workbook as a zip archive and reading <code>content.json</code>.
+          The storage DTOs are private to <code>infra::xmind::decode</code> and
+          convert into domain <code>Workbook</code>, <code>Sheet</code>, and
+          <code>Topic</code> types.
+        </li>
+        <li>
+          <code>tree --json --depth</code> renders a command DTO rather than the
+          storage DTO. At the depth boundary it emits <code>children_count</code>
+          instead of nested children, matching the documented compact tree
+          example.
+        </li>
+        <li>
+          <code>minimal.xmind</code> is generated from a committed
+          <code>minimal-content.json</code> fixture source so the binary fixture
+          remains explainable and reproducible.
+        </li>
+      </ul>
+
+      <h3>Deviations</h3>
+      <ul>
+        <li>
+          The reader currently supports only <code>content.json</code>, sheet id
+          and title, root topic, child topics, topic ids, and topic titles.
+          Notes, labels, markers, hyperlinks, images, resource metadata,
+          unknown JSON field preservation, and unknown package entry
+          preservation are intentionally left for later reader/writer slices.
+        </li>
+        <li>
+          Multiple-sheet selection is not implemented yet. The current
+          <code>tree</code> command reads the first sheet.
+        </li>
+      </ul>
+
+      <h3>Tradeoffs</h3>
+      <ul>
+        <li>
+          I implemented path escaping only for the tree output path construction
+          needed by this slice. The full <code>TopicPath</code> parser/renderer
+          remains Phase 3 work and should replace this helper when path
+          behavior is expanded.
+        </li>
+        <li>
+          <code>SheetId</code> is present in the domain model before it is used
+          by selectors or output. It has a local dead-code allowance until sheet
+          selection by id lands.
+        </li>
+      </ul>
+
+      <h3>Open Questions</h3>
+      <ul>
+        <li>
+          Unsupported non-<code>content.json</code> XMind variants currently map
+          to <code>parse_failed</code>. The storage document mentions
+          <code>unsupported_format</code>, but the central error catalog does
+          not yet list that code.
+        </li>
+      </ul>
+    </section>
+
+    <section class="entry">
+      <h2>2026-05-21 - sheets command</h2>
+      <h3>Design Decisions</h3>
+      <ul>
+        <li>
+          <code>sheets --json</code> uses the same minimal XMind reader as
+          <code>tree</code> and emits sheet id, index, title, and recursive
+          topic count.
+        </li>
+        <li>
+          Human <code>sheets</code> output is a temporary concise list in
+          workbook order: <code>index: title</code>.
+        </li>
+      </ul>
+
+      <h3>Deviations</h3>
+      <ul>
+        <li>
+          <code>--fields</code> and <code>--format compact-json</code> are not
+          applied to <code>sheets</code> yet. The command currently returns the
+          full documented sheet object for each sheet.
+        </li>
+      </ul>
+
+      <h3>Tradeoffs</h3>
+      <ul>
+        <li>
+          Topic count is computed from the loaded domain tree instead of storage
+          metadata, because the current fixture reader already normalizes the
+          full tree and this keeps the output independent of XMind internals.
+        </li>
+      </ul>
+
+      <h3>Open Questions</h3>
+      <ul>
+        <li>
+          Confirm whether <code>topic_count</code> should include the sheet root.
+          The current implementation includes it, so the minimal fixture count
+          is 3: Roadmap, Q2, and Payment.
+        </li>
+      </ul>
+    </section>
+
+    <section class="entry">
+      <h2>2026-05-21 - patch dry-run add_tree</h2>
+      <h3>Design Decisions</h3>
+      <ul>
+        <li>
+          The first patch slice implements
+          <code>xmind patch &lt;workbook&gt; --ops docs/examples/patch-add-tree.yaml --dry-run --json</code>
+          through the public CLI. It parses YAML, validates that the top-level
+          <code>ops</code> array exists, resolves a <code>path:</code> parent
+          selector against the first sheet, and emits planned operations plus
+          structured <code>added</code> diff events.
+        </li>
+        <li>
+          Dry-run does not mutate or write the workbook. The CLI test verifies
+          this by reading the same fixture with <code>tree --json --depth 2</code>
+          after the dry-run and confirming the original child remains unchanged.
+        </li>
+      </ul>
+
+      <h3>Deviations</h3>
+      <ul>
+        <li>
+          Only YAML patch files and <code>add_tree</code> are supported in this
+          slice. JSON patches, aliases, multi-operation conflict handling, and
+          apply/write behavior remain later Phase 11 and writer work.
+        </li>
+        <li>
+          The dry-run result uses a concise <code>diff</code> array of
+          <code>{ event, path }</code> entries. A richer domain
+          <code>DiffEvent</code> enum and human diff renderer are still pending.
+        </li>
+      </ul>
+
+      <h3>Tradeoffs</h3>
+      <ul>
+        <li>
+          Parent selector resolution currently supports only simple
+          <code>path:</code> selectors without full path escaping. This keeps the
+          tracer bullet small and should be replaced by the Phase 3/4
+          <code>TopicPath</code> and selector engine.
+        </li>
+        <li>
+          <code>serde_yaml</code> is used for structured YAML parsing, but its
+          <code>indexmap</code>/<code>hashbrown</code> dependency stack is pinned
+          to versions compatible with Rust 1.80.
+        </li>
+      </ul>
+
+      <h3>Open Questions</h3>
+      <ul>
+        <li>
+          The example output under <code>docs/examples/outputs/dry-run-add-tree.json</code>
+          reports command <code>add-tree</code> and an added count of 6, while
+          the patch command contract reports command <code>patch</code>. This
+          implementation follows the invoked command and counts actual new topic
+          nodes, so the example docs may need reconciliation.
+        </li>
+      </ul>
+    </section>
+
+    <section class="entry">
+      <h2>2026-05-21 - patch invalid operation diagnostics</h2>
+      <h3>Design Decisions</h3>
+      <ul>
+        <li>
+          Patch operation DTO parsing is intentionally permissive at the YAML
+          boundary: it reads the operation name first, then validates
+          operation-specific fields. This lets unsupported operations return
+          <code>invalid_patch</code> with <code>operation_index</code> and
+          <code>operation</code> instead of failing as an unstructured YAML
+          decode error.
+        </li>
+      </ul>
+
+      <h3>Deviations</h3>
+      <ul>
+        <li>
+          The only operation-indexed diagnostic covered so far is unsupported
+          operation in <code>patch --dry-run</code>. Other patch validation
+          failures should use the same context helpers as they are implemented.
+        </li>
+      </ul>
+
+      <h3>Tradeoffs</h3>
+      <ul>
+        <li>
+          The DTO keeps operation-specific fields optional, then performs
+          validation in the patch planner. This is less strict at deserialization
+          time but produces better agent-facing diagnostics.
+        </li>
+      </ul>
+
+      <h3>Open Questions</h3>
+      <ul>
+        <li>
+          Field-level schema failures still do not include
+          <code>field_path</code>; that remains for the broader patch schema
+          validation slice.
+        </li>
+      </ul>
+    </section>
+
+    <section class="entry">
+      <h2>2026-05-21 - TopicPath domain type</h2>
+      <h3>Design Decisions</h3>
+      <ul>
+        <li>
+          <code>TopicPath</code> now owns canonical path parsing and rendering
+          for root paths, ordinary segments, literal slash escaping, and
+          backslash escaping. <code>tree</code> output and patch parent
+          resolution now use this domain type instead of ad hoc string
+          concatenation and splitting.
+        </li>
+        <li>
+          Property tests cover non-empty path segment round trips. This follows
+          the tree input contract where topic titles must not be empty and avoids
+          the ambiguous case where a single empty segment renders the same as
+          root.
+        </li>
+      </ul>
+
+      <h3>Deviations</h3>
+      <ul>
+        <li>
+          The parser currently treats any escaped character as that literal
+          character. The documented escaping examples only require
+          <code>\/</code> and <code>\\</code>; stricter rejection of unnecessary
+          escapes can be added later if the selector grammar needs it.
+        </li>
+      </ul>
+
+      <h3>Tradeoffs</h3>
+      <ul>
+        <li>
+          I kept the public API small: root construction, parsing selector
+          values, rendering selector values, joining one segment, and reading
+          segments. Parent/path editing helpers can be added when mutation
+          slices need them.
+        </li>
+      </ul>
+
+      <h3>Open Questions</h3>
+      <ul>
+        <li>
+          Empty path segments are not supported as a round-trippable topic
+          identity. This matches current title validation docs, but should be
+          revisited if imported XMind files can contain empty topic titles.
+        </li>
+      </ul>
+    </section>
+
+    <section class="entry">
+      <h2>2026-05-21 - Selector parser foundation</h2>
+      <h3>Design Decisions</h3>
+      <ul>
+        <li>
+          The first selector slice supports <code>root</code>, <code>id:</code>,
+          <code>path:</code>, and <code>title:</code>. Path selectors delegate
+          to <code>TopicPath</code>, so escaping behavior stays centralized.
+        </li>
+        <li>
+          Patch <code>add_tree</code> parent validation now parses through
+          <code>Selector</code> and requires a <code>Selector::Path</code>. This
+          keeps diagnostics aligned with the future selector engine while
+          preserving the current patch behavior.
+        </li>
+      </ul>
+
+      <h3>Deviations</h3>
+      <ul>
+        <li>
+          <code>query:</code> selectors are not parsed yet because the query AST
+          and operator grammar are a larger Phase 4 slice.
+        </li>
+        <li>
+          Selector resolution still exists only as narrow patch parent path
+          lookup. General resolution with ambiguity candidates remains pending.
+        </li>
+      </ul>
+
+      <h3>Tradeoffs</h3>
+      <ul>
+        <li>
+          <code>id:</code> and <code>title:</code> currently store strings
+          directly. Stronger <code>TopicId</code> and title validation can be
+          introduced when <code>get</code>/<code>find</code> start resolving
+          selectors.
+        </li>
+      </ul>
+
+      <h3>Open Questions</h3>
+      <ul>
+        <li>
+          Title selector escaping/quoting is currently literal after
+          <code>title:</code>. Confirm whether title selectors need quoted string
+          parsing before user-facing <code>find</code>/<code>get</code> work.
+        </li>
+      </ul>
+    </section>
+
+    <section class="entry">
+      <h2>2026-05-21 - get command and selector resolution</h2>
+      <h3>Design Decisions</h3>
+      <ul>
+        <li>
+          <code>get</code> now accepts <code>--node</code> and optional
+          <code>--depth</code>, parses selectors through the domain
+          <code>Selector</code>, resolves against the first sheet, and renders
+          <code>result.topic</code> using the same topic DTO shape as
+          <code>tree</code>.
+        </li>
+        <li>
+          Selector miss diagnostics return <code>not_found</code> with the
+          rendered selector in the error body so agents can decide to rediscover
+          with <code>tree</code> or <code>find</code>.
+        </li>
+      </ul>
+
+      <h3>Deviations</h3>
+      <ul>
+        <li>
+          Selector resolution currently runs against the first sheet only.
+          Sheet selection by title, id, and index remains pending.
+        </li>
+        <li>
+          <code>title:</code> resolution returns the first match instead of
+          reporting ambiguity. Ambiguous selector candidate diagnostics are still
+          a separate Phase 4 slice.
+        </li>
+      </ul>
+
+      <h3>Tradeoffs</h3>
+      <ul>
+        <li>
+          The topic output reuses <code>TreeTopicDto</code> to keep path/depth
+          semantics consistent between <code>tree</code> and <code>get</code>.
+          Detailed metadata fields such as note, labels, markers, and images
+          will become meaningful after the reader loads them.
+        </li>
+      </ul>
+
+      <h3>Open Questions</h3>
+      <ul>
+        <li>
+          Confirm whether <code>get --depth 0</code> should include
+          <code>children_count</code> only, or also include empty metadata fields
+          to match the command reference example.
+        </li>
+      </ul>
+    </section>
+
+    <section class="entry">
+      <h2>2026-05-21 - ambiguous selector candidates</h2>
+      <h3>Design Decisions</h3>
+      <ul>
+        <li>
+          <code>get --node title:...</code> now collects all title matches in
+          sheet order. A single match resolves normally; multiple matches return
+          <code>ambiguous_selector</code> with candidate id, path, title, and
+          sheet fields.
+        </li>
+        <li>
+          A committed duplicate-title fixture source plus generated
+          <code>duplicate-titles.xmind</code> covers this behavior through the
+          public CLI instead of a domain-only test.
+        </li>
+      </ul>
+
+      <h3>Deviations</h3>
+      <ul>
+        <li>
+          Ambiguity detection is currently implemented for
+          <code>title:</code> selectors in <code>get</code>. Path ambiguity from
+          duplicate sibling titles still needs the broader selector resolution
+          work.
+        </li>
+      </ul>
+
+      <h3>Tradeoffs</h3>
+      <ul>
+        <li>
+          Candidates are generated from the domain tree and current sheet title,
+          not from storage DTOs. This keeps diagnostics independent of XMind
+          package internals and reuses canonical <code>TopicPath</code>
+          rendering.
+        </li>
+      </ul>
+
+      <h3>Open Questions</h3>
+      <ul>
+        <li>
+          <code>title:</code> still treats the selector body literally. Quoted
+          title parsing such as <code>title:&quot;Payment&quot;</code> remains
+          unresolved.
+        </li>
+      </ul>
+    </section>
+
+    <section class="entry">
+      <h2>2026-05-21 - sheet selection</h2>
+      <h3>Design Decisions</h3>
+      <ul>
+        <li>
+          Global sheet options now flow into command invocation state and are
+          resolved consistently for read-style commands that need a sheet scope.
+          The first implemented selectors are <code>--sheet</code>,
+          <code>--sheet-id</code>, and <code>--sheet-index</code>.
+        </li>
+        <li>
+          <code>tree</code>, <code>get</code>, and <code>patch</code> now go
+          through the same app-layer sheet resolver before operating on topics.
+        </li>
+        <li>
+          <code>multiple-sheets.xmind</code> is generated from a committed
+          JSON fixture source and covers selection by index, title, and id
+          through public <code>tree</code>/<code>get</code> CLI behavior.
+        </li>
+        <li>
+          <code>duplicate-sheets.xmind</code> covers duplicate sheet titles.
+          Selecting by title now returns <code>ambiguous_sheet</code> with
+          candidate sheet ids instead of silently picking the first match.
+        </li>
+      </ul>
+
+      <h3>Deviations</h3>
+      <ul>
+        <li>
+          Missing sheet diagnostics include the requested selector in
+          <code>error.details</code>. The shared error schema allows command
+          details, but it does not yet define a dedicated top-level
+          <code>sheet</code> field.
+        </li>
+        <li>
+          Commands still default to the first sheet when no sheet selector is
+          supplied, even for multi-sheet workbooks.
+        </li>
+      </ul>
+
+      <h3>Tradeoffs</h3>
+      <ul>
+        <li>
+          Sheet selection is resolved in the app layer rather than the XMind
+          reader. This keeps package IO responsible only for loading workbook
+          data and leaves command scope decisions with command orchestration.
+        </li>
+        <li>
+          Sheet selection also applies to <code>patch</code>, even though the
+          current dry-run implementation only supports <code>add_tree</code>.
+          This keeps mutation planning aligned with read command scope.
+        </li>
+        <li>
+          Sheet candidates reuse the existing candidate DTO. For sheets, the
+          candidate <code>id</code> is the sheet id and <code>path</code> is
+          reported as <code>/</code>, because the documented schema has one
+          shared candidate list for topics and sheets.
+        </li>
+      </ul>
+
+      <h3>Open Questions</h3>
+      <ul>
+        <li>
+          The current precedence is index, then id, then title if multiple sheet
+          options are supplied. The CLI does not yet reject conflicting sheet
+          selectors.
+        </li>
+        <li>
+          Confirm whether sheet candidates should get an explicit
+          <code>index</code> field instead of relying on id plus the shared
+          topic-shaped candidate DTO.
+        </li>
+      </ul>
+    </section>
+
+    <section class="entry">
+      <h2>2026-05-21 - inspect command</h2>
+      <h3>Design Decisions</h3>
+      <ul>
+        <li>
+          <code>inspect --json</code> now summarizes the loaded workbook through
+          the same reader used by <code>sheets</code>, <code>tree</code>, and
+          <code>get</code>. It reports format, sheet count, per-sheet topic
+          counts, and coarse capabilities without serializing topic trees.
+        </li>
+        <li>
+          The format value is currently reported as <code>xmind-zen</code> for
+          successfully decoded modern <code>content.json</code> packages.
+        </li>
+      </ul>
+
+      <h3>Deviations</h3>
+      <ul>
+        <li>
+          <code>capabilities.can_preserve_unknown</code> is reported as
+          <code>false</code> because the preservation bag and writer are not
+          implemented yet. The command reference example shows the future target
+          state where preservation is available.
+        </li>
+      </ul>
+
+      <h3>Tradeoffs</h3>
+      <ul>
+        <li>
+          The inspect sheet summaries reuse the existing sheet DTO, including
+          <code>index</code>. The command reference example omits index, but the
+          value is useful for recovery with <code>--sheet-index</code> and is
+          already stable in <code>sheets</code> output.
+        </li>
+      </ul>
+
+      <h3>Open Questions</h3>
+      <ul>
+        <li>
+          Confirm whether <code>inspect</code> should keep the sheet
+          <code>index</code> field or exactly match the shorter command
+          reference example.
+        </li>
+      </ul>
+    </section>
+
+    <section class="entry">
+      <h2>2026-05-21 - find title search</h2>
+      <h3>Design Decisions</h3>
+      <ul>
+        <li>
+          <code>find --title</code> now performs exact, case-sensitive title
+          matching through the public CLI and returns matches with id, path,
+          title, sheet, and children count.
+        </li>
+        <li>
+          <code>find --title-contains</code> uses the same result shape and
+          performs case-sensitive substring matching on topic titles.
+        </li>
+        <li>
+          <code>find --contains</code> searches case-sensitive substrings across
+          topic title and plain-text note content. The reader now maps XMind
+          <code>notes.plain.content</code> into the domain topic note field.
+        </li>
+        <li>
+          <code>metadata.xmind</code> is generated from a committed
+          <code>metadata-content.json</code> source and covers plain note
+          loading through public CLI search behavior.
+        </li>
+        <li>
+          <code>find --limit</code> truncates matches after tree-order
+          collection. This preserves deterministic ordering while adding a
+          simple context-control mechanism.
+        </li>
+        <li>
+          <code>find --offset</code> skips tree-order matches before
+          <code>--limit</code> is applied. This gives deterministic offset/limit
+          pagination over the current selected sheet scope.
+        </li>
+        <li>
+          The initial implementation searches inside the selected sheet scope
+          and reuses the same sheet resolver as <code>tree</code>,
+          <code>get</code>, and <code>patch</code>.
+        </li>
+      </ul>
+
+      <h3>Deviations</h3>
+      <ul>
+        <li>
+          Query-based search remains unimplemented. The documented
+          <code>--query</code> behavior still needs a separate slice.
+        </li>
+        <li>
+          Supplying multiple find criteria is rejected with
+          <code>invalid_usage</code>. The docs do not yet specify multi-criteria
+          composition semantics.
+        </li>
+      </ul>
+
+      <h3>Tradeoffs</h3>
+      <ul>
+        <li>
+          Running <code>find</code> without a criterion returns
+          <code>invalid_usage</code> instead of listing every topic. That keeps
+          the first search slice aligned with the command's purpose as an
+          explicit search tool.
+        </li>
+      </ul>
+
+      <h3>Open Questions</h3>
+      <ul>
+        <li>
+          Confirm whether <code>find</code> without an explicit sheet selector
+          should search all sheets in workbook order, rather than following the
+          current shared behavior of defaulting to the first sheet.
+        </li>
+        <li>
+          Confirm whether <code>--title-contains</code> should remain
+          case-sensitive or gain a separate case-insensitive option later.
+        </li>
+        <li>
+          Confirm whether rich or HTML note variants should be normalized into
+          the same note text field, or kept as separate metadata.
+        </li>
+        <li>
+          Confirm whether <code>--limit 0</code> should be valid and return no
+          matches, or rejected as <code>invalid_usage</code>.
+        </li>
+        <li>
+          Confirm whether <code>--offset</code> beyond the number of matches
+          should silently return an empty result, as it does now, or return a
+          diagnostic.
+        </li>
+      </ul>
+    </section>
+
+    <section class="entry">
+      <h2>2026-05-21 - fields validation</h2>
+      <h3>Design Decisions</h3>
+      <ul>
+        <li>
+          <code>--fields</code> is now validated for implemented read commands
+          before workbook IO. Unknown fields return <code>invalid_usage</code>
+          with <code>field_path: &quot;fields&quot;</code> and the rejected field
+          in <code>error.details.field</code>.
+        </li>
+        <li>
+          Validation uses command-specific allowlists derived from
+          <code>docs/reference/fields.md</code>. The current slice validates the
+          request but does not yet trim JSON payloads.
+        </li>
+      </ul>
+
+      <h3>Deviations</h3>
+      <ul>
+        <li>
+          <code>--fields</code> on unimplemented/no-op commands is still
+          rejected because those commands do not yet have stable payload field
+          sets.
+        </li>
+      </ul>
+
+      <h3>Tradeoffs</h3>
+      <ul>
+        <li>
+          Validation lives in the app layer rather than serializers so invalid
+          requests fail before reading the workbook and before command-specific
+          renderers do any work.
+        </li>
+      </ul>
+
+      <h3>Open Questions</h3>
+      <ul>
+        <li>
+          Confirm whether <code>tree</code> and <code>get</code> should accept
+          all topic fields during validation before those fields are loaded, or
+          reject currently unavailable fields until metadata support is complete.
+        </li>
+      </ul>
+    </section>
+
+    <section class="entry">
+      <h2>2026-05-21 - compact read output</h2>
+      <h3>Design Decisions</h3>
+      <ul>
+        <li>
+          <code>find --json --format compact-json --fields ...</code> now
+          trims each match object to the requested fields while preserving the
+          standard command envelope and <code>result.matches</code> shape.
+        </li>
+        <li>
+          Without explicit <code>--fields</code>, compact find output keeps the
+          documented default find fields: id, path, title, sheet, and
+          children_count.
+        </li>
+        <li>
+          <code>tree --json --format compact-json --fields ...</code> now trims
+          each topic object to requested topic fields while preserving the
+          envelope and <code>result.sheet</code>/<code>result.root</code>
+          structure.
+        </li>
+        <li>
+          For compact tree output, <code>children</code> is treated as an
+          explicit field. If callers omit it, hierarchy is omitted even when
+          <code>--depth</code> would otherwise include descendants.
+        </li>
+      </ul>
+
+      <h3>Deviations</h3>
+      <ul>
+        <li>
+          Compact JSON payload shaping is currently implemented for
+          <code>find</code> matches and <code>tree</code> topics.
+          <code>get</code>, <code>sheets</code>, and <code>inspect</code> still
+          validate fields but return their existing full payloads.
+        </li>
+      </ul>
+
+      <h3>Tradeoffs</h3>
+      <ul>
+        <li>
+          The field trimming is done in the command renderer rather than by
+          adding optional fields to every DTO. This keeps the first compact
+          slice narrow and preserves existing default JSON behavior.
+        </li>
+      </ul>
+
+      <h3>Open Questions</h3>
+      <ul>
+        <li>
+          Confirm whether non-compact <code>--json --fields</code> should also
+          trim payloads, or whether field trimming should remain tied to
+          <code>--format compact-json</code>.
+        </li>
+      </ul>
+    </section>
+
+    <section class="entry">
+      <h2>2026-05-22 - compact get output</h2>
+      <h3>Design Decisions</h3>
+      <ul>
+        <li>
+          <code>get --json --format compact-json --fields ...</code> now trims
+          the returned <code>result.topic</code> object with the same recursive
+          topic field renderer used by <code>tree</code>.
+        </li>
+        <li>
+          When no fields are supplied, compact <code>get</code> keeps the
+          documented default topic fields for <code>get</code>, excluding
+          unloaded metadata fields from output until those fields exist in the
+          topic DTO.
+        </li>
+      </ul>
+
+      <h3>Deviations</h3>
+      <ul>
+        <li>
+          Compact JSON payload shaping is now implemented for
+          <code>find</code>, <code>tree</code>, and <code>get</code>.
+          <code>sheets</code> and <code>inspect</code> still validate fields
+          but return their existing full payloads.
+        </li>
+      </ul>
+
+      <h3>Tradeoffs</h3>
+      <ul>
+        <li>
+          Reusing the tree topic renderer keeps <code>tree</code> and
+          <code>get</code> field behavior aligned, including the rule that
+          <code>children</code> must be explicitly requested in compact output.
+        </li>
+      </ul>
+
+      <h3>Open Questions</h3>
+      <ul>
+        <li>
+          Confirm whether compact <code>get</code> should emit explicit empty
+          metadata fields such as <code>labels</code> or omit unavailable fields
+          until those fields are implemented.
+        </li>
+      </ul>
+    </section>
+
+    <section class="entry">
+      <h2>2026-05-22 - compact sheets output</h2>
+      <h3>Design Decisions</h3>
+      <ul>
+        <li>
+          <code>sheets --json --format compact-json --fields ...</code> now
+          trims each sheet object while preserving the standard command
+          envelope and <code>result.sheets</code> array shape.
+        </li>
+        <li>
+          <code>root_topic_id</code> is now included in the internal sheet DTO
+          because it is a documented legal sheet field and cannot be projected
+          without loading it from the root topic.
+        </li>
+      </ul>
+
+      <h3>Deviations</h3>
+      <ul>
+        <li>
+          Full non-compact <code>sheets --json</code> may now include
+          <code>root_topic_id</code> as an additional sheet field. The
+          compatibility policy allows additive JSON fields, and exposing it
+          keeps full output aligned with the documented field vocabulary.
+        </li>
+        <li>
+          Compact JSON payload shaping is now implemented for
+          <code>find</code>, <code>tree</code>, <code>get</code>, and
+          <code>sheets</code>. <code>inspect</code> still validates fields but
+          returns its existing full payload.
+        </li>
+      </ul>
+
+      <h3>Tradeoffs</h3>
+      <ul>
+        <li>
+          Sheet field projection is implemented in the app renderer, matching
+          the existing compact read-command approach, instead of introducing a
+          generic projection framework before more commands require it.
+        </li>
+      </ul>
+
+      <h3>Open Questions</h3>
+      <ul>
+        <li>
+          Confirm whether <code>root_topic_id</code> should remain visible in
+          full <code>sheets --json</code> output or only appear when explicitly
+          requested through compact fields.
+        </li>
+      </ul>
+    </section>
+
+    <section class="entry">
+      <h2>2026-05-22 - compact inspect output</h2>
+      <h3>Design Decisions</h3>
+      <ul>
+        <li>
+          <code>inspect --json --format compact-json --fields ...</code> now
+          trims workbook-level fields while preserving the envelope and
+          returning a compact <code>result</code> object.
+        </li>
+        <li>
+          The inspect result now carries <code>file</code> and
+          <code>resources_count</code> so all documented workbook fields can be
+          validated and projected.
+        </li>
+      </ul>
+
+      <h3>Deviations</h3>
+      <ul>
+        <li>
+          <code>resources_count</code> currently reports <code>0</code> because
+          the resource index and asset loading slices are not implemented yet.
+          This keeps the field available for agents without claiming resource
+          parsing support.
+        </li>
+        <li>
+          Compact JSON payload shaping is now implemented for all listed Phase
+          6 read-command payloads: <code>find</code>, <code>tree</code>,
+          <code>get</code>, <code>sheets</code>, and <code>inspect</code>.
+        </li>
+      </ul>
+
+      <h3>Tradeoffs</h3>
+      <ul>
+        <li>
+          Inspect field projection is limited to top-level workbook fields.
+          Nested <code>sheets</code> summaries are emitted as sheet DTOs rather
+          than introducing nested field selection syntax not described by the
+          spec.
+        </li>
+      </ul>
+
+      <h3>Open Questions</h3>
+      <ul>
+        <li>
+          Confirm whether <code>resources_count</code> should remain
+          <code>0</code> until resources are loaded, or be omitted/null when
+          the resource index is unavailable.
+        </li>
+      </ul>
+    </section>
+
+    <section class="entry">
+      <h2>2026-05-22 - validate command baseline</h2>
+      <h3>Design Decisions</h3>
+      <ul>
+        <li>
+          <code>validate --json</code> now performs a real workbook read and
+          returns the documented validation result shape:
+          <code>valid</code>, <code>warnings</code>, and <code>errors</code>.
+        </li>
+        <li>
+          The baseline validator treats successful package decoding as a valid
+          workbook for this slice. Parse and file errors still use the shared
+          structured error path.
+        </li>
+      </ul>
+
+      <h3>Deviations</h3>
+      <ul>
+        <li>
+          Deep structural checks such as cycle detection, id policy, ordering,
+          unknown-field preservation, and strict warning handling are not
+          implemented yet. The command reports no validation warnings or errors
+          until those validation passes exist.
+        </li>
+        <li>
+          The documented <code>--strict</code> option is accepted by the parser
+          in a later 2026-05-22 slice, but warning-to-failure semantics still
+          need a later validation pass once warnings are meaningful.
+        </li>
+      </ul>
+
+      <h3>Tradeoffs</h3>
+      <ul>
+        <li>
+          This keeps validate useful as an agent-safe readability check now
+          without inventing shallow structural failures that would be hard to
+          justify from the current domain model.
+        </li>
+      </ul>
+
+      <h3>Open Questions</h3>
+      <ul>
+        <li>
+          Confirm whether <code>validate</code> should eventually emit detailed
+          validation diagnostics inside <code>result.errors</code> or fail with
+          <code>validation_failed</code> as soon as any validation error is
+          found.
+        </li>
+      </ul>
+    </section>
+
+    <section class="entry">
+      <h2>2026-05-22 - validate strict option</h2>
+      <h3>Design Decisions</h3>
+      <ul>
+        <li>
+          <code>validate --strict</code> is now accepted by the CLI parser and
+          routed through the validate action.
+        </li>
+        <li>
+          With the current baseline validator, strict mode produces the same
+          successful result as non-strict mode when there are no warnings or
+          validation errors.
+        </li>
+      </ul>
+
+      <h3>Deviations</h3>
+      <ul>
+        <li>
+          Strict mode does not yet convert warnings into failures because the
+          implementation does not have warning-producing validation passes yet.
+        </li>
+      </ul>
+
+      <h3>Tradeoffs</h3>
+      <ul>
+        <li>
+          The option is wired now to keep the command reference and parser
+          compatible while avoiding speculative warning semantics.
+        </li>
+      </ul>
+
+      <h3>Open Questions</h3>
+      <ul>
+        <li>
+          Confirm whether strict warning failures should return
+          <code>validation_failed</code> with exit code <code>9</code>, or keep
+          <code>ok: true</code> with <code>result.valid: false</code>.
+        </li>
+      </ul>
+    </section>
+  </body>
+</html>

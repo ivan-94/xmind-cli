@@ -1,0 +1,40 @@
+---
+source: tests/cli/help_snapshots_test.rs
+expression: "help_output(&[\"--help\"])"
+---
+Inspect and edit XMind workbooks through an agent-native CLI
+
+Usage: xmind [OPTIONS] [COMMAND]
+
+Commands:
+  inspect   
+  sheets    
+  tree      
+  find      
+  get       
+  add       
+  add-tree  
+  set       
+  delete    
+  move      
+  copy      
+  patch     
+  diff      
+  validate  
+  export    
+  import    
+  backup    
+  restore   
+  help      Print this message or the help of the given subcommand(s)
+
+Options:
+      --json                       
+      --format <FORMAT>            [default: text] [possible values: text, json, compact-json, markdown, outline]
+      --fields <FIELDS>            
+      --quiet                      
+      --no-color                   
+      --sheet <SHEET>              
+      --sheet-id <SHEET_ID>        
+      --sheet-index <SHEET_INDEX>  
+  -h, --help                       Print help
+  -V, --version                    Print version

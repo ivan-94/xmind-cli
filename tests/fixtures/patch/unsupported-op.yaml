@@ -1,0 +1,5 @@
+ops:
+  - op: sort_children
+    node: path:/Q2
+    by: title
+    order: asc
