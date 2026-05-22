@@ -248,6 +248,12 @@
           dry-run 规划：在 <code>title_path</code> 匹配范围内，未被输入 tree
           匹配的 existing descendants 会输出 <code>deleted</code> diff。
         </li>
+        <li>
+          Patch <code>merge_tree</code> 的默认和显式
+          <code>match_by: title_path</code> 已覆盖；它按相对 title path
+          匹配 existing topics，匹配节点可输出 <code>updated</code>，
+          缺失节点输出 <code>added</code>。
+        </li>
       </ul>
     </section>
   </body>
