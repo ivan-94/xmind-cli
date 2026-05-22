@@ -100,8 +100,9 @@
         </li>
         <li>
           Patch engine 目前只支持 <code>add_tree</code> 的 dry-run 规划；
-          其他 patch op、alias、match_by、conflict detection 与 all-or-nothing
-          语义仍按 <code>PLAN.md</code> 待实现。
+          其他 patch op、match_by、conflict detection 与 all-or-nothing
+          语义仍按 <code>PLAN.md</code> 待实现。旧 alias 会先规范化到
+          canonical op，再进入当前诊断路径。
         </li>
         <li>
           Markdown inline metadata 未解析，只返回
@@ -138,7 +139,7 @@
         </li>
         <li>
           Patch operation 的内部 domain model 何时从 DTO 过渡到强类型 enum。
-          建议在 alias normalization 与多 op 支持合并 slice 时处理。
+          建议在多 op 执行语义开始共享状态时处理。
         </li>
       </ul>
     </section>
@@ -152,6 +153,11 @@
         </li>
         <li>
           这个 slice 同时压缩本文件，删除已经完成且不再构成风险的历史流水账。
+        </li>
+        <li>
+          Patch alias <code>delete_tree</code>, <code>move_tree</code>,
+          <code>clone_tree</code> 会分别规范化为 <code>delete</code>,
+          <code>move</code>, <code>copy</code>。
         </li>
       </ul>
     </section>

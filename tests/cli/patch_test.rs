@@ -141,6 +141,55 @@ fn patch_invalid_operation_reports_operation_index() {
 }
 
 #[test]
+fn patch_legacy_aliases_are_normalized_before_operation_diagnostics() {
+    let temp_dir = tempfile::tempdir().expect("temp dir is created");
+    let cases = [
+        ("delete_tree", "delete"),
+        ("move_tree", "move"),
+        ("clone_tree", "copy"),
+    ];
+
+    for (alias, canonical) in cases {
+        let ops = temp_dir.path().join(format!("{alias}.yaml"));
+        std::fs::write(
+            &ops,
+            format!(
+                r#"
+ops:
+  - op: {alias}
+"#
+            ),
+        )
+        .expect("patch fixture is written");
+        let ops_arg = ops.to_string_lossy().into_owned();
+
+        let output = Command::cargo_bin("xmind")
+            .expect("xmind binary is built for CLI tests")
+            .args([
+                "patch",
+                "tests/fixtures/xmind/minimal.xmind",
+                "--ops",
+                &ops_arg,
+                "--dry-run",
+                "--json",
+            ])
+            .output()
+            .expect("patch command runs");
+
+        assert_eq!(output.status.code(), Some(7));
+        let body: Value = serde_json::from_slice(&output.stdout).expect("stdout is JSON");
+        assert_eq!(body["ok"], false);
+        assert_eq!(body["error"]["code"], "invalid_patch");
+        assert_eq!(body["error"]["operation_index"], 0);
+        assert_eq!(body["error"]["operation"], canonical);
+        assert_eq!(
+            body["error"]["message"],
+            format!("Unsupported patch operation: {canonical}")
+        );
+    }
+}
+
+#[test]
 fn patch_json_extension_rejects_yaml_syntax() {
     let temp_dir = tempfile::tempdir().expect("temp dir is created");
     let ops = temp_dir.path().join("ops.json");

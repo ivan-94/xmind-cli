@@ -3936,14 +3936,15 @@ fn render_patch(invocation: Invocation, json: bool, ops_path: &Path) -> i32 {
     let mut diff = Vec::new();
 
     for (index, op) in patch.ops.iter().enumerate() {
-        if op.op != "add_tree" {
+        let op_name = op.canonical_op();
+        if op_name != "add_tree" {
             let error = CliErrorBody::new(
                 ErrorCode::InvalidPatch,
-                format!("Unsupported patch operation: {}", op.op),
+                format!("Unsupported patch operation: {op_name}"),
                 true,
                 "Use add_tree for the current dry-run patch slice.",
             )
-            .with_operation_context(index, op.op.clone());
+            .with_operation_context(index, op_name.to_owned());
             return render_error(invocation, json, error);
         }
 
@@ -3954,7 +3955,7 @@ fn render_patch(invocation: Invocation, json: bool, ops_path: &Path) -> i32 {
                 true,
                 "Add a parent selector like parent: path:/Q2.",
             )
-            .with_operation_context(index, op.op.clone());
+            .with_operation_context(index, op_name.to_owned());
             return render_error(invocation, json, error);
         };
 
@@ -3965,7 +3966,7 @@ fn render_patch(invocation: Invocation, json: bool, ops_path: &Path) -> i32 {
                 true,
                 "Add a tree object with a title.",
             )
-            .with_operation_context(index, op.op.clone());
+            .with_operation_context(index, op_name.to_owned());
             return render_error(invocation, json, error);
         };
 
@@ -3978,7 +3979,7 @@ fn render_patch(invocation: Invocation, json: bool, ops_path: &Path) -> i32 {
                     true,
                     "Use a parent selector like path:/Q2.",
                 )
-                .with_operation_context(index, op.op.clone());
+                .with_operation_context(index, op_name.to_owned());
                 return render_error(invocation, json, error);
             }
         };
@@ -3989,7 +3990,7 @@ fn render_patch(invocation: Invocation, json: bool, ops_path: &Path) -> i32 {
                 true,
                 "Use a parent selector like path:/Q2.",
             )
-            .with_operation_context(index, op.op.clone());
+            .with_operation_context(index, op_name.to_owned());
             return render_error(invocation, json, error);
         };
 

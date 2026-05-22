@@ -297,9 +297,9 @@ Implement a Rust CLI named `xmind` that satisfies the documented product, comman
 - [x] Parse patch JSON.
 - [x] Validate top-level `ops`.
 - [ ] Normalize aliases:
-  - [ ] `delete_tree -> delete`
-  - [ ] `move_tree -> move`
-  - [ ] `clone_tree -> copy`
+  - [x] `delete_tree -> delete`
+  - [x] `move_tree -> move`
+  - [x] `clone_tree -> copy`
 - [ ] Implement `assert_exists`.
 - [ ] Implement `assert_not_exists`.
 - [ ] Implement patch `add`.
