@@ -27,15 +27,15 @@ pub fn run(cli: Cli) -> i32 {
     } = cli;
 
     let compact_json = format == OutputFormat::CompactJson;
-    let _ = no_color;
-
     let sheet_selection = SheetSelection {
         title: sheet,
         id: sheet_id,
         index: sheet_index,
     };
 
-    let Some(invocation) = Invocation::from_command(command, sheet_selection, quiet) else {
+    let Some(invocation) = Invocation::from_command(command, sheet_selection, quiet)
+        .map(|invocation| invocation.with_no_color(no_color))
+    else {
         return 0;
     };
 
@@ -136,6 +136,7 @@ struct Invocation {
     dry_run: bool,
     applied: bool,
     quiet: bool,
+    no_color: bool,
     sheet_selection: SheetSelection,
     action: Action,
 }
@@ -414,6 +415,7 @@ impl Invocation {
             dry_run: false,
             applied: false,
             quiet: false,
+            no_color: false,
             sheet_selection,
             action: Action::Noop,
         }
@@ -431,6 +433,7 @@ impl Invocation {
             dry_run: false,
             applied: false,
             quiet,
+            no_color: false,
             sheet_selection,
             action: Action::Tree { depth },
         }
@@ -443,6 +446,7 @@ impl Invocation {
             dry_run: false,
             applied: false,
             quiet,
+            no_color: false,
             sheet_selection,
             action: Action::Inspect,
         }
@@ -455,6 +459,7 @@ impl Invocation {
             dry_run: false,
             applied: false,
             quiet,
+            no_color: false,
             sheet_selection,
             action: Action::Sheets,
         }
@@ -473,6 +478,7 @@ impl Invocation {
             dry_run: false,
             applied: false,
             quiet,
+            no_color: false,
             sheet_selection,
             action: Action::Get { node, depth },
         }
@@ -490,6 +496,7 @@ impl Invocation {
             dry_run: false,
             applied: false,
             quiet,
+            no_color: false,
             sheet_selection,
             action: Action::Validate { strict },
         }
@@ -507,6 +514,7 @@ impl Invocation {
             dry_run: false,
             applied: false,
             quiet,
+            no_color: false,
             sheet_selection,
             action: Action::Find {
                 title: args.title,
@@ -532,6 +540,7 @@ impl Invocation {
             dry_run,
             applied: false,
             quiet,
+            no_color: false,
             sheet_selection,
             action: Action::Noop,
         }
@@ -539,6 +548,11 @@ impl Invocation {
 
     fn with_action(mut self, action: Action) -> Self {
         self.action = action;
+        self
+    }
+
+    fn with_no_color(mut self, no_color: bool) -> Self {
+        self.no_color = no_color;
         self
     }
 
@@ -555,6 +569,7 @@ impl Invocation {
             dry_run,
             applied: false,
             quiet,
+            no_color: false,
             sheet_selection,
             action: Action::Patch { ops },
         }
@@ -2455,7 +2470,7 @@ fn render_error(invocation: Invocation, json: bool, error: CliErrorBody) -> i32 
         };
         crate::cli::render_json_envelope(&envelope);
     } else {
-        crate::cli::render_human_error(Some(&invocation.command), &error);
+        crate::cli::render_human_error(Some(&invocation.command), &error, invocation.no_color);
     }
 
     exit_code

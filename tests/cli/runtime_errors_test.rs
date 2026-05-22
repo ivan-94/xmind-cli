@@ -6,6 +6,43 @@ use std::path::Path;
 use zip::write::FileOptions;
 
 #[test]
+fn human_runtime_errors_respect_no_color() {
+    let colored_output = Command::cargo_bin("xmind")
+        .expect("xmind binary is built for CLI tests")
+        .args(["validate", "tests/fixtures/xmind/missing.xmind"])
+        .output()
+        .expect("validate command runs");
+
+    assert_eq!(colored_output.status.code(), Some(3));
+    let colored_stderr = String::from_utf8_lossy(&colored_output.stderr);
+    assert!(
+        colored_stderr.contains("\u{1b}[31mvalidate\u{1b}[0m"),
+        "human runtime errors should color the command name by default: {colored_stderr}"
+    );
+
+    let plain_output = Command::cargo_bin("xmind")
+        .expect("xmind binary is built for CLI tests")
+        .args([
+            "validate",
+            "tests/fixtures/xmind/missing.xmind",
+            "--no-color",
+        ])
+        .output()
+        .expect("validate command runs");
+
+    assert_eq!(plain_output.status.code(), Some(3));
+    let plain_stderr = String::from_utf8_lossy(&plain_output.stderr);
+    assert!(
+        !plain_stderr.contains("\u{1b}["),
+        "no-color human errors should not include ANSI escapes: {plain_stderr}"
+    );
+    assert!(
+        plain_stderr.starts_with("validate: Workbook not found"),
+        "no-color human errors should keep the plain command prefix: {plain_stderr}"
+    );
+}
+
+#[test]
 fn json_validate_missing_workbook_returns_file_not_found_envelope() {
     let output = Command::cargo_bin("xmind")
         .expect("xmind binary is built for CLI tests")

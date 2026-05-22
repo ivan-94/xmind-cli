@@ -225,10 +225,11 @@ where
     );
 }
 
-pub fn render_human_error(command: Option<&str>, error: &CliErrorBody) {
-    match command {
-        Some(command) => eprintln!("{command}: {}", error.message),
-        None => eprintln!("{}", error.message),
+pub fn render_human_error(command: Option<&str>, error: &CliErrorBody, no_color: bool) {
+    match (command, no_color) {
+        (Some(command), true) => eprintln!("{command}: {}", error.message),
+        (Some(command), false) => eprintln!("\u{1b}[31m{command}\u{1b}[0m: {}", error.message),
+        (None, _) => eprintln!("{}", error.message),
     }
 }
 

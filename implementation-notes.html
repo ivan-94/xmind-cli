@@ -1384,5 +1384,47 @@
         </li>
       </ul>
     </section>
+
+    <section class="entry">
+      <h2>2026-05-22 - no-color human errors</h2>
+      <h3>Design Decisions</h3>
+      <ul>
+        <li>
+          Runtime human error output now colors the command prefix red by
+          default and preserves a plain command prefix when <code>--no-color</code>
+          is provided.
+        </li>
+        <li>
+          JSON error envelopes remain uncolored and continue to write structured
+          errors to stdout.
+        </li>
+      </ul>
+
+      <h3>Deviations</h3>
+      <ul>
+        <li>
+          Clap parse errors still use clap's own renderer. This slice covers
+          application runtime errors because those are rendered by the product
+          error pipeline.
+        </li>
+      </ul>
+
+      <h3>Tradeoffs</h3>
+      <ul>
+        <li>
+          I limited color to the command prefix rather than coloring the full
+          message, so copied diagnostics remain readable and stable.
+        </li>
+      </ul>
+
+      <h3>Open Questions</h3>
+      <ul>
+        <li>
+          Confirm whether command help and clap parse errors should also be
+          normalized through the product renderer before the CLI contract is
+          considered final.
+        </li>
+      </ul>
+    </section>
   </body>
 </html>
