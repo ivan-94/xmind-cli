@@ -624,3 +624,158 @@ fn add_tree_markdown_rejects_inline_metadata() {
         "Inline metadata is not supported in Markdown input."
     );
 }
+
+#[test]
+fn add_tree_markdown_heading_mode_rejects_list_outline() {
+    let temp_dir = tempfile::tempdir().expect("temp dir is created");
+    let input = temp_dir.path().join("list-outline.md");
+    fs::write(&input, "- Payment Capability\n  - Checkout\n").expect("markdown fixture is written");
+    let input_arg = input.to_string_lossy().into_owned();
+
+    let output = Command::cargo_bin("xmind")
+        .expect("xmind binary is built for CLI tests")
+        .args([
+            "add-tree",
+            "tests/fixtures/xmind/minimal.xmind",
+            "--parent",
+            "path:/Q2",
+            "--from-markdown",
+            &input_arg,
+            "--markdown-mode",
+            "heading",
+            "--dry-run",
+            "--json",
+        ])
+        .output()
+        .expect("add-tree command runs");
+
+    assert_eq!(output.status.code(), Some(7));
+    let body: Value = serde_json::from_slice(&output.stdout).expect("stdout is JSON");
+    assert_eq!(body["ok"], false);
+    assert_eq!(body["error"]["code"], "invalid_tree_input");
+    assert_eq!(
+        body["error"]["message"],
+        "Markdown heading mode does not accept list items."
+    );
+}
+
+#[test]
+fn add_tree_markdown_list_mode_rejects_heading_outline() {
+    let temp_dir = tempfile::tempdir().expect("temp dir is created");
+    let input = temp_dir.path().join("heading-outline.md");
+    fs::write(&input, "# Payment Capability\n\n## Checkout\n")
+        .expect("markdown fixture is written");
+    let input_arg = input.to_string_lossy().into_owned();
+
+    let output = Command::cargo_bin("xmind")
+        .expect("xmind binary is built for CLI tests")
+        .args([
+            "add-tree",
+            "tests/fixtures/xmind/minimal.xmind",
+            "--parent",
+            "path:/Q2",
+            "--from-markdown",
+            &input_arg,
+            "--markdown-mode",
+            "list",
+            "--dry-run",
+            "--json",
+        ])
+        .output()
+        .expect("add-tree command runs");
+
+    assert_eq!(output.status.code(), Some(7));
+    let body: Value = serde_json::from_slice(&output.stdout).expect("stdout is JSON");
+    assert_eq!(body["ok"], false);
+    assert_eq!(body["error"]["code"], "invalid_tree_input");
+    assert_eq!(
+        body["error"]["message"],
+        "Markdown list mode does not accept headings."
+    );
+}
+
+#[test]
+fn add_tree_markdown_rejects_unknown_mode() {
+    let temp_dir = tempfile::tempdir().expect("temp dir is created");
+    let input = temp_dir.path().join("heading-outline.md");
+    fs::write(&input, "# Payment Capability\n").expect("markdown fixture is written");
+    let input_arg = input.to_string_lossy().into_owned();
+
+    let output = Command::cargo_bin("xmind")
+        .expect("xmind binary is built for CLI tests")
+        .args([
+            "add-tree",
+            "tests/fixtures/xmind/minimal.xmind",
+            "--parent",
+            "path:/Q2",
+            "--from-markdown",
+            &input_arg,
+            "--markdown-mode",
+            "unknown",
+            "--dry-run",
+            "--json",
+        ])
+        .output()
+        .expect("add-tree command runs");
+
+    assert_eq!(output.status.code(), Some(2));
+    assert!(
+        output.stderr.is_empty(),
+        "json invalid usage should not emit stderr diagnostics: {}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+
+    let body: Value = serde_json::from_slice(&output.stdout).expect("stdout is JSON");
+    assert_eq!(body["ok"], false);
+    assert_eq!(body["error"]["code"], "invalid_usage");
+    assert!(body["error"]["message"]
+        .as_str()
+        .is_some_and(|message| message.contains("invalid value")));
+}
+
+#[test]
+fn add_tree_markdown_accepts_all_documented_modes() {
+    let temp_dir = tempfile::tempdir().expect("temp dir is created");
+    let cases = [
+        ("heading", "# Payment Capability\n\n## Checkout\n"),
+        ("list", "- Payment Capability\n  - Checkout\n"),
+        ("hybrid", "# Payment Capability\n\n- Checkout\n"),
+        ("auto", "# Payment Capability\n\n- Checkout\n"),
+    ];
+
+    for (mode, markdown) in cases {
+        let input = temp_dir.path().join(format!("{mode}.md"));
+        fs::write(&input, markdown).expect("markdown fixture is written");
+        let input_arg = input.to_string_lossy().into_owned();
+
+        let output = Command::cargo_bin("xmind")
+            .expect("xmind binary is built for CLI tests")
+            .args([
+                "add-tree",
+                "tests/fixtures/xmind/minimal.xmind",
+                "--parent",
+                "path:/Q2",
+                "--from-markdown",
+                &input_arg,
+                "--markdown-mode",
+                mode,
+                "--dry-run",
+                "--json",
+            ])
+            .output()
+            .expect("add-tree command runs");
+
+        assert_eq!(
+            output.status.code(),
+            Some(0),
+            "{mode} mode should accept its documented outline form: {}",
+            String::from_utf8_lossy(&output.stdout)
+        );
+        let body: Value = serde_json::from_slice(&output.stdout).expect("stdout is JSON");
+        assert_eq!(body["ok"], true);
+        assert_eq!(
+            body["result"]["created_root"]["path"],
+            "/Q2/Payment Capability"
+        );
+    }
+}

@@ -288,7 +288,7 @@ Implement a Rust CLI named `xmind` that satisfies the documented product, comman
 - [x] Implement Markdown heading/list hybrid parser.
 - [x] Implement Markdown note mapping.
 - [x] Implement inline metadata parsing or explicit rejection.
-- [ ] Add tests for all Markdown modes.
+- [x] Add tests for all Markdown modes.
 - [ ] Add invalid Markdown diagnostics tests.
 
 ## Phase 11: Patch Engine

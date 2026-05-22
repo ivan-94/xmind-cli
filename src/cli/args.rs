@@ -45,3 +45,11 @@ pub enum OutputFormat {
     Markdown,
     Outline,
 }
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq, ValueEnum)]
+pub enum MarkdownMode {
+    Heading,
+    List,
+    Hybrid,
+    Auto,
+}

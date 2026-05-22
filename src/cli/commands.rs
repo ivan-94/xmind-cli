@@ -2,6 +2,8 @@ use std::path::PathBuf;
 
 use clap::{Args, Subcommand};
 
+use super::args::MarkdownMode;
+
 #[derive(Debug, Subcommand)]
 pub enum Command {
     Inspect(WorkbookCommand),
@@ -153,8 +155,8 @@ pub struct AddTreeCommand {
     #[arg(long)]
     pub from_markdown: Option<PathBuf>,
 
-    #[arg(long)]
-    pub markdown_mode: Option<String>,
+    #[arg(long, value_enum)]
+    pub markdown_mode: Option<MarkdownMode>,
 
     #[command(flatten)]
     pub mode: MutationMode,

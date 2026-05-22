@@ -6,7 +6,8 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
 use crate::cli::{
-    CandidateDto, Cli, CliErrorBody, Command, CommandEnvelope, ErrorCode, OutputFormat,
+    CandidateDto, Cli, CliErrorBody, Command, CommandEnvelope, ErrorCode, MarkdownMode,
+    OutputFormat,
 };
 use crate::domain::diff::{Diff, DiffEvent, FieldChange};
 use crate::domain::mutation::{AddTopicRequest, MutationPlanner};
@@ -128,16 +129,19 @@ pub fn run(cli: Cli) -> i32 {
             ref parent,
             ref input,
             ref from_markdown,
+            ref markdown_mode,
         } => {
             let parent = parent.clone();
             let input = input.clone();
             let from_markdown = from_markdown.clone();
+            let markdown_mode = *markdown_mode;
             render_add_tree(
                 invocation,
                 json,
                 &parent,
                 input.as_deref(),
                 from_markdown.as_deref(),
+                markdown_mode,
             )
         }
         Action::SetTitle {
@@ -329,6 +333,7 @@ enum Action {
         parent: String,
         input: Option<std::path::PathBuf>,
         from_markdown: Option<std::path::PathBuf>,
+        markdown_mode: Option<MarkdownMode>,
     },
     SetTitle {
         node: String,
@@ -550,6 +555,7 @@ impl Invocation {
                     parent: command.parent,
                     input: command.input,
                     from_markdown: command.from_markdown,
+                    markdown_mode: command.markdown_mode,
                 }),
             ),
             Command::Set(command) => Some(
@@ -1533,6 +1539,7 @@ fn render_add_tree(
     parent: &str,
     input: Option<&Path>,
     from_markdown: Option<&Path>,
+    markdown_mode: Option<MarkdownMode>,
 ) -> i32 {
     if !invocation.dry_run {
         let error = CliErrorBody::new(
@@ -1605,7 +1612,7 @@ fn render_add_tree(
         }
     };
 
-    let tree = match read_tree_input(input, from_markdown) {
+    let tree = match read_tree_input(input, from_markdown, markdown_mode) {
         Ok(tree) => tree,
         Err(message) => {
             let error = CliErrorBody::new(
@@ -1700,10 +1707,11 @@ fn render_add_tree(
 fn read_tree_input(
     input: Option<&Path>,
     from_markdown: Option<&Path>,
+    markdown_mode: Option<MarkdownMode>,
 ) -> Result<TopicTreeInputDto, String> {
     match (input, from_markdown) {
         (Some(input), None) => read_yaml_or_json_tree_input(input),
-        (None, Some(input)) => read_markdown_tree_input(input),
+        (None, Some(input)) => read_markdown_tree_input(input, markdown_mode),
         (None, None) => Err("add-tree requires --input or --from-markdown.".to_owned()),
         (Some(_), Some(_)) => {
             Err("add-tree accepts only one of --input or --from-markdown.".to_owned())
@@ -1728,7 +1736,10 @@ fn read_yaml_or_json_tree_input(input: &Path) -> Result<TopicTreeInputDto, Strin
     }
 }
 
-fn read_markdown_tree_input(input: &Path) -> Result<TopicTreeInputDto, String> {
+fn read_markdown_tree_input(
+    input: &Path,
+    markdown_mode: Option<MarkdownMode>,
+) -> Result<TopicTreeInputDto, String> {
     let content = fs::read_to_string(input)
         .map_err(|error| format!("Markdown input could not be read: {error}"))?;
     let (frontmatter, body) = split_markdown_frontmatter(&content);
@@ -1738,6 +1749,7 @@ fn read_markdown_tree_input(input: &Path) -> Result<TopicTreeInputDto, String> {
         None => TopicTreeDefaultsDto::default(),
     };
     reject_inline_metadata(body)?;
+    reject_unsupported_markdown_mode_body(body, markdown_mode)?;
 
     if let Some(mut tree) = parse_markdown_outline(body)? {
         apply_topic_tree_defaults(&mut tree, defaults);
@@ -1772,6 +1784,31 @@ fn reject_inline_metadata(content: &str) -> Result<(), String> {
     }
 
     Ok(())
+}
+
+fn reject_unsupported_markdown_mode_body(
+    content: &str,
+    markdown_mode: Option<MarkdownMode>,
+) -> Result<(), String> {
+    if markdown_mode == Some(MarkdownMode::Heading)
+        && content.lines().any(parse_markdown_list_item_line)
+    {
+        return Err("Markdown heading mode does not accept list items.".to_owned());
+    }
+    if markdown_mode == Some(MarkdownMode::List) && content.lines().any(parse_markdown_heading_line)
+    {
+        return Err("Markdown list mode does not accept headings.".to_owned());
+    }
+
+    Ok(())
+}
+
+fn parse_markdown_list_item_line(line: &str) -> bool {
+    parse_markdown_list_item(line).is_some()
+}
+
+fn parse_markdown_heading_line(line: &str) -> bool {
+    parse_markdown_heading(line).is_some()
 }
 
 fn parse_markdown_outline(content: &str) -> Result<Option<TopicTreeInputDto>, String> {

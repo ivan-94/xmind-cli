@@ -4225,5 +4225,45 @@
         </li>
       </ul>
     </section>
+    <section class="entry">
+      <h2>2026-05-22 - Markdown mode coverage</h2>
+      <h3>Design Decisions</h3>
+      <ul>
+        <li>
+          <code>--markdown-mode</code> is now a strict CLI enum with the
+          documented values <code>heading</code>, <code>list</code>,
+          <code>hybrid</code>, and <code>auto</code>.
+        </li>
+        <li>
+          <code>heading</code> mode rejects list items, and
+          <code>list</code> mode rejects headings.
+        </li>
+      </ul>
+
+      <h3>Deviations</h3>
+      <ul>
+        <li>
+          <code>hybrid</code> and <code>auto</code> currently share the same
+          permissive parser because ambiguity diagnostics are tracked by the
+          next PLAN item.
+        </li>
+      </ul>
+
+      <h3>Tradeoffs</h3>
+      <ul>
+        <li>
+          CLI value validation now happens before application parsing, giving
+          agents a standard <code>invalid_usage</code> envelope for unknown
+          modes.
+        </li>
+      </ul>
+
+      <h3>Open Questions</h3>
+      <ul>
+        <li>
+          None for this slice.
+        </li>
+      </ul>
+    </section>
   </body>
 </html>

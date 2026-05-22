@@ -11,7 +11,7 @@ Options:
       --parent <PARENT>                
       --input <INPUT>                  
       --from-markdown <FROM_MARKDOWN>  
-      --markdown-mode <MARKDOWN_MODE>  
+      --markdown-mode <MARKDOWN_MODE>  [possible values: heading, list, hybrid, auto]
       --dry-run                        
       --apply                          
       --backup                         
