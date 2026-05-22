@@ -231,7 +231,7 @@ Implement a Rust CLI named `xmind` that satisfies the documented product, comman
 - [x] Write candidate package to temp file in destination directory.
 - [x] Implement candidate validation.
 - [x] Implement atomic replace.
-- [ ] Implement backup writer.
+- [x] Implement backup writer.
 - [ ] Implement `--backup-dir`.
 - [ ] Ensure `--validate-after` failure leaves original file untouched.
 - [x] Implement `validate` command.

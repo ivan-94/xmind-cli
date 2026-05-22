@@ -2511,5 +2511,44 @@
         </li>
       </ul>
     </section>
+
+    <section class="entry">
+      <h2>2026-05-22 - backup writer</h2>
+      <h3>Design Decisions</h3>
+      <ul>
+        <li>
+          Added an infra-level backup writer that copies a workbook to
+          <code>.xmind-backups/&lt;stem&gt;.&lt;timestamp&gt;.&lt;ext&gt;</code>
+          next to the source workbook.
+        </li>
+        <li>
+          The writer returns structured backup metadata with the created backup
+          path.
+        </li>
+      </ul>
+
+      <h3>Deviations</h3>
+      <ul>
+        <li>
+          The backup writer is not yet wired into the <code>backup</code>
+          command or mutation <code>--backup</code> flow; CLI integration and
+          custom backup directory handling are tracked by following PLAN items.
+        </li>
+      </ul>
+
+      <h3>Tradeoffs</h3>
+      <ul>
+        <li>
+          The timestamp is provided by the caller, which keeps the writer
+          deterministic and easy to test before CLI/runtime time handling is
+          introduced.
+        </li>
+      </ul>
+
+      <h3>Open Questions</h3>
+      <ul>
+        <li>None.</li>
+      </ul>
+    </section>
   </body>
 </html>
