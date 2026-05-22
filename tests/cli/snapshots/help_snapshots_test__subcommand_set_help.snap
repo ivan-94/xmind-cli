@@ -12,6 +12,7 @@ Options:
       --node <NODE>                
       --title <TITLE>              
       --note <NOTE>                
+      --append-note <APPEND_NOTE>  
       --dry-run                    
       --apply                      
       --json                       

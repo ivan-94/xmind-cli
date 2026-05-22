@@ -124,6 +124,9 @@ pub struct SetCommand {
     #[arg(long)]
     pub note: Option<String>,
 
+    #[arg(long)]
+    pub append_note: Option<String>,
+
     #[command(flatten)]
     pub mode: MutationMode,
 }

@@ -117,6 +117,14 @@ pub fn run(cli: Cli) -> i32 {
             let note = note.clone();
             render_set_note(invocation, json, &node, &note)
         }
+        Action::SetAppendNote {
+            ref node,
+            ref append_note,
+        } => {
+            let node = node.clone();
+            let append_note = append_note.clone();
+            render_set_append_note(invocation, json, &node, &append_note)
+        }
         Action::Noop => 0,
     }
 }
@@ -181,6 +189,10 @@ enum Action {
     SetNote {
         node: String,
         note: String,
+    },
+    SetAppendNote {
+        node: String,
+        append_note: String,
     },
     Validate {
         strict: bool,
@@ -340,6 +352,11 @@ impl Invocation {
                     Action::SetNote {
                         node: command.node,
                         note,
+                    }
+                } else if let Some(append_note) = command.append_note {
+                    Action::SetAppendNote {
+                        node: command.node,
+                        append_note,
                     }
                 } else {
                     Action::Noop
@@ -1085,6 +1102,7 @@ fn render_set_title(invocation: Invocation, json: bool, node: &str, title: &str)
             path: None,
             old_path: Some(old_path),
             new_path: Some(new_path.clone()),
+            new_note: None,
             changed_fields: vec!["title"],
         },
         summary: SummaryDto {
@@ -1214,6 +1232,7 @@ fn render_set_note(invocation: Invocation, json: bool, node: &str, note: &str) -
             path: Some(path.clone()),
             old_path: None,
             new_path: None,
+            new_note: None,
             changed_fields: vec!["note"],
         },
         summary: SummaryDto {
@@ -1252,6 +1271,127 @@ fn render_set_note(invocation: Invocation, json: bool, node: &str, note: &str) -
             workbook: Some(invocation.workbook.display().to_string()),
             dry_run: invocation.dry_run,
             applied: !invocation.dry_run,
+            result: Some(result),
+            error: None,
+            warnings: Vec::new(),
+        };
+        crate::cli::render_json_envelope(&envelope);
+    } else if !invocation.quiet {
+        println!("planned 1 updated topic");
+    }
+
+    0
+}
+
+fn render_set_append_note(
+    invocation: Invocation,
+    json: bool,
+    node: &str,
+    append_note: &str,
+) -> i32 {
+    let workbook = match read_workbook_or_render_error(&invocation, json) {
+        Ok(workbook) => workbook,
+        Err(exit_code) => return exit_code,
+    };
+
+    let sheet = match select_sheet_or_render_error(&workbook, &invocation, json) {
+        Ok(sheet) => sheet,
+        Err(exit_code) => return exit_code,
+    };
+
+    let selector = match Selector::parse(node) {
+        Ok(selector) => selector,
+        Err(error) => {
+            let error = CliErrorBody::new(
+                ErrorCode::InvalidUsage,
+                format!("Node selector is invalid: {error}"),
+                true,
+                "Use a valid selector such as root, id:<topic-id>, path:/Q2, or title:Payment.",
+            );
+            return render_error(invocation, json, error);
+        }
+    };
+
+    let resolved = match resolve_topic(&sheet.root, &selector) {
+        ResolveOne::Found(resolved) => resolved,
+        ResolveOne::NotFound => {
+            let error = CliErrorBody::new(
+                ErrorCode::NotFound,
+                format!("Selector did not match a topic: {}", selector.render()),
+                true,
+                "Run tree or find to rediscover the topic selector, then retry.",
+            )
+            .with_selector(selector.render());
+            return render_error(invocation, json, error);
+        }
+        ResolveOne::Ambiguous(candidates) => {
+            let error = CliErrorBody::new(
+                ErrorCode::AmbiguousSelector,
+                "Selector matched multiple topics.",
+                true,
+                "Retry with one of the candidate ids.",
+            )
+            .with_selector(selector.render())
+            .with_candidates(
+                candidates
+                    .into_iter()
+                    .map(|candidate| CandidateDto {
+                        id: candidate.topic.id.0.clone(),
+                        path: candidate.path.to_selector_value(),
+                        title: candidate.topic.title.clone(),
+                        sheet: Some(sheet.title.clone()),
+                    })
+                    .collect(),
+            );
+            return render_error(invocation, json, error);
+        }
+    };
+
+    if !invocation.dry_run {
+        let error = CliErrorBody::new(
+            ErrorCode::InvalidUsage,
+            "Only set --append-note --dry-run is implemented in this slice.",
+            true,
+            "Retry with --dry-run, or wait for the append-note writer slice before using --apply.",
+        );
+        return render_error(invocation, json, error);
+    }
+
+    let path = resolved.path.to_selector_value();
+    let new_note = format!(
+        "{}{}",
+        resolved.topic.note.as_deref().unwrap_or(""),
+        append_note
+    );
+    let result = SetTitleDryRunResultDto {
+        will_change: true,
+        updated: UpdatedTopicDto {
+            id: resolved.topic.id.0.clone(),
+            path: Some(path.clone()),
+            old_path: None,
+            new_path: None,
+            new_note: Some(new_note),
+            changed_fields: vec!["note"],
+        },
+        summary: SummaryDto {
+            added: 0,
+            updated: 1,
+            deleted: 0,
+            moved: 0,
+        },
+        diff: vec![DiffEventDto {
+            event: "updated",
+            path,
+        }],
+    };
+
+    if json {
+        let envelope = CommandEnvelope {
+            ok: true,
+            command: Some(invocation.command),
+            workbook: Some(invocation.workbook.display().to_string()),
+            dry_run: true,
+            applied: false,
             result: Some(result),
             error: None,
             warnings: Vec::new(),
@@ -1642,6 +1782,8 @@ struct UpdatedTopicDto {
     old_path: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     new_path: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    new_note: Option<String>,
     changed_fields: Vec<&'static str>,
 }
 
