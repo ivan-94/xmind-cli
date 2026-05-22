@@ -327,7 +327,12 @@
           <code>import --output</code> 已支持从 YAML/JSON tree input
           创建新 workbook；<code>.md</code>/<code>.markdown</code> 输入会复用
           Markdown outline parser。当前切片仅支持 <code>--apply</code>，
-          dry-run、覆盖既有输出和导入到既有 workbook 仍由后续任务处理。
+          dry-run 和覆盖既有输出仍由后续任务处理。
+        </li>
+        <li>
+          <code>import --into</code> 已支持将输入树追加到既有 workbook 的
+          <code>--parent</code> 选择器下；未传 <code>--parent</code> 时默认使用
+          <code>root</code>。当前采用 append-last 语义，尚未暴露 position 选项。
         </li>
       </ul>
     </section>

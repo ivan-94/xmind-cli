@@ -2,11 +2,13 @@
 source: tests/cli/help_snapshots_test.rs
 expression: "help_output(&[subcommand, \"--help\"])"
 ---
-Usage: xmind import [OPTIONS] --input <INPUT> --output <OUTPUT> <--dry-run|--apply>
+Usage: xmind import [OPTIONS] --input <INPUT> <--output <OUTPUT>|--into <WORKBOOK>> <--dry-run|--apply>
 
 Options:
       --input <INPUT>                  
       --output <OUTPUT>                
+      --into <WORKBOOK>                
+      --parent <PARENT>                
       --markdown-mode <MARKDOWN_MODE>  [possible values: heading, list, hybrid, auto]
       --dry-run                        
       --apply                          

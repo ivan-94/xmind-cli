@@ -137,6 +137,46 @@ pub fn append_topic_chain(
     Ok(())
 }
 
+pub fn append_topic_tree(
+    workbook_path: &Path,
+    parent_topic_id: &str,
+    topic: &Topic,
+    position: InsertPosition,
+) -> Result<(), XMindWriteError> {
+    let file = File::open(workbook_path)?;
+    let mut archive = zip::ZipArchive::new(file)?;
+    let mut entries = Vec::new();
+    let mut content_json = None;
+
+    for index in 0..archive.len() {
+        let mut entry = archive.by_index(index)?;
+        let name = entry.name().to_owned();
+        let mut bytes = Vec::new();
+        entry.read_to_end(&mut bytes)?;
+
+        if name == "content.json" {
+            let mut content: Value = serde_json::from_slice(&bytes)?;
+            let topic = serde_json::to_value(StorageTopicDto::from_topic(topic))?;
+            if !append_existing_topic_to_content(&mut content, parent_topic_id, topic, position) {
+                return Err(XMindWriteError::ParentNotFound(parent_topic_id.to_owned()));
+            }
+            content_json = Some(serde_json::to_vec_pretty(&content)?);
+        } else {
+            entries.push((name, bytes));
+        }
+    }
+
+    let Some(content_json) = content_json else {
+        return Err(XMindWriteError::MissingContent);
+    };
+
+    let temp_path = temp_workbook_path(workbook_path);
+    write_package(&temp_path, content_json, entries)?;
+    replace_with_validated_candidate(workbook_path, &temp_path, validate_candidate_package)?;
+
+    Ok(())
+}
+
 pub fn rename_topic(
     workbook_path: &Path,
     topic_id: &str,

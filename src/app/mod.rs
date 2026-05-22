@@ -124,6 +124,15 @@ pub fn run(cli: Cli) -> i32 {
             let input = input.clone();
             render_import_output(invocation, json, &input, markdown_mode)
         }
+        Action::ImportInto {
+            ref input,
+            ref parent,
+            markdown_mode,
+        } => {
+            let input = input.clone();
+            let parent = parent.clone();
+            render_import_into(invocation, json, &input, &parent, markdown_mode)
+        }
         Action::Backup { ref backup_dir } => {
             let backup_dir = backup_dir.clone();
             render_backup(invocation, json, backup_dir)
@@ -433,6 +442,11 @@ enum Action {
         input: PathBuf,
         markdown_mode: Option<MarkdownMode>,
     },
+    ImportInto {
+        input: PathBuf,
+        parent: String,
+        markdown_mode: Option<MarkdownMode>,
+    },
     Backup {
         backup_dir: Option<std::path::PathBuf>,
     },
@@ -728,20 +742,36 @@ impl Invocation {
                 sheet_selection,
                 quiet,
             )),
-            Command::Import(command) => Some(
-                Self::mutation(
-                    "import",
-                    command.output,
-                    command.mode.dry_run,
-                    false,
-                    sheet_selection,
-                    quiet,
-                )
-                .with_action(Action::ImportOutput {
-                    input: command.input,
-                    markdown_mode: command.markdown_mode,
-                }),
-            ),
+            Command::Import(command) => Some({
+                if let Some(output) = command.output {
+                    Self::mutation(
+                        "import",
+                        output,
+                        command.mode.dry_run,
+                        false,
+                        sheet_selection,
+                        quiet,
+                    )
+                    .with_action(Action::ImportOutput {
+                        input: command.input,
+                        markdown_mode: command.markdown_mode,
+                    })
+                } else {
+                    Self::mutation(
+                        "import",
+                        command.into.expect("clap requires one import target"),
+                        command.mode.dry_run,
+                        false,
+                        sheet_selection,
+                        quiet,
+                    )
+                    .with_action(Action::ImportInto {
+                        input: command.input,
+                        parent: command.parent.unwrap_or_else(|| "root".to_owned()),
+                        markdown_mode: command.markdown_mode,
+                    })
+                }
+            }),
             Command::Restore(command) => Some(Self::mutation(
                 "restore",
                 command.workbook,
@@ -1388,6 +1418,166 @@ fn render_import_output(
             "created {} with {added} topics",
             invocation.workbook.display()
         );
+    }
+
+    0
+}
+
+fn render_import_into(
+    invocation: Invocation,
+    json: bool,
+    input: &Path,
+    parent: &str,
+    markdown_mode: Option<MarkdownMode>,
+) -> i32 {
+    let workbook = match read_workbook_or_render_error(&invocation, json) {
+        Ok(workbook) => workbook,
+        Err(exit_code) => return exit_code,
+    };
+
+    let sheet = match select_sheet_or_render_error(&workbook, &invocation, json) {
+        Ok(sheet) => sheet,
+        Err(exit_code) => return exit_code,
+    };
+
+    let parent_selector = match Selector::parse(parent) {
+        Ok(selector) => selector,
+        Err(error) => {
+            let error = CliErrorBody::new(
+                ErrorCode::InvalidUsage,
+                format!("Parent selector is invalid: {error}"),
+                true,
+                "Use a valid selector such as root, id:<topic-id>, path:/Q2, or title:Payment.",
+            );
+            return render_error(invocation, json, error);
+        }
+    };
+
+    let parent = match resolve_topic(&sheet.root, &parent_selector) {
+        ResolveOne::Found(resolved) => resolved,
+        ResolveOne::NotFound => {
+            let error = CliErrorBody::new(
+                ErrorCode::NotFound,
+                format!(
+                    "Parent selector did not match a topic: {}",
+                    parent_selector.render()
+                ),
+                true,
+                "Run tree or find to rediscover the parent selector, then retry.",
+            )
+            .with_selector(parent_selector.render());
+            return render_error(invocation, json, error);
+        }
+        ResolveOne::Ambiguous(candidates) => {
+            let error = CliErrorBody::new(
+                ErrorCode::AmbiguousSelector,
+                "Parent selector matched multiple topics.",
+                true,
+                "Retry with one of the candidate ids.",
+            )
+            .with_selector(parent_selector.render())
+            .with_candidates(
+                candidates
+                    .into_iter()
+                    .map(|candidate| CandidateDto {
+                        id: candidate.topic.id.0.clone(),
+                        path: candidate.path.to_selector_value(),
+                        title: candidate.topic.title.clone(),
+                        sheet: Some(sheet.title.clone()),
+                    })
+                    .collect(),
+            );
+            return render_error(invocation, json, error);
+        }
+    };
+
+    let tree = match read_import_tree_input(input, markdown_mode) {
+        Ok(tree) => tree,
+        Err(message) => {
+            let error = CliErrorBody::new(
+                ErrorCode::InvalidTreeInput,
+                message,
+                true,
+                "Provide a Markdown, YAML, or JSON tree input file with a top-level title.",
+            )
+            .with_path(input.display().to_string());
+            return render_error(invocation, json, error);
+        }
+    };
+    if let Err(error) = validate_topic_tree_input(&tree) {
+        let error = CliErrorBody::new(
+            ErrorCode::InvalidTreeInput,
+            error.message,
+            true,
+            "Provide a topic tree where every topic has a non-empty title.",
+        )
+        .with_path(input.display().to_string())
+        .with_field_path(error.field_path);
+        return render_error(invocation, json, error);
+    }
+
+    let added_paths = collect_added_paths(&parent.path, &tree);
+    let created_root_path = added_paths
+        .first()
+        .expect("tree input creates at least the root topic")
+        .clone();
+    let result = AddTreeDryRunResultDto {
+        will_change: !added_paths.is_empty(),
+        parent: TopicRefDto {
+            id: parent.topic.id.0.clone(),
+            path: parent.path.to_selector_value(),
+            title: parent.topic.title.clone(),
+        },
+        created_root: AddTreeCreatedTopicDto {
+            id: tree.id.clone(),
+            path: created_root_path,
+            title: tree.title.clone(),
+            note: tree.note.clone(),
+            labels: tree.labels.clone(),
+            markers: tree.markers.clone(),
+            image: tree.image.clone(),
+        },
+        summary: SummaryDto {
+            added: added_paths.len(),
+            updated: 0,
+            deleted: 0,
+            moved: 0,
+        },
+        diff: added_paths
+            .into_iter()
+            .map(|path| DiffEventDto {
+                event: "added",
+                path,
+            })
+            .collect(),
+    };
+
+    if !invocation.dry_run {
+        let topic = topic_tree_input_to_topic(tree);
+        if let Err(error) = crate::infra::xmind::encode::append_topic_tree(
+            &invocation.workbook,
+            &parent.topic.id.0,
+            &topic,
+            InsertPosition::Last,
+        ) {
+            return render_workbook_write_error(invocation, json, error);
+        }
+    }
+
+    if json {
+        let envelope = CommandEnvelope {
+            ok: true,
+            command: Some(invocation.command),
+            workbook: Some(invocation.workbook.display().to_string()),
+            dry_run: invocation.dry_run,
+            applied: !invocation.dry_run,
+            result: Some(result),
+            error: None,
+            warnings: Vec::new(),
+        };
+        crate::cli::render_json_envelope(&envelope);
+    } else if !invocation.quiet {
+        println!("planned {} added topics", result.summary.added);
     }
 
     0

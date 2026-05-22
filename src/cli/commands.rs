@@ -107,12 +107,19 @@ pub struct ExportCommand {
 }
 
 #[derive(Debug, Args)]
+#[group(required = true, multiple = false, args = ["output", "into"])]
 pub struct ImportCommand {
     #[arg(long)]
     pub input: PathBuf,
 
     #[arg(long)]
-    pub output: PathBuf,
+    pub output: Option<PathBuf>,
+
+    #[arg(long, value_name = "WORKBOOK")]
+    pub into: Option<PathBuf>,
+
+    #[arg(long)]
+    pub parent: Option<String>,
 
     #[arg(long, value_enum)]
     pub markdown_mode: Option<MarkdownMode>,
