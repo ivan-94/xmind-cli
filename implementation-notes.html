@@ -269,6 +269,11 @@
           dry-run 规划；当前按同一 parent 下的 sibling title 匹配，与
           <code>title_path</code> 在无重复 sibling title 时行为一致。
         </li>
+        <li>
+          Patch 操作级诊断已统一到可机器定位的字段路径：涉及具体 op
+          字段的错误会返回 <code>operation_index</code>、<code>operation</code>
+          和形如 <code>ops[1].node</code> 的 <code>field_path</code>。
+        </li>
       </ul>
     </section>
   </body>

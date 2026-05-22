@@ -321,7 +321,7 @@ pub(super) fn render_patch(invocation: Invocation, json: bool, ops_path: &Path) 
                 true,
                 "Add a parent selector like parent: path:/Q2.",
             )
-            .with_operation_context(index, op_name.to_owned());
+            .with_operation_field_context(index, op_name.to_owned(), "parent");
             return render_error(invocation, json, error);
         };
 
@@ -332,7 +332,7 @@ pub(super) fn render_patch(invocation: Invocation, json: bool, ops_path: &Path) 
                 true,
                 "Add a tree object with a title.",
             )
-            .with_operation_context(index, op_name.to_owned());
+            .with_operation_field_context(index, op_name.to_owned(), "tree");
             return render_error(invocation, json, error);
         };
 
@@ -491,7 +491,7 @@ fn plan_patch_add(
             true,
             "Add a parent selector like parent: path:/Q2.",
         )
-        .with_operation_context(index, op_name.to_owned());
+        .with_operation_field_context(index, op_name.to_owned(), "parent");
         return Err(render_error(invocation, json, error));
     };
 
@@ -502,7 +502,7 @@ fn plan_patch_add(
             true,
             "Add a non-empty title for the new topic.",
         )
-        .with_operation_context(index, op_name.to_owned());
+        .with_operation_field_context(index, op_name.to_owned(), "title");
         return Err(render_error(invocation, json, error));
     };
     if title.trim().is_empty() {
@@ -512,8 +512,7 @@ fn plan_patch_add(
             true,
             "Add a non-empty title for the new topic.",
         )
-        .with_operation_context(index, op_name.to_owned())
-        .with_field_path("title");
+        .with_operation_field_context(index, op_name.to_owned(), "title");
         return Err(render_error(invocation, json, error));
     }
 
@@ -573,7 +572,7 @@ fn plan_patch_set(
             true,
             "Add a node selector like node: path:/Q2.",
         )
-        .with_operation_context(index, op_name.to_owned());
+        .with_operation_field_context(index, op_name.to_owned(), "node");
         return Err(render_error(invocation, json, error));
     };
 
@@ -584,8 +583,7 @@ fn plan_patch_set(
             true,
             "Add a fields object with at least one field.",
         )
-        .with_operation_context(index, op_name.to_owned())
-        .with_field_path("fields");
+        .with_operation_field_context(index, op_name.to_owned(), "fields");
         return Err(render_error(invocation, json, error));
     };
     if fields.is_empty() {
@@ -595,8 +593,7 @@ fn plan_patch_set(
             true,
             "Add at least one field to update.",
         )
-        .with_operation_context(index, op_name.to_owned())
-        .with_field_path("fields");
+        .with_operation_field_context(index, op_name.to_owned(), "fields");
         return Err(render_error(invocation, json, error));
     }
 
@@ -676,7 +673,7 @@ fn plan_patch_replace_tree(
             true,
             "Add a node selector like node: path:/Q2/Payment.",
         )
-        .with_operation_context(index, op_name.to_owned());
+        .with_operation_field_context(index, op_name.to_owned(), "node");
         return Err(render_error(invocation, json, error));
     };
 
@@ -687,7 +684,7 @@ fn plan_patch_replace_tree(
             true,
             "Add a tree object with a title.",
         )
-        .with_operation_context(index, op_name.to_owned());
+        .with_operation_field_context(index, op_name.to_owned(), "tree");
         return Err(render_error(invocation, json, error));
     };
     if tree.title.trim().is_empty() {
@@ -697,8 +694,7 @@ fn plan_patch_replace_tree(
             true,
             "Add a non-empty title for the replacement tree root.",
         )
-        .with_operation_context(index, op_name.to_owned())
-        .with_field_path("tree.title");
+        .with_operation_field_context(index, op_name.to_owned(), "tree.title");
         return Err(render_error(invocation, json, error));
     }
 
@@ -791,8 +787,7 @@ fn plan_patch_merge_tree(
             true,
             "Use match_by: title_path for this patch slice.",
         )
-        .with_operation_context(index, op_name.to_owned())
-        .with_field_path("match_by");
+        .with_operation_field_context(index, op_name.to_owned(), "match_by");
         return Err(render_error(invocation, json, error));
     }
     let Some(target) = &op.target else {
@@ -802,7 +797,7 @@ fn plan_patch_merge_tree(
             true,
             "Add a target selector like target: path:/Q2/Payment.",
         )
-        .with_operation_context(index, op_name.to_owned());
+        .with_operation_field_context(index, op_name.to_owned(), "target");
         return Err(render_error(invocation, json, error));
     };
 
@@ -813,7 +808,7 @@ fn plan_patch_merge_tree(
             true,
             "Add a tree object with a title.",
         )
-        .with_operation_context(index, op_name.to_owned());
+        .with_operation_field_context(index, op_name.to_owned(), "tree");
         return Err(render_error(invocation, json, error));
     };
     if tree.title.trim().is_empty() {
@@ -823,8 +818,7 @@ fn plan_patch_merge_tree(
             true,
             "Add a non-empty title for the merge tree root.",
         )
-        .with_operation_context(index, op_name.to_owned())
-        .with_field_path("tree.title");
+        .with_operation_field_context(index, op_name.to_owned(), "tree.title");
         return Err(render_error(invocation, json, error));
     }
     if match_by == "id" {
@@ -835,8 +829,7 @@ fn plan_patch_merge_tree(
                 true,
                 "Add id values from a prior read/export result or use match_by: title_path.",
             )
-            .with_operation_context(index, op_name.to_owned())
-            .with_field_path(field_path);
+            .with_operation_field_context(index, op_name.to_owned(), field_path);
             return Err(render_error(invocation, json, error));
         }
     }
@@ -848,8 +841,7 @@ fn plan_patch_merge_tree(
                 true,
                 "Add canonical path values from a prior read/tree result or use match_by: title_path.",
             )
-            .with_operation_context(index, op_name.to_owned())
-            .with_field_path(field_path);
+            .with_operation_field_context(index, op_name.to_owned(), field_path);
             return Err(render_error(invocation, json, error));
         }
     }
@@ -989,8 +981,7 @@ fn plan_patch_delete(
             true,
             "Choose one delete mode and retry.",
         )
-        .with_operation_context(index, op_name.to_owned())
-        .with_field_path("children_only");
+        .with_operation_field_context(index, op_name.to_owned(), "children_only");
         return Err(render_error(invocation, json, error));
     }
 
@@ -1001,7 +992,7 @@ fn plan_patch_delete(
             true,
             "Add a node selector like node: path:/Q2/Payment.",
         )
-        .with_operation_context(index, op_name.to_owned());
+        .with_operation_field_context(index, op_name.to_owned(), "node");
         return Err(render_error(invocation, json, error));
     };
 
@@ -1136,7 +1127,7 @@ fn plan_patch_move(
             true,
             "Add a node selector like node: path:/Q2/Payment.",
         )
-        .with_operation_context(index, op_name.to_owned());
+        .with_operation_field_context(index, op_name.to_owned(), "node");
         return Err(render_error(invocation, json, error));
     };
     let Some(destination) = &op.to else {
@@ -1146,7 +1137,7 @@ fn plan_patch_move(
             true,
             "Add a destination selector like to: path:/Q3.",
         )
-        .with_operation_context(index, op_name.to_owned());
+        .with_operation_field_context(index, op_name.to_owned(), "to");
         return Err(render_error(invocation, json, error));
     };
 
@@ -1313,8 +1304,7 @@ fn plan_patch_copy(
             true,
             "Omit preserve_ids or set preserve_ids: false.",
         )
-        .with_operation_context(index, op_name.to_owned())
-        .with_field_path("preserve_ids");
+        .with_operation_field_context(index, op_name.to_owned(), "preserve_ids");
         return Err(render_error(invocation, json, error));
     }
 
@@ -1336,7 +1326,7 @@ fn plan_patch_copy(
             true,
             "Add a node selector like node: path:/Q2/Payment.",
         )
-        .with_operation_context(index, op_name.to_owned());
+        .with_operation_field_context(index, op_name.to_owned(), "node");
         return Err(render_error(invocation, json, error));
     };
     let Some(destination) = &op.to else {
@@ -1346,7 +1336,7 @@ fn plan_patch_copy(
             true,
             "Add a destination selector like to: path:/Q3.",
         )
-        .with_operation_context(index, op_name.to_owned());
+        .with_operation_field_context(index, op_name.to_owned(), "to");
         return Err(render_error(invocation, json, error));
     };
 
@@ -1484,8 +1474,7 @@ fn plan_patch_copy(
             true,
             "Omit title or provide a non-empty title.",
         )
-        .with_operation_context(index, op_name.to_owned())
-        .with_field_path("title");
+        .with_operation_field_context(index, op_name.to_owned(), "title");
         return Err(render_error(invocation, json, error));
     }
 
@@ -1511,8 +1500,7 @@ fn plan_patch_ensure_path(
             true,
             "Add a canonical path like path: /Q2/Payment.",
         )
-        .with_operation_context(index, op_name.to_owned())
-        .with_field_path("path");
+        .with_operation_field_context(index, op_name.to_owned(), "path");
         return Err(render_error(invocation, json, error));
     };
 
@@ -1525,8 +1513,7 @@ fn plan_patch_ensure_path(
                 true,
                 "Use an absolute canonical path such as /Q2/Payment, without the path: prefix.",
             )
-            .with_operation_context(index, op_name.to_owned())
-            .with_field_path("path");
+            .with_operation_field_context(index, op_name.to_owned(), "path");
             return Err(render_error(invocation, json, error));
         }
     };
@@ -1550,8 +1537,7 @@ fn plan_patch_sort_children(
             true,
             "Use by: title.",
         )
-        .with_operation_context(index, op_name.to_owned())
-        .with_field_path("by");
+        .with_operation_field_context(index, op_name.to_owned(), "by");
         return Err(render_error(invocation, json, error));
     }
 
@@ -1563,8 +1549,7 @@ fn plan_patch_sort_children(
             true,
             "Use order: asc or order: desc.",
         )
-        .with_operation_context(index, op_name.to_owned())
-        .with_field_path("order");
+        .with_operation_field_context(index, op_name.to_owned(), "order");
         return Err(render_error(invocation, json, error));
     }
 
@@ -1575,8 +1560,7 @@ fn plan_patch_sort_children(
             true,
             "Omit recursive or set recursive: false.",
         )
-        .with_operation_context(index, op_name.to_owned())
-        .with_field_path("recursive");
+        .with_operation_field_context(index, op_name.to_owned(), "recursive");
         return Err(render_error(invocation, json, error));
     }
 
@@ -1587,7 +1571,7 @@ fn plan_patch_sort_children(
             true,
             "Add a node selector like node: path:/Q2.",
         )
-        .with_operation_context(index, op_name.to_owned());
+        .with_operation_field_context(index, op_name.to_owned(), "node");
         return Err(render_error(invocation, json, error));
     };
 
@@ -1679,7 +1663,7 @@ fn plan_patch_set_tree_metadata(
             true,
             "Add a node selector like node: path:/Q2.",
         )
-        .with_operation_context(index, op_name.to_owned());
+        .with_operation_field_context(index, op_name.to_owned(), "node");
         return Err(render_error(invocation, json, error));
     };
 
@@ -1690,8 +1674,7 @@ fn plan_patch_set_tree_metadata(
             true,
             "Add add_labels with one or more label values.",
         )
-        .with_operation_context(index, op_name.to_owned())
-        .with_field_path("add_labels");
+        .with_operation_field_context(index, op_name.to_owned(), "add_labels");
         return Err(render_error(invocation, json, error));
     };
     if add_labels.is_empty() || add_labels.iter().any(|label| label.trim().is_empty()) {
@@ -1701,8 +1684,7 @@ fn plan_patch_set_tree_metadata(
             true,
             "Remove empty labels and retry.",
         )
-        .with_operation_context(index, op_name.to_owned())
-        .with_field_path("add_labels");
+        .with_operation_field_context(index, op_name.to_owned(), "add_labels");
         return Err(render_error(invocation, json, error));
     }
 
@@ -1934,8 +1916,11 @@ fn validate_patch_set_fields(
                 true,
                 "Use supported fields with values of the documented type.",
             )
-            .with_operation_context(index, op_name.to_owned())
-            .with_field_path(format!("fields.{field}"));
+            .with_operation_field_context(
+                index,
+                op_name.to_owned(),
+                format!("fields.{field}"),
+            );
             return Err(render_error(invocation, json, error));
         }
     }
@@ -1958,7 +1943,7 @@ fn render_patch_assert_operation(
             true,
             "Add a node selector like node: path:/Q2.",
         )
-        .with_operation_context(index, op_name.to_owned());
+        .with_operation_field_context(index, op_name.to_owned(), "node");
         return Err(render_error(invocation, json, error));
     };
 

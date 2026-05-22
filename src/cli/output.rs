@@ -155,6 +155,16 @@ impl CliErrorBody {
         self.operation = Some(operation.into());
         self
     }
+
+    pub fn with_operation_field_context(
+        self,
+        operation_index: usize,
+        operation: impl Into<String>,
+        field_path: impl AsRef<str>,
+    ) -> Self {
+        self.with_operation_context(operation_index, operation)
+            .with_field_path(format!("ops[{operation_index}].{}", field_path.as_ref()))
+    }
 }
 
 #[derive(Debug, Serialize)]

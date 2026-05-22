@@ -756,7 +756,7 @@ ops:
     assert_eq!(body["error"]["code"], "patch_conflict");
     assert_eq!(body["error"]["operation_index"], 0);
     assert_eq!(body["error"]["operation"], "copy");
-    assert_eq!(body["error"]["field_path"], "preserve_ids");
+    assert_eq!(body["error"]["field_path"], "ops[0].preserve_ids");
 }
 
 #[test]
@@ -1045,6 +1045,44 @@ fn patch_invalid_operation_reports_operation_index() {
     assert_eq!(body["error"]["operation_index"], 0);
     assert_eq!(body["error"]["operation"], "unsupported_sort");
     assert_eq!(body["error"]["exit_code"], 7);
+}
+
+#[test]
+fn patch_operation_diagnostic_reports_indexed_field_path() {
+    let temp_dir = tempfile::tempdir().expect("temp dir is created");
+    let ops = temp_dir.path().join("indexed-diagnostic.yaml");
+    std::fs::write(
+        &ops,
+        r#"
+ops:
+  - op: assert_exists
+    node: path:/Q2
+  - op: delete
+"#,
+    )
+    .expect("patch fixture is written");
+    let ops_arg = ops.to_string_lossy().into_owned();
+
+    let output = Command::cargo_bin("xmind")
+        .expect("xmind binary is built for CLI tests")
+        .args([
+            "patch",
+            "tests/fixtures/xmind/minimal.xmind",
+            "--ops",
+            &ops_arg,
+            "--dry-run",
+            "--json",
+        ])
+        .output()
+        .expect("patch command runs");
+
+    assert_eq!(output.status.code(), Some(7));
+    let body: Value = serde_json::from_slice(&output.stdout).expect("stdout is JSON");
+    assert_eq!(body["ok"], false);
+    assert_eq!(body["error"]["code"], "invalid_patch");
+    assert_eq!(body["error"]["operation_index"], 1);
+    assert_eq!(body["error"]["operation"], "delete");
+    assert_eq!(body["error"]["field_path"], "ops[1].node");
 }
 
 #[test]
