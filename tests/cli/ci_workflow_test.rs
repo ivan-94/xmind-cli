@@ -16,6 +16,8 @@ fn ci_workflow_defines_the_pr_merge_gate_contract() {
         "cargo fmt --all -- --check",
         "cargo clippy --workspace --all-targets --all-features -- -D warnings",
         "cargo test --workspace --all-features",
+        "Run documentation examples",
+        "cargo test --test doc_examples_test --all-features documented_bash_e2e_examples_are_extracted_and_run",
         "stable-pr-e2e:",
         "Stable PR E2E subset",
         "cargo test --test e2e_pr_subset --all-features",

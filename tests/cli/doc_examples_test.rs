@@ -1,93 +1,175 @@
-use assert_cmd::Command;
+use std::fs;
+use std::path::{Path, PathBuf};
 
-struct DocExample {
-    command: &'static str,
-    args: &'static [&'static str],
+#[derive(Debug)]
+struct MarkdownFence {
+    path: PathBuf,
+    line: usize,
+    info: String,
+    body: String,
 }
 
-const DOC_EXAMPLES: &[DocExample] = &[
-    DocExample {
-        command: "xmind inspect tests/fixtures/xmind/minimal.xmind --json",
-        args: &["inspect", "tests/fixtures/xmind/minimal.xmind", "--json"],
-    },
-    DocExample {
-        command: "xmind sheets tests/fixtures/xmind/minimal.xmind --json",
-        args: &["sheets", "tests/fixtures/xmind/minimal.xmind", "--json"],
-    },
-    DocExample {
-        command: "xmind tree tests/fixtures/xmind/minimal.xmind --depth 2 --json",
-        args: &[
-            "tree",
-            "tests/fixtures/xmind/minimal.xmind",
-            "--depth",
-            "2",
-            "--json",
-        ],
-    },
-    DocExample {
-        command: "xmind get tests/fixtures/xmind/minimal.xmind --node path:/Q2/Payment --json",
-        args: &[
-            "get",
-            "tests/fixtures/xmind/minimal.xmind",
-            "--node",
-            "path:/Q2/Payment",
-            "--json",
-        ],
-    },
-    DocExample {
-        command: "xmind find tests/fixtures/xmind/minimal.xmind --title Payment --json",
-        args: &[
-            "find",
-            "tests/fixtures/xmind/minimal.xmind",
-            "--title",
-            "Payment",
-            "--json",
-        ],
-    },
-    DocExample {
-        command: "xmind add-tree tests/fixtures/xmind/minimal.xmind --parent path:/Q2 --input docs/examples/simple-tree.yaml --dry-run --json",
-        args: &[
-            "add-tree",
-            "tests/fixtures/xmind/minimal.xmind",
-            "--parent",
-            "path:/Q2",
-            "--input",
-            "docs/examples/simple-tree.yaml",
-            "--dry-run",
-            "--json",
-        ],
-    },
-    DocExample {
-        command: "xmind patch tests/fixtures/xmind/minimal.xmind --ops docs/examples/patch-add-tree.yaml --dry-run --json",
-        args: &[
-            "patch",
-            "tests/fixtures/xmind/minimal.xmind",
-            "--ops",
-            "docs/examples/patch-add-tree.yaml",
-            "--dry-run",
-            "--json",
-        ],
-    },
-];
+#[test]
+fn documented_bash_e2e_examples_are_extracted_and_run() {
+    let examples = bash_e2e_examples(&[
+        "docs/examples",
+        "docs/guides",
+        "docs/reference",
+        "docs/technical/e2e-test-plan.md",
+    ]);
+
+    assert!(
+        examples.iter().any(
+            |example| example.path == Path::new("docs/examples/README.md")
+                && example
+                    .body
+                    .contains("xmind tree tests/fixtures/xmind/minimal.xmind --json")
+        ),
+        "docs/examples/README.md should include a read-only bash e2e example"
+    );
+    assert!(
+        examples.iter().any(
+            |example| example.path == Path::new("docs/examples/README.md")
+                && example
+                    .body
+                    .contains("cp tests/fixtures/xmind/minimal.xmind")
+                && example.body.contains("--apply")
+                && example.body.contains("xmind validate")
+        ),
+        "mutating bash e2e examples should copy a fixture into a temporary file before --apply"
+    );
+
+    for example in examples {
+        run_bash_e2e(&example);
+    }
+}
 
 #[test]
-fn documented_fixture_examples_are_present_and_run() {
+fn ordinary_bash_examples_remain_illustrative() {
     let readme = std::fs::read_to_string("docs/examples/README.md")
         .expect("docs examples README is readable");
 
-    for example in DOC_EXAMPLES {
-        assert!(
-            readme.contains(example.command),
-            "docs/examples/README.md must include runnable example: {}",
-            example.command
-        );
+    assert!(
+        extract_markdown_fences(Path::new("docs/examples/README.md"), &readme)
+            .iter()
+            .any(|fence| fence.info == "bash"
+                && fence
+                    .body
+                    .contains("xmind inspect tests/fixtures/xmind/minimal.xmind --json")),
+        "ordinary bash examples should stay available as illustrative documentation"
+    );
+    assert!(
+        bash_e2e_examples(&["docs/examples/README.md"])
+            .iter()
+            .all(|example| !example
+                .body
+                .contains("xmind inspect tests/fixtures/xmind/minimal.xmind --json")),
+        "ordinary bash blocks must not be selected by the docs-example runner"
+    );
+}
 
-        Command::cargo_bin("xmind")
-            .expect("xmind binary is built for CLI tests")
-            .args(example.args)
-            .assert()
-            .success();
+fn bash_e2e_examples(paths: &[&str]) -> Vec<MarkdownFence> {
+    let mut examples = Vec::new();
+    for path in markdown_files(paths) {
+        let content = fs::read_to_string(&path).expect("Markdown documentation is readable");
+        examples.extend(
+            extract_markdown_fences(&path, &content)
+                .into_iter()
+                .filter(|fence| fence.info == "bash e2e"),
+        );
     }
+    examples
+}
+
+fn markdown_files(paths: &[&str]) -> Vec<PathBuf> {
+    let mut files = Vec::new();
+    for path in paths {
+        let path = Path::new(path);
+        if path.is_dir() {
+            for entry in fs::read_dir(path).expect("documentation directory is readable") {
+                let entry = entry.expect("documentation entry is readable");
+                let entry_path = entry.path();
+                if entry_path.is_dir() {
+                    files.extend(markdown_files(&[entry_path
+                        .to_str()
+                        .expect("path is UTF-8")]));
+                } else if entry_path
+                    .extension()
+                    .and_then(|extension| extension.to_str())
+                    == Some("md")
+                {
+                    files.push(entry_path);
+                }
+            }
+        } else {
+            files.push(path.to_path_buf());
+        }
+    }
+    files.sort();
+    files
+}
+
+fn extract_markdown_fences(path: &Path, content: &str) -> Vec<MarkdownFence> {
+    let mut fences = Vec::new();
+    let mut active: Option<(usize, String, Vec<&str>)> = None;
+
+    for (index, line) in content.lines().enumerate() {
+        if let Some(rest) = line.strip_prefix("```") {
+            if let Some((line, info, body)) = active.take() {
+                fences.push(MarkdownFence {
+                    path: path.to_path_buf(),
+                    line,
+                    info,
+                    body: body.join("\n"),
+                });
+            } else {
+                active = Some((index + 1, rest.trim().to_owned(), Vec::new()));
+            }
+        } else if let Some((_, _, body)) = active.as_mut() {
+            body.push(line);
+        }
+    }
+
+    fences
+}
+
+fn run_bash_e2e(example: &MarkdownFence) {
+    let shim_dir = tempfile::tempdir().expect("PATH shim directory is created");
+    let xmind_bin = assert_cmd::cargo::cargo_bin("xmind");
+    let shim_path = shim_dir.path().join("xmind");
+    #[cfg(unix)]
+    std::os::unix::fs::symlink(&xmind_bin, &shim_path).expect("xmind binary is linked into PATH");
+    #[cfg(windows)]
+    std::fs::copy(&xmind_bin, shim_path.with_extension("exe"))
+        .expect("xmind binary is copied into PATH");
+
+    let mut path_entries = vec![shim_dir.path().to_path_buf()];
+    path_entries.extend(std::env::split_paths(
+        &std::env::var_os("PATH").unwrap_or_default(),
+    ));
+    let path = std::env::join_paths(path_entries).expect("PATH entries can be joined");
+
+    let output = std::process::Command::new("bash")
+        .args(["-e", "-u", "-o", "pipefail", "-c", &example.body])
+        .env("PATH", path)
+        .output()
+        .unwrap_or_else(|error| {
+            panic!(
+                "{}:{} failed to start bash e2e example: {error}",
+                example.path.display(),
+                example.line
+            )
+        });
+
+    assert!(
+        output.status.success(),
+        "{}:{} bash e2e example failed\nscript:\n{}\nstdout:\n{}\nstderr:\n{}",
+        example.path.display(),
+        example.line,
+        example.body,
+        String::from_utf8_lossy(&output.stdout),
+        String::from_utf8_lossy(&output.stderr)
+    );
 }
 
 #[test]

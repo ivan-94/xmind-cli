@@ -283,5 +283,44 @@
         </li>
       </ul>
     </section>
+
+    <section class="entry">
+      <h2>Slice #16: bash e2e Documentation Examples</h2>
+      <ul>
+        <li>
+          Source Manifest:
+          <code>https://github.com/ivan-94/xmind-cli/issues/16</code>,
+          <code>docs/technical/e2e-test-plan.md</code>,
+          <code>docs/examples/README.md</code>,
+          <code>tests/cli/doc_examples_test.rs</code>,
+          <code>.github/workflows/ci.yml</code>,
+          <code>~/.agents/docs/agents/workflows.md</code> 与
+          <code>~/.agents/docs/agents/handoff-policy.md</code>。
+        </li>
+        <li>
+          决策：文档示例执行器保留在 Rust integration test
+          <code>doc_examples_test</code> 中，从 Markdown fence 提取
+          <code>bash e2e</code> 块并通过 <code>bash</code> 执行；普通
+          <code>bash</code> 块继续只作为说明性示例，不自动运行。
+        </li>
+        <li>
+          决策：测试运行时把当前构建的 <code>xmind</code> binary 放到临时
+          <code>PATH</code> shim 中，因此文档示例可以使用真实用户命令
+          <code>xmind ...</code>，而不需要写 target 路径或 cargo 包装命令。
+        </li>
+        <li>
+          风险控制：已新增一个只读 fixture 示例和一个 mutation 示例；mutation
+          示例先用 <code>mktemp -d</code> 与 <code>cp tests/fixtures/xmind/minimal.xmind</code>
+          创建临时副本，再执行 <code>--apply</code> 并运行
+          <code>xmind validate</code>。
+        </li>
+        <li>
+          CI：<code>Rust quality gate</code> 现在显式运行
+          <code>cargo test --test doc_examples_test --all-features documented_bash_e2e_examples_are_extracted_and_run</code>；
+          同一测试仍包含在全量 <code>cargo test --workspace --all-features</code>
+          中。
+        </li>
+      </ul>
+    </section>
   </body>
 </html>
