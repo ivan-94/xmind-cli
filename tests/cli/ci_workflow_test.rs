@@ -17,8 +17,8 @@ fn ci_workflow_defines_the_pr_merge_gate_contract() {
         "cargo clippy --workspace --all-targets --all-features -- -D warnings",
         "cargo test --workspace --all-features",
         "stable-pr-e2e:",
-        "Stable PR E2E subset placeholder",
-        "Blocked on GitHub issue #12",
+        "Stable PR E2E subset",
+        "cargo test --test e2e_pr_subset --all-features",
     ] {
         assert!(
             workflow.contains(expected),
