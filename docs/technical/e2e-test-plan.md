@@ -12,6 +12,7 @@
   - Use one Rust E2E runner for the first version; release jobs run only a thin binary smoke test.
   - Generate golden fixtures from the real XMind App where possible, including via Computer Use.
 - `PLAN.md`: implementation backlog and post-audit contract closure plan.
+- GitHub issue #10: fixture manifest and governance rules slice.
 - `docs/reference/commands/*.md`: command behavior and option contracts.
 - `docs/reference/mutation-semantics.md`: dry-run, apply, backup, and transactional write rules.
 - `docs/reference/output-formats.md`: JSON envelope and human output contracts.
@@ -22,6 +23,7 @@
 ### Produced Artifacts
 
 - `docs/technical/e2e-test-plan.md`
+- `tests/fixtures/xmind/manifest.md`
 - `PLAN.md`
 - `implementation-notes.html`
 
@@ -105,7 +107,11 @@ Synthetic fixtures must be stored separately or named clearly so future agents d
 
 ### Fixture Manifest
 
-Each fixture should have manifest metadata, either in a single manifest file or adjacent markdown:
+The committed fixture inventory and governance rules live in
+`tests/fixtures/xmind/manifest.md`.
+
+Each fixture should have manifest metadata, either in that single manifest file
+or adjacent markdown:
 
 - fixture path,
 - source: `xmind-app` or `synthetic`,
