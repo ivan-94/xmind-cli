@@ -82,13 +82,16 @@ case "$os:$arch" in
   Linux:x86_64|Linux:amd64)
     target="x86_64-unknown-linux-gnu"
     ;;
+  Linux:aarch64|Linux:arm64)
+    target="aarch64-unknown-linux-gnu"
+    ;;
   MINGW*:x86_64|MSYS*:x86_64|CYGWIN*:x86_64|Windows_NT:x86_64|Windows:x86_64|Windows:amd64)
     target="x86_64-pc-windows-msvc"
     archive_ext="zip"
     binary_name="xmind.exe"
     ;;
   *)
-    fail "unsupported platform '$os/$arch'. Supported release targets are macOS Apple Silicon, macOS Intel, Linux x86_64 GNU, and Windows x86_64 MSVC. For this platform use: cargo install --locked --git https://github.com/$REPO"
+    fail "unsupported platform '$os/$arch'. Supported release targets are macOS Apple Silicon, macOS Intel, Linux x86_64 GNU, Linux arm64 GNU, and Windows x86_64 MSVC. For this platform use: cargo install --locked --git https://github.com/$REPO"
     ;;
 esac
 

@@ -145,7 +145,7 @@ The issue #5 configuration starts the GitHub Release workflow. Issue #6 expands 
 - `checksum = "sha256"` publishes per-artifact `.sha256` checksum files.
 - The `github-release` job additionally generates aggregate `SHA256SUMS` from `target/distrib` archives before publishing `target/distrib/*`.
 - `installers = []` avoids cargo-dist generated installers and Homebrew publication; the standalone `scripts/install.sh` remains repository-maintained.
-- `targets` contains `aarch64-apple-darwin`, `x86_64-apple-darwin`, `x86_64-unknown-linux-gnu`, and `x86_64-pc-windows-msvc`.
+- `targets` contains `aarch64-apple-darwin`, `aarch64-unknown-linux-gnu`, `x86_64-apple-darwin`, `x86_64-unknown-linux-gnu`, and `x86_64-pc-windows-msvc`.
 
 ## Supported Release Platforms
 
@@ -156,13 +156,14 @@ The first GitHub Release binary matrix is:
 | macOS Apple Silicon | `aarch64-apple-darwin` | `macos-14` | `xmind --version`, `xmind tree tests/fixtures/xmind/minimal.xmind --json`, `xmind validate tests/fixtures/xmind/minimal.xmind --json` |
 | macOS Intel | `x86_64-apple-darwin` | `macos-15-intel` | Same smoke commands |
 | Linux x86_64 GNU | `x86_64-unknown-linux-gnu` | `ubuntu-latest` | Same smoke commands |
+| Linux arm64 GNU | `aarch64-unknown-linux-gnu` | `ubuntu-24.04-arm` | Same smoke commands |
 | Windows x86_64 MSVC | `x86_64-pc-windows-msvc` | `windows-latest` | Same smoke commands |
 
 The smoke suite proves the produced binary starts, reports its version, reads a minimal workbook tree as JSON, and validates the same workbook as JSON. It is intentionally not the full E2E matrix; command-by-command coverage remains in the Rust E2E suite and its release/nightly expansion.
 
 ## Unsupported Platforms
 
-Do not imply downloadable release support for platforms outside the table above. In particular, the first release does not promise Linux arm64, Linux musl/static builds, macOS universal binaries, 32-bit Windows, Windows GNU, package managers beyond the repository install script, Homebrew, crates.io, or container images.
+Do not imply downloadable release support for platforms outside the table above. In particular, the first release does not promise Linux musl/static builds, macOS universal binaries, 32-bit Windows, Windows GNU, package managers beyond the repository install script, Homebrew, crates.io, or container images.
 
 Users on unsupported platforms may build from source with Rust when their target is compatible with the codebase, but those builds are not release artifacts until a later platform slice adds them to the supported matrix and smoke checks.
 
@@ -172,6 +173,7 @@ Local verification commands:
 cargo install cargo-dist --version 0.31.0 --locked
 cargo dist plan
 cargo dist build --artifacts=local --target aarch64-apple-darwin
+cargo dist build --artifacts=local --target aarch64-unknown-linux-gnu
 cargo dist build --artifacts=local --target x86_64-apple-darwin
 cargo dist build --artifacts=local --target x86_64-unknown-linux-gnu
 cargo dist build --artifacts=local --target x86_64-pc-windows-msvc

@@ -98,9 +98,9 @@
           <code>master</code> 推送为 PR base。
         </li>
         <li>
-          <code>#3</code> branch protection 和 <code>#11</code> real XMind golden
-          fixture generation 带有人类/权限依赖。自动化部分可以交付，无法由
-          Agent 独立验证的权限或 GUI 步骤必须记录为 remaining risk。
+          <code>#3</code> branch protection 已通过
+          <code>scripts/configure-branch-protection.sh apply</code> 写入 GitHub；
+          <code>#11</code> real XMind golden fixture generation 仍带有 GUI/人工审核依赖。
         </li>
         <li>
           Phase 17 命令行为闭环已按文档契约收敛：<code>diff</code> 当前公开输入形态
@@ -327,10 +327,6 @@
           父 Agent 合并时必须优先保留各 Slice 的边界并运行集成验证。
         </li>
         <li>
-          <code>#3</code> 需要 GitHub branch protection 权限，可能只能交付脚本、
-          文档和验证命令，最终启用由 maintainer 完成。
-        </li>
-        <li>
           <code>#11</code> 可能需要本机 XMind App/GUI 介入；若无法无损自动生成真实
           fixture，应提交 manifest/governance 和明确 TODO，而不是伪造为真实 App
           产物。
@@ -356,8 +352,9 @@
         </li>
         <li>
           决策：将 Phase 17 closure、install/Homebrew 当前状态、issue #15 E2E
-          coverage、以及真实剩余项同步到长期文档；保留 <code>#3</code>
-          branch protection 与 <code>#11</code> real XMind App fixtures 作为真实风险。
+          coverage、以及真实剩余项同步到长期文档；后续父级收尾已启用
+          <code>#3</code> branch protection，继续保留 <code>#11</code>
+          real XMind App fixtures 作为真实风险。
         </li>
         <li>
           验证：
@@ -456,6 +453,7 @@
         <li>
           决策：首个 GitHub Release 二进制矩阵明确为
           <code>aarch64-apple-darwin</code>（macOS Apple Silicon）、
+          <code>aarch64-unknown-linux-gnu</code>（Linux arm64 GNU）、
           <code>x86_64-apple-darwin</code>（macOS Intel）、
           <code>x86_64-unknown-linux-gnu</code>（Linux x86_64 GNU）和
           <code>x86_64-pc-windows-msvc</code>（Windows x86_64 MSVC）。

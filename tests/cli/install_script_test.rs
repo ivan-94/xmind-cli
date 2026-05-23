@@ -45,6 +45,38 @@ fn dry_run_previews_platform_artifact_without_writing_install_dir() {
 }
 
 #[test]
+fn dry_run_supports_linux_arm64_release_artifact() {
+    let install_dir = tempfile::tempdir().expect("install dir is created");
+
+    let output = Command::new("bash")
+        .arg(install_script())
+        .args(["--dry-run", "--version", "v0.1.0"])
+        .env("XMIND_INSTALL_OS", "Linux")
+        .env("XMIND_INSTALL_ARCH", "aarch64")
+        .env("XMIND_INSTALL_DIR", install_dir.path())
+        .output()
+        .expect("install script starts");
+
+    assert!(
+        output.status.success(),
+        "linux arm64 dry-run should succeed\nstdout:\n{}\nstderr:\n{}",
+        String::from_utf8_lossy(&output.stdout),
+        String::from_utf8_lossy(&output.stderr)
+    );
+
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(stdout.contains("aarch64-unknown-linux-gnu"));
+    assert!(stdout.contains("xmind-cli-v0.1.0-aarch64-unknown-linux-gnu.tar.gz"));
+    assert!(
+        fs::read_dir(install_dir.path())
+            .expect("install dir can be listed")
+            .next()
+            .is_none(),
+        "dry-run must not write files into the install dir"
+    );
+}
+
+#[test]
 fn installs_local_release_archive_after_checksum_verification() {
     let fixture = local_release_fixture("v0.1.0", "x86_64-unknown-linux-gnu", "ok");
     let install_dir = tempfile::tempdir().expect("install dir is created");
@@ -145,7 +177,7 @@ fn unsupported_platform_fails_before_download() {
         .arg(install_script())
         .arg("--dry-run")
         .env("XMIND_INSTALL_OS", "Linux")
-        .env("XMIND_INSTALL_ARCH", "aarch64")
+        .env("XMIND_INSTALL_ARCH", "armv7l")
         .output()
         .expect("install script starts");
 

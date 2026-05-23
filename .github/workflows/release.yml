@@ -49,6 +49,9 @@ jobs:
           - target: aarch64-apple-darwin
             os: macos-14
             binary: ./target/aarch64-apple-darwin/release/xmind
+          - target: aarch64-unknown-linux-gnu
+            os: ubuntu-24.04-arm
+            binary: ./target/aarch64-unknown-linux-gnu/release/xmind
           - target: x86_64-apple-darwin
             os: macos-15-intel
             binary: ./target/x86_64-apple-darwin/release/xmind

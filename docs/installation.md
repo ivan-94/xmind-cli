@@ -31,7 +31,7 @@ For Cargo source installs:
 
 For GitHub Release binary downloads:
 
-- A supported release platform: macOS Apple Silicon, macOS Intel, Linux x86_64 GNU, or Windows x86_64 MSVC.
+- A supported release platform: macOS Apple Silicon, macOS Intel, Linux x86_64 GNU, Linux arm64 GNU, or Windows x86_64 MSVC.
 - `shasum` for checksum verification on macOS/Linux. Windows users can use `certutil -hashfile <artifact> SHA256` and compare against `SHA256SUMS`.
 
 For the install script:
@@ -92,6 +92,7 @@ supported release platforms:
 | macOS Apple Silicon | `aarch64-apple-darwin` |
 | macOS Intel | `x86_64-apple-darwin` |
 | Linux x86_64 GNU | `x86_64-unknown-linux-gnu` |
+| Linux arm64 GNU | `aarch64-unknown-linux-gnu` |
 | Windows x86_64 MSVC | `x86_64-pc-windows-msvc` |
 
 The release archive names are expected to follow this pattern:
@@ -141,10 +142,10 @@ bash scripts/install.sh --version v0.1.0 --install-dir "$HOME/bin"
 
 The script maps the current OS and CPU to the supported release target, downloads `SHA256SUMS`, verifies the exact artifact entry, extracts the archive, and copies the binary to the install directory. It refuses unsupported platforms, missing checksum entries, checksum mismatches, and archives that do not contain the expected binary. Dry-run mode does not download, extract, or write user files.
 
-The first GitHub Release does not publish Linux arm64, Linux musl/static builds,
-macOS universal binaries, 32-bit Windows, Windows GNU, crates.io packages,
-container images, or Homebrew formulae. Homebrew instructions will be added only
-after its separate release slice lands.
+The first GitHub Release does not publish Linux musl/static builds, macOS
+universal binaries, 32-bit Windows, Windows GNU, crates.io packages, container
+images, or Homebrew formulae. Homebrew instructions will be added only after its
+separate release slice lands.
 
 The release policy in `technical/release-policy.md` defines version tags,
 changelog source of truth, release note updates, and checksum publication
@@ -190,6 +191,7 @@ Build local release artifacts without creating a GitHub Release:
 
 ```bash
 cargo dist build --artifacts=local --target aarch64-apple-darwin
+cargo dist build --artifacts=local --target aarch64-unknown-linux-gnu
 cargo dist build --artifacts=local --target x86_64-apple-darwin
 cargo dist build --artifacts=local --target x86_64-unknown-linux-gnu
 cargo dist build --artifacts=local --target x86_64-pc-windows-msvc

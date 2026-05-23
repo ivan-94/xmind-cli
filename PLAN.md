@@ -541,17 +541,17 @@ GitHub bootstrap:
   - [x] supported platforms;
   - [x] docs entrypoints;
   - [x] license.
-- [ ] Update issue tracking to GitHub Issues:
+- [x] Update issue tracking to GitHub Issues:
   - [x] Update `docs/agents/issue-tracker.md`.
   - [x] Create GitHub Issues for Phase 17 and Phase 18 slices.
-  - [ ] Keep `.scratch/` for temporary local drafts only.
-- [ ] Add branch protection setup:
-  - [ ] script or documented `gh api` commands;
-  - [ ] require PR before merge;
-  - [ ] require status checks;
-  - [ ] require branch up to date before merge;
-  - [ ] disallow force pushes and deletions;
-  - [ ] document UI fallback when API permissions are missing.
+  - [x] Keep `.scratch/` for temporary local drafts only.
+- [x] Add branch protection setup:
+  - [x] script or documented `gh api` commands;
+  - [x] require PR before merge;
+  - [x] require status checks;
+  - [x] require branch up to date before merge;
+  - [x] disallow force pushes and deletions;
+  - [x] document UI fallback when API permissions are missing.
 
 Merge-gate CI:
 
@@ -563,7 +563,7 @@ Merge-gate CI:
   - [x] release build smoke;
   - [x] security checks;
   - [x] default PR E2E subset.
-- [ ] Keep full E2E matrix out of required PR checks until stable.
+- [x] Keep full E2E matrix out of required PR checks until stable.
 - [x] Add CI documentation explaining PR gate vs release/nightly gate.
 
 Release automation:
@@ -571,7 +571,7 @@ Release automation:
 - [x] Evaluate and initialize `cargo-dist` / `dist` for this Rust CLI.
 - [x] Configure GitHub Release artifacts for:
   - [x] `x86_64-unknown-linux-gnu`;
-  - [ ] `aarch64-unknown-linux-gnu`;
+  - [x] `aarch64-unknown-linux-gnu`;
   - [x] `x86_64-apple-darwin`;
   - [x] `aarch64-apple-darwin`;
   - [x] `x86_64-pc-windows-msvc`.
@@ -584,7 +584,7 @@ Release automation:
   - [x] tag format `v*`;
   - [x] `Cargo.toml` version equals tag without `v`;
   - [x] `CHANGELOG.md` moves `Unreleased` content into `## vX.Y.Z - YYYY-MM-DD`.
-- [ ] Keep crates.io publish out of the first release.
+- [x] Keep crates.io publish out of the first release.
 
 Homebrew and installation:
 
@@ -602,7 +602,7 @@ E2E program:
 - [x] Add `docs/technical/e2e-test-plan.md`.
 - [x] Create fixture manifest for existing and new `.xmind` fixtures.
 - [ ] Generate additional golden fixtures with the real XMind App where possible.
-- [ ] Keep small PR fixtures in Git; avoid Git LFS in the first version.
+- [x] Keep small PR fixtures in Git; avoid Git LFS in the first version.
 - [x] Add default PR E2E subset:
   - [x] one success path per command;
   - [x] representative error family paths;

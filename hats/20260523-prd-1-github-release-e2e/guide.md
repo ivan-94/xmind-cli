@@ -34,7 +34,7 @@
 
 ### Key Decisions
 
-- Treat issue `#3` branch protection as human-gated because it requires maintainer/admin repository settings.
+- Issue `#3` branch protection was configured through `scripts/configure-branch-protection.sh apply`.
 - Treat issue `#11` real XMind App fixtures as human-gated because repository-safe real app-saved fixtures still need human-provided or human-approved files.
 - Keep Homebrew as a documented future path, not a delivered formula or tap automation.
 - Fix the cross-review P1 by pinning cargo-dist Unix archives to `.tar.gz`, matching `scripts/install.sh` and release docs.
@@ -51,7 +51,7 @@
 
 ### Open Questions / Risks
 
-- GitHub branch protection still needs a human maintainer to configure and verify required checks on the remote repository.
+- GitHub branch protection was configured through the GitHub API and verified with `gh api /repos/ivan-94/xmind-cli/branches/master/protection`.
 - Real XMind App fixture coverage remains pending until a human supplies and approves app-saved `.xmind` files.
 - A real tagged cargo-dist release has not been executed in this local HAT. The workflow now has stronger contract tests, but first release publication should still be monitored by a maintainer.
 - Full E2E matrix remains intentionally ignored in default PR tests and should be run explicitly for release/nightly confidence when needed.
@@ -73,7 +73,7 @@
 
 | Item | Needed From | Status | Notes |
 | --- | --- | --- | --- |
-| Branch protection configuration | Repository maintainer/admin | Human-gated | Configure required checks after PR/CI exists. |
+| Branch protection configuration | Repository maintainer/admin | Done | API verification reports strict required checks `Rust quality gate`, `Stable PR E2E subset`, and `Security`; force pushes and deletions are disabled. |
 | Real XMind App fixtures | Human with approved fixture files | Human-gated | Follow `tests/fixtures/xmind/manifest.md` issue #11 handoff. |
 | First tagged GitHub Release | Maintainer | Not run in HAT | Use release checklist and monitor artifact names/checksums. |
 
@@ -179,18 +179,18 @@ Preconditions:
 - Maintainer/admin has repository settings access.
 
 Steps:
-1. Open GitHub branch protection settings for the target branch.
-2. Require the documented merge gate checks from `.github/workflows/ci.yml`.
-3. Confirm PR cannot merge when required checks fail or are pending.
+1. Run `gh api /repos/ivan-94/xmind-cli/branches/master/protection --jq '{strict:.required_status_checks.strict,contexts:.required_status_checks.contexts,required_reviews:.required_pull_request_reviews.required_approving_review_count,allow_force_pushes:.allow_force_pushes.enabled,allow_deletions:.allow_deletions.enabled}'`.
+2. Confirm strict checks include `Rust quality gate`, `Stable PR E2E subset`, and `Security`.
+3. Confirm `allow_force_pushes` and `allow_deletions` are both `false`.
 
 Expected:
 - Branch protection enforces the intended PR gate.
 
 Evidence:
-- Screenshot or maintainer note with configured required checks.
+- GitHub API output.
 
 Notes:
-- This is the issue `#3` human-gated path.
+- This closes the automated issue `#3` setup path; later PRs still need live CI evidence.
 
 #### P1.3 Real XMind Fixture Handoff
 

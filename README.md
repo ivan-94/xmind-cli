@@ -80,15 +80,15 @@ The project is unofficial and is not endorsed by or affiliated with XMind.
 | Cargo source install from checkout | Available today | `cargo install --path .` |
 | Cargo source install from GitHub | Available today | `cargo install --locked --git https://github.com/ivan-94/xmind-cli` |
 | Local release build | Available today | `cargo build --workspace --release`, then run `target/release/xmind` |
-| GitHub Release binaries | Available after first tagged release | Download the artifact for macOS Apple Silicon, macOS Intel, Linux x86_64 GNU, or Windows x86_64 MSVC and verify `SHA256SUMS`. |
+| GitHub Release binaries | Available after first tagged release | Download the artifact for macOS Apple Silicon, macOS Intel, Linux x86_64 GNU, Linux arm64 GNU, or Windows x86_64 MSVC and verify `SHA256SUMS`. |
 | Install script | Available for tagged release artifacts | `bash scripts/install.sh --dry-run --version v0.1.0`, then rerun without `--dry-run`. |
 | Homebrew tap | Planned | Expected path is `ivan-94/homebrew-tap`. Formula publication waits for a verified GitHub Release artifact, checksum, and passing formula audit/test. |
 
 See [docs/installation.md](docs/installation.md) for source install, GitHub Release binary download, install script, release build, shell completion, and verification commands.
 
-The first binary release matrix does not imply support for Linux arm64,
-Linux musl/static builds, macOS universal binaries, 32-bit Windows,
-Windows GNU, container images, Homebrew, or crates.io packages.
+The first binary release matrix does not imply support for Linux musl/static builds,
+macOS universal binaries, 32-bit Windows, Windows GNU, container images,
+Homebrew, or crates.io packages.
 
 ## Quick Start
 
