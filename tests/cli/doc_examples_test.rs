@@ -270,3 +270,39 @@ fn changelog_tracks_current_release_hardening_work() {
         );
     }
 }
+
+#[test]
+fn release_policy_documents_versioning_changelog_notes_and_checksums() {
+    let release_policy = std::fs::read_to_string("docs/technical/release-policy.md")
+        .expect("release policy is readable");
+    let installation_doc =
+        std::fs::read_to_string("docs/installation.md").expect("installation doc is readable");
+    let docs_readme = std::fs::read_to_string("docs/README.md").expect("docs readme is readable");
+
+    for expected in [
+        "v0.1.0",
+        "Cargo.toml",
+        "CHANGELOG.md",
+        "GitHub Release",
+        "SHA256SUMS",
+        "shasum -a 256 -c SHA256SUMS",
+        "crates.io",
+    ] {
+        assert!(
+            release_policy.contains(expected),
+            "release policy should mention `{expected}`"
+        );
+    }
+
+    for expected in ["SHA256SUMS", "shasum -a 256 -c SHA256SUMS"] {
+        assert!(
+            installation_doc.contains(expected),
+            "installation doc should mention checksum verification with `{expected}`"
+        );
+    }
+
+    assert!(
+        docs_readme.contains("technical/release-policy.md"),
+        "docs README should link to the release policy"
+    );
+}

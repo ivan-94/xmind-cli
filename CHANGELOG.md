@@ -11,6 +11,7 @@ All notable changes to this project are tracked here.
 - Release build smoke test with `cargo build --workspace --release`.
 - Shell completion generation through `xmind completion <shell>`.
 - Added installation documentation for source installs, release binary builds, shell completion setup, and local verification.
+- Added release policy documentation for version tags, changelog ownership, GitHub Release notes, and SHA256 checksum verification.
 - Restore command support for dry-run and apply from the newest matching `.xmind-backups` entry.
 
 ### Changed
