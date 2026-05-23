@@ -197,5 +197,27 @@
         </li>
       </ul>
     </section>
+
+    <section class="entry">
+      <h2>Slice #5: cargo-dist Release Workflow</h2>
+      <ul>
+        <li>
+          决策：本 slice 在 <code>Cargo.toml</code> 中加入最小
+          <code>[workspace.metadata.dist]</code> 配置，并新增
+          <code>.github/workflows/release.yml</code>，从 <code>v*</code> tag
+          触发 GitHub Release artifact 构建。
+        </li>
+        <li>
+          决策：为避免越界到 #6 平台矩阵，本 slice 只配置
+          <code>x86_64-unknown-linux-gnu</code> 作为 cargo-dist 最小目标。
+        </li>
+        <li>
+          偏差：cargo-dist 0.31.0 本地安装在仓库 pinned Cargo 1.80.1 下失败，
+          因 transitive crate manifest 需要 <code>edition2024</code>。本 slice
+          已用契约测试覆盖 checked-in release 配置，真实 <code>cargo dist plan</code>
+          仍需在可运行 cargo-dist 的工具链或预装二进制环境中复验。
+        </li>
+      </ul>
+    </section>
   </body>
 </html>

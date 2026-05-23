@@ -1,0 +1,94 @@
+# This workflow is managed as the cargo-dist contract for GitHub issue #5.
+# Source Manifest: https://github.com/ivan-94/xmind-cli/issues/5, parent PRD
+# https://github.com/ivan-94/xmind-cli/issues/1, PLAN.md Phase 18,
+# Cargo.toml [workspace.metadata.dist], docs/technical/release-policy.md,
+# docs/installation.md, CHANGELOG.md.
+name: Release
+
+on:
+  pull_request:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+  id-token: write
+
+jobs:
+  dist-plan:
+    name: cargo-dist plan
+    runs-on: ubuntu-latest
+    outputs:
+      val: ${{ steps.plan.outputs.manifest }}
+      tag: ${{ steps.plan.outputs.tag }}
+      releasing: ${{ steps.plan.outputs.releasing }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install cargo-dist
+        uses: axodotdev/cargo-dist@v0.31.0
+
+      - name: Plan release
+        id: plan
+        run: dist plan --output-format=json
+
+  dist-build:
+    name: cargo-dist build x86_64-unknown-linux-gnu
+    needs: dist-plan
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: x86_64-unknown-linux-gnu
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install pinned Rust toolchain from rust-toolchain.toml
+        run: rustup show
+
+      - name: Install cargo-dist
+        uses: axodotdev/cargo-dist@v0.31.0
+
+      - name: Build release artifacts
+        run: dist build --target=${{ matrix.target }} --artifacts=local
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: artifacts-${{ matrix.target }}
+          path: target/distrib/*
+          if-no-files-found: error
+
+  github-release:
+    name: GitHub Release
+    needs:
+      - dist-plan
+      - dist-build
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: target/distrib
+          merge-multiple: true
+
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: target/distrib/*
+          generate_release_notes: false
+          body_path: CHANGELOG.md
