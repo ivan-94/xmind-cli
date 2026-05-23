@@ -413,9 +413,12 @@ fn installation_docs_cover_supported_install_paths() {
         std::fs::read_to_string("docs/installation.md").expect("installation doc is readable");
 
     for expected in [
+        "cargo install --locked --git https://github.com/ivan-94/xmind-cli",
         "cargo install --path .",
         "cargo build --workspace --release",
         "target/release/xmind",
+        "bash scripts/install.sh --dry-run --version v0.1.0",
+        "SHA256SUMS",
         "xmind completion bash",
         "xmind --version",
     ] {
@@ -457,9 +460,11 @@ fn root_readme_publishes_repository_baseline_without_overclaiming_release_channe
         "docs/technical/e2e-test-plan.md",
         "PLAN.md",
         "docs/installation.md",
-        "Cargo source install",
-        "GitHub release binaries",
+        "Cargo source install from GitHub",
+        "cargo install --locked --git https://github.com/ivan-94/xmind-cli",
+        "GitHub Release binaries",
         "Install script",
+        "bash scripts/install.sh --dry-run --version v0.1.0",
         "Homebrew tap",
         "Available today",
         "Planned",
@@ -473,12 +478,11 @@ fn root_readme_publishes_repository_baseline_without_overclaiming_release_channe
         );
     }
 
-    for overclaim in ["brew install ivan-94/tap/xmind-cli", "curl -fsSL https://"] {
-        assert!(
-            !readme.contains(overclaim),
-            "root README should not claim unreleased install channel `{overclaim}` is available"
-        );
-    }
+    let homebrew_overclaim = "brew install ivan-94/tap/xmind-cli";
+    assert!(
+        !readme.contains(homebrew_overclaim),
+        "root README should not claim unreleased install channel `{homebrew_overclaim}` is available"
+    );
 
     assert!(
         !readme.contains("xmind add-tree roadmap.xmind \\\n  --parent \"path:/Q2\" \\\n  --input docs/examples/simple-tree.yaml \\\n  --apply"),

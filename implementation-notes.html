@@ -96,7 +96,7 @@
         </li>
         <li>
           CI workflow、security job、release build smoke、completion、installation
-          docs 和 changelog 均已存在；本地质量门仍以
+          docs、install script 和 changelog 均已存在；本地质量门仍以
           <code>./scripts/quality-gate.sh</code> 为准。
         </li>
         <li>
@@ -143,8 +143,8 @@
           post-audit slice。
         </li>
         <li>
-          GitHub 发布、branch protection、Homebrew tap、README 用户入口和完整 E2E
-          覆盖仍只是计划，尚未实现。
+          GitHub 发布、branch protection、Homebrew tap 和完整 E2E
+          覆盖仍只是计划，尚未实现；README 用户入口和安装脚本已由 PRD #1 slice #8 更新。
         </li>
       </ul>
     </section>
@@ -254,5 +254,26 @@
         </li>
       </ul>
     </section>
+    <section class="entry">
+      <h2>Slice #8: Install Script</h2>
+      <ul>
+        <li>
+          Source Manifest: GitHub issue <code>#8</code>, parent PRD <code>#1</code>,
+          <code>README.md</code>, <code>docs/installation.md</code>,
+          <code>docs/technical/release-policy.md</code>, <code>.github/workflows/release.yml</code>,
+          <code>Cargo.toml</code>, <code>scripts/install.sh</code>, and
+          <code>tests/cli/install_script_test.rs</code>.
+        </li>
+        <li>
+          决策：安装脚本不猜测 artifact；只接受支持矩阵映射出的精确文件名，并要求
+          <code>SHA256SUMS</code> 中有对应条目后才解压安装。
+        </li>
+        <li>
+          风险：artifact 命名仍需在首次真实 cargo-dist release 前复核；若实际文件名与
+          文档约定不一致，应改 release automation 或脚本，而不是放宽匹配。
+        </li>
+      </ul>
+    </section>
+
   </body>
 </html>

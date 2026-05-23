@@ -23,7 +23,7 @@ The CLI treats an XMind file as a structured workbook, not as a zip archive or s
 - `design/`: command taxonomy, naming rules, compatibility policy, and future ideas.
 - `technical/`: Rust implementation architecture, stack choices, quality gates, E2E strategy, testing strategy, and roadmap.
 - `technical/release-policy.md`: versioning, changelog, GitHub Release notes, and checksum rules.
-- `installation.md`: local install, release build, release checksum verification, and shell completion setup.
+- `installation.md`: Cargo source install, GitHub Release binary install, install script, release build, release checksum verification, and shell completion setup.
 
 ## Reading Order
 

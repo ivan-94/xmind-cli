@@ -158,6 +158,10 @@ name = "release_workflow_test"
 path = "tests/cli/release_workflow_test.rs"
 
 [[test]]
+name = "install_script_test"
+path = "tests/cli/install_script_test.rs"
+
+[[test]]
 name = "completion_test"
 path = "tests/cli/completion_test.rs"
 

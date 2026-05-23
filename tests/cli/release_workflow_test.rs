@@ -104,6 +104,8 @@ fn cargo_dist_release_contract_is_checked_in() {
         "xmind tree tests/fixtures/xmind/minimal.xmind --json",
         "xmind validate tests/fixtures/xmind/minimal.xmind --json",
         "per-artifact `.sha256` checksum files",
+        "bash scripts/install.sh --dry-run --version v0.1.0",
+        "cargo install --locked --git https://github.com/ivan-94/xmind-cli",
         "Homebrew",
         "install script",
     ] {

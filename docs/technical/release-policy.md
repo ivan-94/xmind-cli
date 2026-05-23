@@ -19,6 +19,7 @@
 - User slice instruction on 2026-05-23: document policy only; do not implement cargo-dist, install script, Homebrew, or platform matrix.
 - User slice instruction on 2026-05-23 for issue #5: configure cargo-dist minimally for GitHub Releases from tags, generated checksums, changelog/release notes source, and no Homebrew requirement.
 - User slice instruction on 2026-05-23 for issue #6: define the release platform matrix, add binary smoke checks, keep full E2E separate, and do not implement install script or Homebrew.
+- User slice instruction on 2026-05-23 for issue #8: add a pragmatic install script, document Cargo Git source install, GitHub Release binary download, script install, dry-run preview, platform artifact selection, checksum verification, and actionable errors.
 
 ### Produced Artifacts
 
@@ -32,6 +33,8 @@
 - `.github/workflows/release.yml`
 - `tests/cli/doc_examples_test.rs`
 - `tests/cli/release_workflow_test.rs`
+- `scripts/install.sh`
+- `tests/cli/install_script_test.rs`
 
 ### Key Decisions
 
@@ -44,12 +47,14 @@
 - issue #6 defines the first release binary matrix as macOS Apple Silicon, macOS Intel, Linux x86_64 GNU, and Windows x86_64 MSVC.
 - release jobs smoke-test each produced native binary with `xmind --version`, `xmind tree ... --json`, and `xmind validate ... --json`.
 - Full E2E matrix remains separate from release binary smoke checks.
-- cargo-dist emits per-artifact `.sha256` checksum files. The aggregate `SHA256SUMS` policy remains the user-facing checksum convention and may be assembled by a later release-polish slice if cargo-dist does not generate it directly.
+- cargo-dist emits per-artifact `.sha256` checksum files. The aggregate `SHA256SUMS` policy remains the user-facing checksum convention and is consumed by the standalone install script.
+- issue #8 adds `scripts/install.sh` as a repository-maintained installer, separate from cargo-dist generated installers; `[workspace.metadata.dist].installers` remains empty.
 
 ### Verification Evidence
 
 - Documentation policy is guarded by `tests/cli/doc_examples_test.rs`.
 - Release workflow configuration is guarded by `tests/cli/release_workflow_test.rs`.
+- Install script behavior is guarded by `tests/cli/install_script_test.rs`.
 - RED: `PATH=/opt/homebrew/opt/rustup/bin:$PATH cargo test --test doc_examples_test release_policy_documents_versioning_changelog_notes_and_checksums` failed before `docs/technical/release-policy.md` existed.
 - GREEN: `PATH=/opt/homebrew/opt/rustup/bin:$PATH cargo test --test doc_examples_test release_policy_documents_versioning_changelog_notes_and_checksums` passed after adding the policy and checksum docs.
 - Full targeted docs check: `PATH=/opt/homebrew/opt/rustup/bin:$PATH cargo test --test doc_examples_test`.
@@ -57,7 +62,7 @@
 
 ### Open Questions / Risks
 
-- Final multi-platform artifact names depend on cargo-dist output naming for the supported targets.
+- The install script expects release archive names to follow `xmind-cli-vX.Y.Z-<target>.tar.gz` for macOS/Linux and `xmind-cli-vX.Y.Z-x86_64-pc-windows-msvc.zip` for Windows; if cargo-dist emits different names, release automation or the script must be reconciled before publishing.
 - cargo-dist local verification requires installing `cargo-dist` 0.31.0 locally when it is not already present.
 - Homebrew formula checksum updates depend on published release artifact names.
 
@@ -137,7 +142,7 @@ The issue #5 configuration starts the GitHub Release workflow. Issue #6 expands 
 - `ci = ["github"]` and `hosting = ["github"]` make GitHub Actions and GitHub Releases the release path.
 - `create-release = true` keeps releases tag-driven from `v*` tags.
 - `checksum = "sha256"` publishes per-artifact `.sha256` checksum files.
-- `installers = []` avoids install script and Homebrew publication in this slice.
+- `installers = []` avoids cargo-dist generated installers and Homebrew publication; the standalone `scripts/install.sh` remains repository-maintained.
 - `targets` contains `aarch64-apple-darwin`, `x86_64-apple-darwin`, `x86_64-unknown-linux-gnu`, and `x86_64-pc-windows-msvc`.
 
 ## Supported Release Platforms
@@ -155,7 +160,7 @@ The smoke suite proves the produced binary starts, reports its version, reads a 
 
 ## Unsupported Platforms
 
-Do not imply downloadable release support for platforms outside the table above. In particular, the first release does not promise Linux arm64, Linux musl/static builds, macOS universal binaries, 32-bit Windows, Windows GNU, package managers, install script delivery, Homebrew, crates.io, or container images.
+Do not imply downloadable release support for platforms outside the table above. In particular, the first release does not promise Linux arm64, Linux musl/static builds, macOS universal binaries, 32-bit Windows, Windows GNU, package managers beyond the repository install script, Homebrew, crates.io, or container images.
 
 Users on unsupported platforms may build from source with Rust when their target is compatible with the codebase, but those builds are not release artifacts until a later platform slice adds them to the supported matrix and smoke checks.
 
@@ -173,9 +178,21 @@ xmind tree tests/fixtures/xmind/minimal.xmind --json
 xmind validate tests/fixtures/xmind/minimal.xmind --json
 ```
 
+## Install Script Policy
+
+`scripts/install.sh` is the supported script entrypoint for GitHub Release archives. It must:
+
+- map only the supported release platforms to artifacts;
+- preview release tag, target, artifact URL, checksum URL, and install path in `--dry-run` without writing user files;
+- verify `SHA256SUMS` before extraction;
+- fail when the checksum file does not contain the exact artifact name;
+- fail on checksum mismatch before installing anything;
+- fail when an archive does not contain the expected `xmind` or `xmind.exe` binary.
+
+The script is not a cargo-dist generated installer and does not change the Homebrew or crates.io non-goals.
+
 ## First Release Non-Goals
 
 - Do not publish to crates.io for the first release.
 - Do not promise Homebrew availability before the tap formula is merged.
-- Do not document an install script as available before issue #8 implements and verifies it.
 - Do not add release artifact support beyond the issue #6 platform matrix without matching smoke checks and documentation.
