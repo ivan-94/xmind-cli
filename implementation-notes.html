@@ -160,6 +160,31 @@
     </section>
 
     <section class="entry">
+      <h2>Slice #24: E2E Coverage Report</h2>
+      <ul>
+        <li>
+          Source Manifest: GitHub issue <code>#24</code>, parent PRD
+          <code>#1</code>, <code>docs/prd/1/implementation-notes.html</code>,
+          <code>docs/technical/e2e-test-plan.md</code>,
+          <code>docs/reference/commands/*.md</code>,
+          <code>tests/e2e/*.rs</code>, <code>tests/cli/*_test.rs</code>,
+          <code>~/.agents/docs/agents/workflows.md</code>, and
+          <code>~/.agents/docs/agents/handoff-policy.md</code>.
+        </li>
+        <li>
+          决策：<code>docs/technical/e2e-coverage-report.md</code> 是当前
+          E2E 覆盖进度的 living report；它显式区分 PR subset、full matrix 和
+          <code>TODO #...</code>，避免后续 agent 只从测试名猜测剩余覆盖。
+        </li>
+        <li>
+          权衡：本 slice 不补新的命令 E2E 行为测试，只给覆盖报告增加守护测试。
+          具体 batch/exchange/recovery E2E 扩展仍由 <code>#15</code> 执行，最终
+          docs/PLAN 同步由 <code>#23</code> 执行。
+        </li>
+      </ul>
+    </section>
+
+    <section class="entry">
       <h2>Slice #9: Homebrew Tap Publication Path</h2>
       <ul>
         <li>

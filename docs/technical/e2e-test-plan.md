@@ -24,6 +24,7 @@
 ### Produced Artifacts
 
 - `docs/technical/e2e-test-plan.md`
+- `docs/technical/e2e-coverage-report.md`: living command/branch coverage checklist.
 - `tests/fixtures/xmind/manifest.md`
 - `PLAN.md`
 - `implementation-notes.html`
@@ -180,6 +181,9 @@ File output assertions:
 - output content is stable enough for downstream use.
 
 ## Command Matrix
+
+Current implementation progress is tracked in
+`docs/technical/e2e-coverage-report.md`.
 
 Every command needs at least:
 

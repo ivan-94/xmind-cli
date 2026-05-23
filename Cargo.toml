@@ -146,6 +146,10 @@ name = "doc_examples_test"
 path = "tests/cli/doc_examples_test.rs"
 
 [[test]]
+name = "e2e_coverage_report_test"
+path = "tests/cli/e2e_coverage_report_test.rs"
+
+[[test]]
 name = "definition_of_done_test"
 path = "tests/cli/definition_of_done_test.rs"
 
