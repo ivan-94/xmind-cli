@@ -241,6 +241,37 @@
     </section>
 
     <section class="entry">
+      <h2>Slice #24: E2E Coverage Report</h2>
+      <ul>
+        <li>
+          Source Manifest: GitHub issue <code>#24</code>, parent PRD
+          <code>#1</code>, <code>docs/technical/e2e-test-plan.md</code>,
+          <code>docs/reference/commands/*.md</code>,
+          <code>tests/e2e/*.rs</code>, <code>tests/cli/*_test.rs</code>,
+          repository <code>implementation-notes.html</code>,
+          <code>~/.agents/docs/agents/workflows.md</code>, and
+          <code>~/.agents/docs/agents/handoff-policy.md</code>.
+        </li>
+        <li>
+          决策：新增
+          <code>docs/technical/e2e-coverage-report.md</code> 作为 living
+          checklist，按命令列出用户可见分支、当前测试文件/测试名、PR subset
+          与 full matrix 状态，以及显式 TODO issue。
+        </li>
+        <li>
+          决策：当前报告允许引用 <code>tests/cli/*_test.rs</code> 作为现有用户可见分支覆盖证据；
+          尚未迁移到 Rust E2E full matrix 的分支继续用 <code>#15</code>,
+          <code>#11</code> 或 <code>#23</code> 标为 TODO，避免把 CLI integration
+          coverage 伪装成完整 E2E。
+        </li>
+        <li>
+          验证：新增 <code>tests/cli/e2e_coverage_report_test.rs</code>，防止报告漏列
+          19 个命令、漏掉关键 blocker issue，或使用不可维护的测试引用格式。
+        </li>
+      </ul>
+    </section>
+
+    <section class="entry">
       <h2>Open Risks</h2>
       <ul>
         <li>
