@@ -2,7 +2,9 @@ mod patch;
 mod set;
 mod set_image;
 mod tree_input;
+mod validate;
 
+use std::collections::BTreeSet;
 use std::fs;
 use std::io;
 use std::path::{Path, PathBuf};
@@ -39,6 +41,7 @@ use self::set_image::render_set_image;
 use self::tree_input::{
     read_tree_input, validate_topic_tree_input, TopicTreeImageInputDto, TopicTreeInputDto,
 };
+use self::validate::{validate_workbook_package, ValidateReadError, ValidateResultDto};
 
 pub fn run(cli: Cli) -> i32 {
     let Cli {
@@ -1833,8 +1836,25 @@ fn collect_created_workbook_paths(tree: &TopicTreeInputDto, path: &TopicPath) ->
 }
 
 fn topic_tree_input_to_topic(tree: TopicTreeInputDto) -> Topic {
+    let mut used_ids = BTreeSet::new();
+    collect_explicit_topic_tree_ids(&tree, &mut used_ids);
+    topic_tree_input_to_topic_with_ids(tree, &mut used_ids)
+}
+
+fn topic_tree_input_to_topic_with_ids(
+    tree: TopicTreeInputDto,
+    used_ids: &mut BTreeSet<String>,
+) -> Topic {
+    let id = match tree.id {
+        Some(id) => {
+            used_ids.insert(id.clone());
+            id
+        }
+        None => unique_generated_topic_id(&tree.title, used_ids),
+    };
+
     Topic {
-        id: TopicId(tree.id.unwrap_or_else(|| generated_topic_id(&tree.title))),
+        id: TopicId(id),
         title: tree.title,
         note: tree.note,
         labels: tree.labels,
@@ -1844,9 +1864,34 @@ fn topic_tree_input_to_topic(tree: TopicTreeInputDto) -> Topic {
         children: tree
             .children
             .into_iter()
-            .map(topic_tree_input_to_topic)
+            .map(|child| topic_tree_input_to_topic_with_ids(child, used_ids))
             .collect(),
     }
+}
+
+fn collect_explicit_topic_tree_ids(tree: &TopicTreeInputDto, ids: &mut BTreeSet<String>) {
+    if let Some(id) = &tree.id {
+        ids.insert(id.clone());
+    }
+    for child in &tree.children {
+        collect_explicit_topic_tree_ids(child, ids);
+    }
+}
+
+fn unique_generated_topic_id(title: &str, used_ids: &mut BTreeSet<String>) -> String {
+    let base = generated_topic_id(title);
+    if used_ids.insert(base.clone()) {
+        return base;
+    }
+
+    for suffix in 2.. {
+        let candidate = format!("{base}-{suffix}");
+        if used_ids.insert(candidate.clone()) {
+            return candidate;
+        }
+    }
+
+    unreachable!("unbounded suffix search should always find a unique generated topic id")
 }
 
 fn topic_tree_image_input_to_ref(image: TopicTreeImageInputDto) -> Option<TopicImageRef> {
@@ -2008,16 +2053,23 @@ fn render_find(invocation: Invocation, json: bool, options: FindRenderOptions) -
 }
 
 fn render_validate(invocation: Invocation, json: bool, strict: bool) -> i32 {
-    if let Err(exit_code) = read_workbook_or_render_error(&invocation, json) {
-        return exit_code;
-    }
-    let _strict = strict;
-
-    let result = ValidateResultDto {
-        valid: true,
-        warnings: Vec::new(),
-        errors: Vec::new(),
+    let result = match validate_workbook_package(&invocation.workbook, strict) {
+        Ok(result) => result,
+        Err(error) => {
+            return render_validate_read_error(invocation, json, error);
+        }
     };
+
+    if !result.valid {
+        let error = CliErrorBody::new(
+            ErrorCode::ValidationFailed,
+            "Workbook failed structural validation.",
+            false,
+            "Inspect result.errors and result.warnings, fix the workbook structure, then retry.",
+        )
+        .with_path(invocation.workbook.display().to_string());
+        return render_validate_failure(invocation, json, result, error);
+    }
 
     if json {
         let envelope = CommandEnvelope {
@@ -2072,6 +2124,54 @@ fn render_diff(invocation: Invocation, json: bool) -> i32 {
     }
 
     0
+}
+
+fn render_validate_read_error(invocation: Invocation, json: bool, error: ValidateReadError) -> i32 {
+    let path = invocation.workbook.display().to_string();
+    let error = match error {
+        ValidateReadError::UnsupportedFormat => CliErrorBody::new(
+            ErrorCode::UnsupportedFormat,
+            "Workbook uses an unsupported XMind format variant.",
+            false,
+            "Open and re-save the file with a supported XMind version, or use export/import.",
+        )
+        .with_path(path),
+        other => CliErrorBody::new(
+            ErrorCode::ParseFailed,
+            format!("Workbook could not be parsed: {other}"),
+            false,
+            "Open and re-save the workbook with a supported XMind version, then retry.",
+        )
+        .with_path(path),
+    };
+    render_error(invocation, json, error)
+}
+
+fn render_validate_failure(
+    invocation: Invocation,
+    json: bool,
+    result: ValidateResultDto,
+    error: CliErrorBody,
+) -> i32 {
+    let exit_code = error.exit_code;
+
+    if json {
+        let envelope = CommandEnvelope {
+            ok: false,
+            command: Some(invocation.command),
+            workbook: Some(invocation.workbook.display().to_string()),
+            dry_run: false,
+            applied: false,
+            result: Some(result),
+            error: Some(error),
+            warnings: Vec::new(),
+        };
+        crate::cli::render_json_envelope(&envelope);
+    } else {
+        crate::cli::render_human_error(Some(&invocation.command), &error, invocation.no_color);
+    }
+
+    exit_code
 }
 
 fn render_backup(
@@ -3503,13 +3603,6 @@ fn render_copy(
     }
 
     0
-}
-
-#[derive(Debug, Serialize)]
-struct ValidateResultDto {
-    valid: bool,
-    warnings: Vec<String>,
-    errors: Vec<String>,
 }
 
 #[derive(Debug, Serialize)]

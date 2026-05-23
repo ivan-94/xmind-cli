@@ -5,8 +5,8 @@ use serde_json::Value;
 use support::{
     assert_success_envelope, copy_fixture, run_human, run_human_error, run_json, run_json_error,
     run_success, temp_file, validate_workbook, write_unsupported_xmind_variant,
-    DUPLICATE_SHEETS_FIXTURE, DUPLICATE_TITLES_FIXTURE, MALFORMED_FIXTURE, METADATA_FIXTURE,
-    MINIMAL_FIXTURE, MULTIPLE_SHEETS_FIXTURE, TOPIC_IMAGE_FIXTURE,
+    write_xmind_package, DUPLICATE_SHEETS_FIXTURE, DUPLICATE_TITLES_FIXTURE, MALFORMED_FIXTURE,
+    METADATA_FIXTURE, MINIMAL_FIXTURE, MULTIPLE_SHEETS_FIXTURE, TOPIC_IMAGE_FIXTURE,
 };
 
 type MutationAssertion = fn(&Value);
@@ -353,17 +353,154 @@ fn read_e2e_read_commands_return_invalid_usage_errors() {
 }
 
 #[test]
-#[ignore = "pending issue #21: real validation warnings are not emitted yet"]
 fn read_e2e_validate_warnings_are_reported_and_strict_turns_them_into_failures() {
-    unimplemented!("issue #21 should add a warning-producing fixture and strict failure contract");
+    let temp_dir = tempfile::tempdir().expect("temp dir is created for warning fixture");
+    let workbook = temp_dir.path().join("missing-image-resource.xmind");
+    write_xmind_package(
+        &workbook,
+        &[(
+            "content.json",
+            br#"[
+  {
+    "id": "sheet-roadmap",
+    "title": "Roadmap",
+    "rootTopic": {
+      "id": "topic-root",
+      "title": "Roadmap",
+      "image": {
+        "src": "xap:resources/missing.png"
+      }
+    }
+  }
+]"#,
+        )],
+    );
+    let workbook_arg = workbook.to_string_lossy().into_owned();
+
+    let non_strict = run_json(&["validate", &workbook_arg, "--json"]);
+    assert_eq!(non_strict["result"]["valid"], true);
+    assert!(non_strict["result"]["warnings"]
+        .as_array()
+        .expect("validation warnings are an array")
+        .iter()
+        .any(|warning| warning["code"] == "missing_resource"));
+
+    let strict = run_json_error(&["validate", &workbook_arg, "--strict", "--json"], 9);
+    assert_eq!(strict["error"]["code"], "validation_failed");
+    assert_eq!(strict["result"]["valid"], false);
+    assert!(strict["result"]["warnings"]
+        .as_array()
+        .expect("strict validation warnings are an array")
+        .iter()
+        .any(|warning| warning["code"] == "missing_resource"));
 }
 
 #[test]
-#[ignore = "pending issue #21: structural validation errors are not implemented yet"]
 fn read_e2e_validate_reports_structural_errors() {
-    unimplemented!(
-        "issue #21 should add structural validation fixtures and validation_failed output"
+    let temp_dir = tempfile::tempdir().expect("temp dir is created for structural fixtures");
+
+    let missing_content = temp_dir.path().join("missing-content.xmind");
+    write_xmind_package(&missing_content, &[("metadata.json", b"{}")]);
+    let missing_content_arg = missing_content.to_string_lossy().into_owned();
+    let missing_content_body = run_json_error(&["validate", &missing_content_arg, "--json"], 9);
+    assert_eq!(missing_content_body["error"]["code"], "validation_failed");
+    assert!(missing_content_body["result"]["errors"]
+        .as_array()
+        .expect("missing content errors are an array")
+        .iter()
+        .any(|error| error["code"] == "missing_content"));
+
+    let missing_root = temp_dir.path().join("missing-root-topic.xmind");
+    write_xmind_package(
+        &missing_root,
+        &[(
+            "content.json",
+            br#"[{"id":"sheet-roadmap","title":"Roadmap"}]"#,
+        )],
     );
+    let missing_root_arg = missing_root.to_string_lossy().into_owned();
+    let missing_root_body = run_json_error(&["validate", &missing_root_arg, "--json"], 9);
+    assert!(missing_root_body["result"]["errors"]
+        .as_array()
+        .expect("missing root topic errors are an array")
+        .iter()
+        .any(|error| error["code"] == "missing_required_field"
+            && error["path"] == "content.json[0].rootTopic"));
+
+    let broken_relationship = temp_dir.path().join("broken-relationship.xmind");
+    write_xmind_package(
+        &broken_relationship,
+        &[(
+            "content.json",
+            br#"[
+  {
+    "id": "sheet-roadmap",
+    "title": "Roadmap",
+    "rootTopic": {
+      "id": "topic-root",
+      "title": "Roadmap"
+    },
+    "relationships": [
+      {
+        "id": "relationship-1",
+        "end1Id": "topic-root",
+        "end2Id": "topic-missing"
+      }
+    ]
+  }
+]"#,
+        )],
+    );
+    let broken_relationship_arg = broken_relationship.to_string_lossy().into_owned();
+    let broken_relationship_body =
+        run_json_error(&["validate", &broken_relationship_arg, "--json"], 9);
+    assert!(broken_relationship_body["result"]["errors"]
+        .as_array()
+        .expect("relationship errors are an array")
+        .iter()
+        .any(|error| error["code"] == "broken_relationship_reference"));
+
+    let duplicate_topic = temp_dir.path().join("duplicate-topic-id.xmind");
+    write_xmind_package(
+        &duplicate_topic,
+        &[(
+            "content.json",
+            br#"[
+  {
+    "id": "sheet-roadmap",
+    "title": "Roadmap",
+    "rootTopic": {
+      "id": "topic-root",
+      "title": "Roadmap",
+      "children": {
+        "attached": [
+          {
+            "id": "topic-duplicate",
+            "title": "Q2",
+            "children": {
+              "attached": [
+                {
+                  "id": "topic-duplicate",
+                  "title": "Payment"
+                }
+              ]
+            }
+          }
+        ]
+      }
+    }
+  }
+]"#,
+        )],
+    );
+    let duplicate_topic_arg = duplicate_topic.to_string_lossy().into_owned();
+    let duplicate_topic_body =
+        run_json_error(&["validate", &duplicate_topic_arg, "--strict", "--json"], 9);
+    assert!(duplicate_topic_body["result"]["errors"]
+        .as_array()
+        .expect("duplicate topic errors are an array")
+        .iter()
+        .any(|error| error["code"] == "duplicate_topic_id"));
 }
 
 #[test]

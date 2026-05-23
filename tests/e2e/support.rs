@@ -82,6 +82,23 @@ pub fn temp_file(dir: &Path, name: &str, content: &str) -> String {
     path.to_string_lossy().into_owned()
 }
 
+pub fn write_xmind_package(path: &Path, entries: &[(&str, &[u8])]) {
+    let file = File::create(path).expect("synthetic workbook fixture is created");
+    let mut writer = zip::ZipWriter::new(file);
+    let options = FileOptions::default().compression_method(zip::CompressionMethod::Deflated);
+
+    for (name, bytes) in entries {
+        writer
+            .start_file(*name, options)
+            .expect("synthetic workbook entry starts");
+        writer
+            .write_all(bytes)
+            .expect("synthetic workbook entry is written");
+    }
+
+    writer.finish().expect("synthetic workbook zip is finished");
+}
+
 pub fn run_json(args: &[&str]) -> Value {
     let output = Command::cargo_bin("xmind")
         .expect("xmind binary is built for E2E tests")
