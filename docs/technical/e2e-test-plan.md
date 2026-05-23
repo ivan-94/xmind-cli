@@ -48,7 +48,7 @@
 
 ### Open Questions / Risks
 
-- The exact full matrix will evolve as Phase 17 closes currently missing command behavior (`add-tree --apply`, `patch --apply`, `diff`, and deeper `validate` checks).
+- The exact full matrix will evolve as Phase 17 closes currently missing command behavior (`patch --apply`, `diff`, deeper `validate` checks, and `import --into --backup`). `add-tree --apply` was closed by PRD #1 issue #18.
 - Large real-world fixtures must stay small enough for ordinary Git usage. First version target: each fixture under 1 MB and total E2E fixture set under 10 MB.
 
 ## Goals

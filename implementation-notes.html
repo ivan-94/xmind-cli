@@ -84,9 +84,9 @@
           metadata 仍是明确拒绝，而不是部分支持。
         </li>
         <li>
-          Patch engine 已覆盖 dry-run working copy 规划、operation-indexed
+          Patch engine 已覆盖 dry-run working copy 规划、apply 写回、operation-indexed
           diagnostics、alias normalization、conflict detection，以及文档化 patch
-          ops；但写回仍未开放。
+          ops。<code>patch --apply</code> 现在会在所有操作规划成功后一次性写回 workbook。
         </li>
         <li>
           文档同步测试覆盖 help surface、schema docs、可运行示例、错误码和若干
@@ -115,27 +115,9 @@
       <h2>Active Deviations</h2>
       <ul>
         <li>
-          <code>add-tree --apply</code> 尚未实现；当前 tree input 的完整行为主要
-          通过 dry-run diff 验证。
-        </li>
-        <li>
-          <code>patch --apply</code> 尚未实现；Phase 11 当前仍以 dry-run patch
-          engine 为主。
-        </li>
-        <li>
-          <code>diff</code> 目前只注册在 clap subcommand 和命令参考中，dispatch
-          仍走 noop action；因此 <code>xmind diff --json</code> 不会输出文档中的
-          summary/changes envelope。
-        </li>
-        <li>
-          <code>validate --strict</code> 当前只验证 workbook 能被读取，并固定返回
-          <code>valid: true</code>、空 warnings/errors；尚未实现命令参考列出的
-          topic id、排序、required fields、unknown preservation 等完整检查。
-        </li>
-        <li>
-          <code>import --into</code> 文档称应遵循 normal mutation backup 规则，但
-          clap surface 没有 <code>--backup</code>，应用层也以
-          <code>backup: false</code> 运行。
+          <code>validate</code> 已具备第一层结构诊断和
+          <code>--strict</code> warning failure，但仍未扩展到 XMind App 私有视觉、
+          布局或所有未知 relationship 变体的完整语义验证。
         </li>
         <li>
           <code>PLAN.md</code> 的部分 checkbox 和 Definition of Done 已按历史进度
@@ -150,15 +132,40 @@
     </section>
 
     <section class="entry">
+      <h2>Slice #22: import --into Backup Safety</h2>
+      <ul>
+        <li>
+          Source Manifest: GitHub issue <code>#22</code>, parent PRD
+          <code>#1</code>, <code>docs/prd/1/implementation-notes.html</code>,
+          <code>docs/notes/prd-1-issue-17-red-contract-e2e.md</code>,
+          <code>tests/e2e/red_contract_gaps_test.rs</code>,
+          <code>docs/reference/commands/import.md</code>,
+          <code>docs/reference/mutation-semantics.md</code>, and current import CLI/source/tests.
+        </li>
+        <li>
+          决策：<code>import --into --apply --backup</code> 在替换 workbook 前创建
+          sibling <code>.xmind-backups</code> 备份；候选 workbook 仍通过既有
+          write-then-validate-then-replace helper 写入，因此写入失败时原文件保持安全。
+        </li>
+        <li>
+          决策：<code>--dry-run --backup</code> 只展示计划，不创建备份目录、不改变
+          workbook；输入或 selector preflight 失败也不会创建备份。
+        </li>
+        <li>
+          验证范围：补充 CLI integration tests 覆盖 backup、dry-run、invalid input
+          和 <code>--output --backup</code> 拒绝路径；issue #22 red E2E 已改为默认绿测。
+        </li>
+      </ul>
+    </section>
+
+    <section class="entry">
       <h2>Current Risks</h2>
       <ul>
         <li>
-          当前文档同步测试偏向 help/schema/stale-surface 检查，不能发现
-          <code>diff</code> noop、<code>validate</code> shallow success、
-          <code>patch --apply</code> 拒绝等行为级缺口；新 slice 需要先补红灯测试。
-          Slice #17 已将这些缺口记录为独立 ignored E2E 目标
-          <code>e2e_red_contract_gaps</code>，默认质量门保持绿色，后续 #18-#22
-          应逐个移除对应 <code>#[ignore]</code> 并实现到绿灯。
+          Slice #17 建立的 <code>e2e_red_contract_gaps</code> 已逐项转绿：
+          #18 <code>add-tree --apply</code>、#19 <code>patch --apply</code>、
+          #20 <code>diff --json</code>、#21 <code>validate --strict</code> 和
+          #22 <code>import --into --backup</code> 均已进入默认测试路径。
         </li>
         <li>
           <code>bash e2e</code> 文档示例通过系统 <code>bash</code> 执行，并在临时
@@ -166,9 +173,9 @@
           runner 需要提供 bash；当前 GitHub Ubuntu runner 满足该要求。
         </li>
         <li>
-          <code>add-tree --apply</code> 和 <code>patch --apply</code> 很容易各自复制
-          写入逻辑。后续实现应复用 tree input、patch working copy、transactional
-          writer 和 backup 路径，避免 dry-run 与 apply 规划分叉。
+          <code>add-tree --apply</code> 与 <code>patch --apply</code> 都复用了 dry-run
+          规划思路和候选 workbook 校验替换路径；后续新增写入命令仍应继续收敛到共享
+          writer，避免 apply/dry-run 行为分叉。
         </li>
         <li>
           <code>validate</code> 的范围需要谨慎收敛：先实现文档列出的结构完整性
@@ -212,13 +219,70 @@
       <h2>Open Questions</h2>
       <ul>
         <li>
-          <code>import --into</code> 的 backup 语义应补实现还是收窄文档？当前更符合
-          全局 mutation 规则的方向是给 <code>import --into</code> 增加
-          <code>--backup</code>，同时保持 <code>import --output</code> 无 backup。
+          当前没有需要用户立即确认的新问题；branch protection 和真实 XMind fixture
+          仍分别由 #3 与 #11 保持 human-gated。
+        </li>
+      </ul>
+    </section>
+
+    <section class="entry">
+      <h2>Slice #20: Diff Contract</h2>
+      <ul>
+        <li>
+          Source Manifest: GitHub issue <code>#20</code>, Parent PRD
+          <code>#1</code>, <code>docs/prd/1/implementation-notes.html</code>,
+          <code>docs/notes/prd-1-issue-17-red-contract-e2e.md</code>,
+          <code>tests/e2e/red_contract_gaps_test.rs</code>,
+          <code>tests/e2e/pr_subset_test.rs</code>,
+          <code>docs/reference/commands/diff.md</code>,
+          <code>src/app/mod.rs</code>, <code>src/render/diff.rs</code>,
+          <code>~/.agents/docs/agents/workflows.md</code>, and
+          <code>~/.agents/docs/agents/handoff-policy.md</code>.
         </li>
         <li>
-          <code>diff</code> 的最终用户输入形态仍需在实现前确认：当前文档只有单 workbook
-          参数，后续应明确是 self-diff、workbook-vs-workbook，还是 patch preview 辅助命令。
+          决策：<code>xmind diff &lt;workbook&gt;</code> 的当前公开输入形态收敛为单
+          workbook surface；它读取并校验 workbook、尊重全局 sheet selector，并输出
+          documented <code>summary</code> + <code>changes</code> envelope。它不在本 slice
+          中新增 workbook-vs-workbook compare 或 patch preview 语义。
+        </li>
+        <li>
+          偏差/权衡：单 workbook 无外部比较基线，因此当前成功结果是
+          <code>summary</code> 全 0 且 <code>changes: []</code>；planned-operation review
+          继续使用 <code>patch --dry-run --json</code>。
+        </li>
+        <li>
+          风险：如果后续需要真正的 workbook-vs-workbook diff，应作为新输入模式和新
+          E2E 用例扩展，不能复用当前单 workbook 语义偷偷改变输出含义。
+        </li>
+      </ul>
+    </section>
+
+    <section class="entry">
+      <h2>Slice #21: Validate Structural Diagnostics</h2>
+      <ul>
+        <li>
+          Source Manifest: GitHub issue <code>#21</code>, parent PRD <code>#1</code>,
+          <code>docs/prd/1/implementation-notes.html</code>,
+          <code>docs/reference/commands/validate.md</code>,
+          <code>docs/technical/e2e-test-plan.md</code>,
+          <code>tests/e2e/red_contract_gaps_test.rs</code>,
+          <code>tests/e2e/pr_subset_test.rs</code>,
+          <code>src/app/validate.rs</code>, and <code>src/app/mod.rs</code>.
+        </li>
+        <li>
+          决策：<code>validate</code> 使用 raw package/raw JSON 结构检查报告
+          <code>validation_failed</code>，覆盖缺失 <code>content.json</code>、缺失
+          root topic、重复 topic id、broken relationships，以及缺失 image resource
+          warning；invalid zip/JSON 和 unsupported legacy variant 保持既有错误码。
+        </li>
+        <li>
+          配套修复：tree input 自动生成 topic id 时现在会为重复标题或空标题添加唯一
+          后缀，避免 <code>import --output</code> 生成会被新 validate 规则拒绝的 workbook。
+        </li>
+        <li>
+          风险：relationship 诊断按当前 fixture 与常见 <code>end1Id</code> /
+          <code>end2Id</code> 结构实现，未尝试覆盖 XMind App 可能存在的所有私有
+          relationship 形态。
         </li>
       </ul>
     </section>
@@ -262,11 +326,11 @@
           <code>README.md</code>, <code>docs/installation.md</code>,
           <code>docs/technical/release-policy.md</code>, <code>.github/workflows/release.yml</code>,
           <code>Cargo.toml</code>, <code>scripts/install.sh</code>, and
-          <code>tests/cli/install_script_test.rs</code>.
+          <code>tests/cli/install_script_test.rs</code>, and parent review fix on 2026-05-23.
         </li>
         <li>
-          决策：安装脚本不猜测 artifact；只接受支持矩阵映射出的精确文件名，并要求
-          <code>SHA256SUMS</code> 中有对应条目后才解压安装。
+          决策：release workflow 生成并上传聚合 <code>SHA256SUMS</code>，脚本只接受
+          支持矩阵映射出的精确 artifact 文件名，并要求 checksum 中有对应条目后才解压安装。
         </li>
         <li>
           风险：artifact 命名仍需在首次真实 cargo-dist release 前复核；若实际文件名与
@@ -275,5 +339,62 @@
       </ul>
     </section>
 
+    <section class="entry">
+      <h2>Slice #19: Patch Apply Transactional Writer</h2>
+      <ul>
+        <li>
+          Source Manifest: GitHub issue <code>#19</code>, parent PRD
+          <code>#1</code>, <code>docs/prd/1/implementation-notes.html</code>,
+          <code>docs/notes/prd-1-issue-17-red-contract-e2e.md</code>,
+          <code>tests/e2e/red_contract_gaps_test.rs</code>,
+          <code>tests/cli/patch_test.rs</code>,
+          <code>src/app/patch.rs</code>, and
+          <code>src/infra/xmind/encode.rs</code>.
+        </li>
+        <li>
+          决策：<code>patch --apply</code> 不逐操作写文件；它先在内存 working sheet
+          上执行完整 patch 规划，只有全部成功后才创建可选 backup 并写入候选 workbook。
+          因此后续操作错误会保留原 workbook，不留下部分变更。
+        </li>
+        <li>
+          决策：写回 helper 使用现有 preservation bag 重新写入 unknown JSON fields
+          和 unknown package entries，并在替换原文件前读取校验 candidate workbook。
+        </li>
+        <li>
+          偏差：未新增独立 <code>--validate-after</code> surface；当前契约通过
+          candidate validation 满足 validate-before-replace 安全门。
+        </li>
+      </ul>
+    </section>
+
+    <section class="entry">
+      <h2>Slice #18: add-tree Apply Writer</h2>
+      <ul>
+        <li>
+          Source Manifest: GitHub issue <code>#18</code>, parent PRD
+          <code>#1</code>, <code>docs/prd/1/implementation-notes.html</code>,
+          <code>docs/notes/prd-1-issue-17-red-contract-e2e.md</code>,
+          <code>tests/e2e/red_contract_gaps_test.rs</code>,
+          <code>docs/reference/commands/add-tree.md</code>,
+          <code>docs/reference/mutation-semantics.md</code>, and
+          <code>AGENTS.md</code>.
+        </li>
+        <li>
+          决策：<code>add-tree --apply</code> 与 dry-run 共用解析、parent 解析、
+          tree input 校验和 diff/summary 规划；preflight 全部通过后才转换为 domain
+          topic 并写入。
+        </li>
+        <li>
+          偏差/边界：本 slice 未新增 position 参数；apply 按当前 add-tree 行为将 subtree
+          追加到 parent children 末尾。真实 XMind App golden fixture 验证仍不在本 slice
+          范围内。
+        </li>
+        <li>
+          验证：issue #18 的 red E2E 已进入默认
+          <code>e2e_red_contract_gaps</code> 目标；新增 CLI 测试覆盖 backup 字节和未知
+          package entry 保留。
+        </li>
+      </ul>
+    </section>
   </body>
 </html>

@@ -2,7 +2,9 @@ mod patch;
 mod set;
 mod set_image;
 mod tree_input;
+mod validate;
 
+use std::collections::BTreeSet;
 use std::fs;
 use std::io;
 use std::path::{Path, PathBuf};
@@ -39,6 +41,7 @@ use self::set_image::render_set_image;
 use self::tree_input::{
     read_tree_input, validate_topic_tree_input, TopicTreeImageInputDto, TopicTreeInputDto,
 };
+use self::validate::{validate_workbook_package, ValidateReadError, ValidateResultDto};
 
 pub fn run(cli: Cli) -> i32 {
     let Cli {
@@ -136,9 +139,10 @@ pub fn run(cli: Cli) -> i32 {
             ref input,
             markdown_mode,
             overwrite,
+            backup,
         } => {
             let input = input.clone();
-            render_import_output(invocation, json, &input, markdown_mode, overwrite)
+            render_import_output(invocation, json, &input, markdown_mode, overwrite, backup)
         }
         Action::ImportInto {
             ref input,
@@ -158,6 +162,7 @@ pub fn run(cli: Cli) -> i32 {
             let ops = ops.clone();
             render_patch(invocation, json, &ops)
         }
+        Action::Diff => render_diff(invocation, json),
         Action::Add {
             ref parent,
             ref title,
@@ -392,6 +397,7 @@ enum Action {
     Patch {
         ops: std::path::PathBuf,
     },
+    Diff,
     Add {
         parent: String,
         title: String,
@@ -483,6 +489,7 @@ enum Action {
         input: PathBuf,
         markdown_mode: Option<MarkdownMode>,
         overwrite: bool,
+        backup: bool,
     },
     ImportInto {
         input: PathBuf,
@@ -600,7 +607,9 @@ impl Invocation {
                 sheet_selection,
                 quiet,
             )),
-            Command::Diff(command) => Some(Self::read("diff", command.workbook, sheet_selection)),
+            Command::Diff(command) => Some(
+                Self::read("diff", command.workbook, sheet_selection).with_action(Action::Diff),
+            ),
             Command::Validate(command) => Some(Self::validate(
                 command.workbook,
                 command.strict,
@@ -809,13 +818,14 @@ impl Invocation {
                         input: command.input,
                         markdown_mode: command.markdown_mode,
                         overwrite: command.overwrite,
+                        backup: command.backup,
                     })
                 } else {
                     Self::mutation(
                         "import",
                         command.into.expect("clap requires one import target"),
                         command.mode.dry_run,
-                        false,
+                        command.backup,
                         sheet_selection,
                         quiet,
                     )
@@ -1508,7 +1518,18 @@ fn render_import_output(
     input: &Path,
     markdown_mode: Option<MarkdownMode>,
     overwrite: bool,
+    backup: bool,
 ) -> i32 {
+    if backup {
+        let error = CliErrorBody::new(
+            ErrorCode::InvalidUsage,
+            "import --backup is only supported with --into.",
+            true,
+            "Use --backup when importing into an existing workbook, or omit it for --output.",
+        );
+        return render_error(invocation, json, error);
+    }
+
     if !invocation.dry_run && invocation.workbook.exists() && !overwrite {
         let error = CliErrorBody::new(
             ErrorCode::WriteFailed,
@@ -1740,9 +1761,15 @@ fn render_import_into(
                 path,
             })
             .collect(),
+        backup_path: None,
     };
+    let mut result = result;
 
     if !invocation.dry_run {
+        result.backup_path = match create_mutation_backup(&invocation) {
+            Ok(backup_path) => backup_path,
+            Err(error) => return render_backup_error(invocation, json, error),
+        };
         let topic = topic_tree_input_to_topic(tree);
         if let Err(error) = crate::infra::xmind::encode::append_topic_tree(
             &invocation.workbook,
@@ -1809,8 +1836,25 @@ fn collect_created_workbook_paths(tree: &TopicTreeInputDto, path: &TopicPath) ->
 }
 
 fn topic_tree_input_to_topic(tree: TopicTreeInputDto) -> Topic {
+    let mut used_ids = BTreeSet::new();
+    collect_explicit_topic_tree_ids(&tree, &mut used_ids);
+    topic_tree_input_to_topic_with_ids(tree, &mut used_ids)
+}
+
+fn topic_tree_input_to_topic_with_ids(
+    tree: TopicTreeInputDto,
+    used_ids: &mut BTreeSet<String>,
+) -> Topic {
+    let id = match tree.id {
+        Some(id) => {
+            used_ids.insert(id.clone());
+            id
+        }
+        None => unique_generated_topic_id(&tree.title, used_ids),
+    };
+
     Topic {
-        id: TopicId(tree.id.unwrap_or_else(|| generated_topic_id(&tree.title))),
+        id: TopicId(id),
         title: tree.title,
         note: tree.note,
         labels: tree.labels,
@@ -1820,9 +1864,34 @@ fn topic_tree_input_to_topic(tree: TopicTreeInputDto) -> Topic {
         children: tree
             .children
             .into_iter()
-            .map(topic_tree_input_to_topic)
+            .map(|child| topic_tree_input_to_topic_with_ids(child, used_ids))
             .collect(),
     }
+}
+
+fn collect_explicit_topic_tree_ids(tree: &TopicTreeInputDto, ids: &mut BTreeSet<String>) {
+    if let Some(id) = &tree.id {
+        ids.insert(id.clone());
+    }
+    for child in &tree.children {
+        collect_explicit_topic_tree_ids(child, ids);
+    }
+}
+
+fn unique_generated_topic_id(title: &str, used_ids: &mut BTreeSet<String>) -> String {
+    let base = generated_topic_id(title);
+    if used_ids.insert(base.clone()) {
+        return base;
+    }
+
+    for suffix in 2.. {
+        let candidate = format!("{base}-{suffix}");
+        if used_ids.insert(candidate.clone()) {
+            return candidate;
+        }
+    }
+
+    unreachable!("unbounded suffix search should always find a unique generated topic id")
 }
 
 fn topic_tree_image_input_to_ref(image: TopicTreeImageInputDto) -> Option<TopicImageRef> {
@@ -1984,16 +2053,23 @@ fn render_find(invocation: Invocation, json: bool, options: FindRenderOptions) -
 }
 
 fn render_validate(invocation: Invocation, json: bool, strict: bool) -> i32 {
-    if let Err(exit_code) = read_workbook_or_render_error(&invocation, json) {
-        return exit_code;
-    }
-    let _strict = strict;
-
-    let result = ValidateResultDto {
-        valid: true,
-        warnings: Vec::new(),
-        errors: Vec::new(),
+    let result = match validate_workbook_package(&invocation.workbook, strict) {
+        Ok(result) => result,
+        Err(error) => {
+            return render_validate_read_error(invocation, json, error);
+        }
     };
+
+    if !result.valid {
+        let error = CliErrorBody::new(
+            ErrorCode::ValidationFailed,
+            "Workbook failed structural validation.",
+            false,
+            "Inspect result.errors and result.warnings, fix the workbook structure, then retry.",
+        )
+        .with_path(invocation.workbook.display().to_string());
+        return render_validate_failure(invocation, json, result, error);
+    }
 
     if json {
         let envelope = CommandEnvelope {
@@ -2012,6 +2088,90 @@ fn render_validate(invocation: Invocation, json: bool, strict: bool) -> i32 {
     }
 
     0
+}
+
+fn render_diff(invocation: Invocation, json: bool) -> i32 {
+    let workbook = match read_workbook_or_render_error(&invocation, json) {
+        Ok(workbook) => workbook,
+        Err(exit_code) => return exit_code,
+    };
+
+    if let Err(exit_code) = select_sheet_or_render_error(&workbook, &invocation, json) {
+        return exit_code;
+    }
+
+    let diff = Diff::new();
+    let result = crate::render::diff::render_json_diff(&diff);
+
+    if json {
+        let envelope = CommandEnvelope {
+            ok: true,
+            command: Some(invocation.command),
+            workbook: Some(invocation.workbook.display().to_string()),
+            dry_run: false,
+            applied: false,
+            result: Some(result),
+            error: None,
+            warnings: Vec::new(),
+        };
+        crate::cli::render_json_envelope(&envelope);
+    } else if !invocation.quiet {
+        if diff.is_empty() {
+            println!("{}: no changes", invocation.workbook.display());
+        } else {
+            println!("{}", render_human_outline(&diff));
+        }
+    }
+
+    0
+}
+
+fn render_validate_read_error(invocation: Invocation, json: bool, error: ValidateReadError) -> i32 {
+    let path = invocation.workbook.display().to_string();
+    let error = match error {
+        ValidateReadError::UnsupportedFormat => CliErrorBody::new(
+            ErrorCode::UnsupportedFormat,
+            "Workbook uses an unsupported XMind format variant.",
+            false,
+            "Open and re-save the file with a supported XMind version, or use export/import.",
+        )
+        .with_path(path),
+        other => CliErrorBody::new(
+            ErrorCode::ParseFailed,
+            format!("Workbook could not be parsed: {other}"),
+            false,
+            "Open and re-save the workbook with a supported XMind version, then retry.",
+        )
+        .with_path(path),
+    };
+    render_error(invocation, json, error)
+}
+
+fn render_validate_failure(
+    invocation: Invocation,
+    json: bool,
+    result: ValidateResultDto,
+    error: CliErrorBody,
+) -> i32 {
+    let exit_code = error.exit_code;
+
+    if json {
+        let envelope = CommandEnvelope {
+            ok: false,
+            command: Some(invocation.command),
+            workbook: Some(invocation.workbook.display().to_string()),
+            dry_run: false,
+            applied: false,
+            result: Some(result),
+            error: Some(error),
+            warnings: Vec::new(),
+        };
+        crate::cli::render_json_envelope(&envelope);
+    } else {
+        crate::cli::render_human_error(Some(&invocation.command), &error, invocation.no_color);
+    }
+
+    exit_code
 }
 
 fn render_backup(
@@ -2519,16 +2679,6 @@ fn render_add_tree(
     from_markdown: Option<&Path>,
     markdown_mode: Option<MarkdownMode>,
 ) -> i32 {
-    if !invocation.dry_run {
-        let error = CliErrorBody::new(
-            ErrorCode::InvalidUsage,
-            "Only add-tree --dry-run is implemented for YAML tree input.",
-            true,
-            "Retry with --dry-run until the add-tree writer slice is implemented.",
-        );
-        return render_error(invocation, json, error);
-    }
-
     let workbook = match read_workbook_or_render_error(&invocation, json) {
         Ok(workbook) => workbook,
         Err(exit_code) => return exit_code,
@@ -2632,7 +2782,7 @@ fn render_add_tree(
         .first()
         .expect("tree input creates at least the root topic")
         .clone();
-    let result = AddTreeDryRunResultDto {
+    let mut result = AddTreeDryRunResultDto {
         will_change: !added_paths.is_empty(),
         parent: TopicRefDto {
             id: parent.topic.id.0.clone(),
@@ -2661,22 +2811,46 @@ fn render_add_tree(
                 path,
             })
             .collect(),
+        backup_path: None,
     };
+    let summary_added = result.summary.added;
+
+    if !invocation.dry_run {
+        let parent_id = parent.topic.id.0.clone();
+        let topic = topic_tree_input_to_topic(tree);
+        result.backup_path = match create_mutation_backup(&invocation) {
+            Ok(backup_path) => backup_path,
+            Err(error) => return render_backup_error(invocation, json, error),
+        };
+        if let Err(error) = crate::infra::xmind::encode::append_topic_tree(
+            &invocation.workbook,
+            &parent_id,
+            &topic,
+            InsertPosition::Last,
+        ) {
+            return render_workbook_write_error(invocation, json, error);
+        }
+    }
 
     if json {
         let envelope = CommandEnvelope {
             ok: true,
             command: Some(invocation.command),
             workbook: Some(invocation.workbook.display().to_string()),
-            dry_run: true,
-            applied: false,
+            dry_run: invocation.dry_run,
+            applied: !invocation.dry_run,
             result: Some(result),
             error: None,
             warnings: Vec::new(),
         };
         crate::cli::render_json_envelope(&envelope);
     } else if !invocation.quiet {
-        println!("planned {} added topics", result.summary.added);
+        let verb = if invocation.dry_run {
+            "planned"
+        } else {
+            "applied"
+        };
+        println!("{verb} {summary_added} added topics");
     }
 
     0
@@ -3445,13 +3619,6 @@ fn render_copy(
 }
 
 #[derive(Debug, Serialize)]
-struct ValidateResultDto {
-    valid: bool,
-    warnings: Vec<String>,
-    errors: Vec<String>,
-}
-
-#[derive(Debug, Serialize)]
 struct BackupResultDto {
     backup_path: String,
 }
@@ -3631,6 +3798,8 @@ struct AddTreeDryRunResultDto {
     created_root: AddTreeCreatedTopicDto,
     summary: SummaryDto,
     diff: Vec<DiffEventDto>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    backup_path: Option<String>,
 }
 
 #[derive(Debug, Serialize)]
