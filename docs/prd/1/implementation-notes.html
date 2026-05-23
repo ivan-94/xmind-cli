@@ -283,5 +283,48 @@
         </li>
       </ul>
     </section>
+
+    <section class="entry">
+      <h2>Slice #13: Read Command E2E Coverage</h2>
+      <ul>
+        <li>
+          决策：issue <code>#13</code> 的用户视角 read/validate 覆盖落在
+          <code>tests/e2e/pr_subset_test.rs</code>，复用 issue <code>#12</code>
+          建立的 Rust E2E harness。覆盖范围包括 <code>inspect</code>,
+          <code>sheets</code>, <code>tree</code>, <code>get</code>,
+          <code>find</code> 和 <code>validate</code> 的 JSON 成功路径、关键 human
+          输出、代表性错误、字段裁剪、sheet/topic 选择、assets、分页和 invalid
+          usage。
+        </li>
+        <li>
+          决策：本 slice 只补 E2E 覆盖与测试支持，不改变 CLI 行为。新增的
+          <code>run_human_error</code> 与 unsupported workbook fixture writer 仅用于从
+          用户接口验证现有错误输出和 unsupported format 分支。
+        </li>
+        <li>
+          偏差：<code>validate</code> 的 warnings、<code>--strict</code> warning failure
+          和 structural validation failure 仍依赖后续 issue <code>#21</code> 的真实
+          validation 实现。本 slice 在 E2E 中保留 <code>#[ignore]</code> pending tests
+          作为覆盖占位，而不是提前制造 warning fixture 或修改 validate 行为。
+        </li>
+        <li>
+          验证：2026-05-23 运行
+          <code>PATH=/opt/homebrew/opt/rustup/bin:$PATH cargo test --test e2e_pr_subset read_e2e_</code>
+          通过，结果为 7 passed、2 ignored；随后运行
+          <code>PATH=/opt/homebrew/opt/rustup/bin:$PATH cargo test --test e2e_pr_subset</code>
+          通过，结果为 12 passed、2 ignored；最后运行
+          <code>PATH=/opt/homebrew/opt/rustup/bin:$PATH cargo test --workspace --all-features</code>
+          通过；<code>PATH=/opt/homebrew/opt/rustup/bin:$PATH ./scripts/quality-gate.sh</code>
+          通过。
+        </li>
+        <li>
+          Source Manifest evidence：本 slice 读取了 GitHub issue <code>#13</code>、
+          Parent PRD <code>#1</code>、本文件、<code>docs/technical/e2e-test-plan.md</code>、
+          <code>tests/fixtures/xmind/manifest.md</code>、read command docs
+          <code>docs/reference/commands/{inspect,sheets,tree,get,find,validate}.md</code>、
+          <code>tests/e2e/{support.rs,pr_subset_test.rs}</code> 与相关 CLI read tests。
+        </li>
+      </ul>
+    </section>
   </body>
 </html>
