@@ -256,6 +256,40 @@
     </section>
 
     <section class="entry">
+      <h2>Slice #6: Release Platform Matrix And Binary Smoke</h2>
+      <ul>
+        <li>
+          决策：首个 GitHub Release 二进制矩阵明确为
+          <code>aarch64-apple-darwin</code>（macOS Apple Silicon）、
+          <code>x86_64-apple-darwin</code>（macOS Intel）、
+          <code>x86_64-unknown-linux-gnu</code>（Linux x86_64 GNU）和
+          <code>x86_64-pc-windows-msvc</code>（Windows x86_64 MSVC）。
+        </li>
+        <li>
+          决策：release workflow 在每个 native runner 上执行
+          <code>dist build --target=${{ matrix.target }} --artifacts=local</code>
+          后，只运行薄冒烟检查：
+          <code>xmind --version</code>、
+          <code>xmind tree tests/fixtures/xmind/minimal.xmind --json</code> 和
+          <code>xmind validate tests/fixtures/xmind/minimal.xmind --json</code>。
+          完整命令矩阵仍归 Rust E2E PR/full matrix 测试，不在 release artifact
+          job 中重复。
+        </li>
+        <li>
+          偏差/风险：macOS runner 选择按 GitHub-hosted runner 当前能力使用
+          <code>macos-14</code> 覆盖 Apple Silicon、<code>macos-15-intel</code> 覆盖
+          Intel；若 GitHub 之后调整 runner 标签或弃用镜像，release workflow
+          需要同步更新。
+        </li>
+        <li>
+          非目标：本 slice 不实现 install script、Homebrew、crates.io、容器镜像、
+          Linux arm64、Linux musl/static、macOS universal binary、Windows GNU 或
+          32-bit Windows 支持；README/install/release policy 已避免暗示这些平台可下载。
+        </li>
+      </ul>
+    </section>
+
+    <section class="entry">
       <h2>Slice #12: Rust E2E Harness</h2>
       <ul>
         <li>

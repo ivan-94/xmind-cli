@@ -9,6 +9,7 @@ fn cargo_dist_release_contract_is_checked_in() {
         fs::read_to_string("docs/technical/release-policy.md").expect("release policy is readable");
     let installation =
         fs::read_to_string("docs/installation.md").expect("installation doc is readable");
+    let readme = fs::read_to_string("README.md").expect("README is readable");
     let changelog = fs::read_to_string("CHANGELOG.md").expect("changelog is readable");
 
     for expected in [
@@ -24,7 +25,10 @@ fn cargo_dist_release_contract_is_checked_in() {
         r#"create-release = true"#,
         r#"pr-run-mode = "plan""#,
         r#"dist = true"#,
-        r#"targets = ["x86_64-unknown-linux-gnu"]"#,
+        r#""aarch64-apple-darwin""#,
+        r#""x86_64-apple-darwin""#,
+        r#""x86_64-unknown-linux-gnu""#,
+        r#""x86_64-pc-windows-msvc""#,
     ] {
         assert!(
             cargo_toml.contains(expected),
@@ -44,7 +48,18 @@ fn cargo_dist_release_contract_is_checked_in() {
         "dist plan",
         "dist build",
         "cargo-dist@v0.31.0",
+        "aarch64-apple-darwin",
+        "x86_64-apple-darwin",
         "x86_64-unknown-linux-gnu",
+        "x86_64-pc-windows-msvc",
+        "macos-14",
+        "macos-15-intel",
+        "ubuntu-latest",
+        "windows-latest",
+        "Smoke release binary",
+        "${{ matrix.binary }} --version",
+        "${{ matrix.binary }} tree tests/fixtures/xmind/minimal.xmind --json",
+        "${{ matrix.binary }} validate tests/fixtures/xmind/minimal.xmind --json",
         "GitHub Release",
     ] {
         assert!(
@@ -64,7 +79,15 @@ fn cargo_dist_release_contract_is_checked_in() {
         "CHANGELOG.md",
         "SHA256",
         "per-artifact `.sha256` checksum files",
+        "Supported Release Platforms",
+        "macOS Apple Silicon",
+        "macOS Intel",
+        "Linux x86_64 GNU",
+        "Windows x86_64 MSVC",
+        "Unsupported Platforms",
+        "Full E2E matrix remains separate",
         "issue #5",
+        "issue #6",
     ] {
         assert!(
             release_policy.contains(expected),
@@ -74,12 +97,35 @@ fn cargo_dist_release_contract_is_checked_in() {
 
     for expected in [
         "cargo dist plan",
-        "cargo dist build --artifacts=local",
+        "cargo dist build --artifacts=local --target aarch64-apple-darwin",
+        "cargo dist build --artifacts=local --target x86_64-apple-darwin",
+        "cargo dist build --artifacts=local --target x86_64-unknown-linux-gnu",
+        "cargo dist build --artifacts=local --target x86_64-pc-windows-msvc",
+        "xmind tree tests/fixtures/xmind/minimal.xmind --json",
+        "xmind validate tests/fixtures/xmind/minimal.xmind --json",
         "per-artifact `.sha256` checksum files",
+        "Homebrew",
+        "install script",
     ] {
         assert!(
             installation.contains(expected),
             "installation doc should mention `{expected}`"
+        );
+    }
+
+    for expected in [
+        "macOS Apple Silicon",
+        "macOS Intel",
+        "Linux x86_64 GNU",
+        "Windows x86_64 MSVC",
+        "Linux arm64",
+        "Linux musl/static builds",
+        "macOS universal binaries",
+        "Windows GNU",
+    ] {
+        assert!(
+            readme.contains(expected),
+            "README should make release platform support explicit with `{expected}`"
         );
     }
 

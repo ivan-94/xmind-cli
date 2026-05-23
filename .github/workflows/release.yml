@@ -1,6 +1,7 @@
-# This workflow is managed as the cargo-dist contract for GitHub issue #5.
+# This workflow is managed as the cargo-dist contract for GitHub issues #5 and #6.
 # Source Manifest: https://github.com/ivan-94/xmind-cli/issues/5, parent PRD
-# https://github.com/ivan-94/xmind-cli/issues/1, PLAN.md Phase 18,
+# https://github.com/ivan-94/xmind-cli/issues/1,
+# https://github.com/ivan-94/xmind-cli/issues/6, PLAN.md Phase 18,
 # Cargo.toml [workspace.metadata.dist], docs/technical/release-policy.md,
 # docs/installation.md, CHANGELOG.md.
 name: Release
@@ -37,14 +38,25 @@ jobs:
         run: dist plan --output-format=json
 
   dist-build:
-    name: cargo-dist build x86_64-unknown-linux-gnu
+    name: cargo-dist build ${{ matrix.target }}
     needs: dist-plan
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
         include:
+          - target: aarch64-apple-darwin
+            os: macos-14
+            binary: ./target/aarch64-apple-darwin/release/xmind
+          - target: x86_64-apple-darwin
+            os: macos-15-intel
+            binary: ./target/x86_64-apple-darwin/release/xmind
           - target: x86_64-unknown-linux-gnu
+            os: ubuntu-latest
+            binary: ./target/x86_64-unknown-linux-gnu/release/xmind
+          - target: x86_64-pc-windows-msvc
+            os: windows-latest
+            binary: ./target/x86_64-pc-windows-msvc/release/xmind.exe
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -59,6 +71,12 @@ jobs:
 
       - name: Build release artifacts
         run: dist build --target=${{ matrix.target }} --artifacts=local
+
+      - name: Smoke release binary
+        run: |
+          ${{ matrix.binary }} --version
+          ${{ matrix.binary }} tree tests/fixtures/xmind/minimal.xmind --json
+          ${{ matrix.binary }} validate tests/fixtures/xmind/minimal.xmind --json
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
