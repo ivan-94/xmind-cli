@@ -90,7 +90,9 @@
         </li>
         <li>
           文档同步测试覆盖 help surface、schema docs、可运行示例、错误码和若干
-          stale CLI surface；它们不能替代逐命令行为验收。
+          stale CLI surface；其中可运行文档示例现在只执行明确标记为
+          <code>bash e2e</code> 的 fenced block，普通 <code>bash</code>
+          示例仍为说明性文本。它们不能替代逐命令行为验收。
         </li>
         <li>
           CI workflow、security job、release build smoke、completion、installation
@@ -154,6 +156,11 @@
           当前文档同步测试偏向 help/schema/stale-surface 检查，不能发现
           <code>diff</code> noop、<code>validate</code> shallow success、
           <code>patch --apply</code> 拒绝等行为级缺口；新 slice 需要先补红灯测试。
+        </li>
+        <li>
+          <code>bash e2e</code> 文档示例通过系统 <code>bash</code> 执行，并在临时
+          <code>PATH</code> 中暴露当前构建的 <code>xmind</code> binary。CI
+          runner 需要提供 bash；当前 GitHub Ubuntu runner 满足该要求。
         </li>
         <li>
           <code>add-tree --apply</code> 和 <code>patch --apply</code> 很容易各自复制

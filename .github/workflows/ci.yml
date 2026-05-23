@@ -35,6 +35,9 @@ jobs:
       - name: Run tests
         run: cargo test --workspace --all-features
 
+      - name: Run documentation examples
+        run: cargo test --test doc_examples_test --all-features documented_bash_e2e_examples_are_extracted_and_run
+
       - name: Build docs
         run: cargo doc --workspace --no-deps
 
