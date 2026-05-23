@@ -101,7 +101,6 @@ fn write_duplicate_topic_id_fixture(path: &Path) {
 }
 
 #[test]
-#[ignore = "red contract test for PRD #1 issue #17; enable while implementing issue #18"]
 fn add_tree_apply_mutates_copied_workbook() {
     let fixture = copy_fixture(MINIMAL_FIXTURE, "add-tree-apply.xmind");
     let workbook = fixture.path_arg();

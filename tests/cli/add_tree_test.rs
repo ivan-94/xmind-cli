@@ -1,6 +1,8 @@
 use assert_cmd::Command;
 use serde_json::Value;
 use std::fs;
+use std::io::{Read, Write};
+use zip::write::FileOptions;
 
 #[test]
 fn add_tree_yaml_input_dry_run_reports_tree_diff_without_writing() {
@@ -119,6 +121,206 @@ fn add_tree_json_input_dry_run_reports_tree_diff_without_writing() {
 }
 
 #[test]
+fn add_tree_human_output_distinguishes_dry_run_from_apply() {
+    let dry_run = Command::cargo_bin("xmind")
+        .expect("xmind binary is built for CLI tests")
+        .args([
+            "add-tree",
+            "tests/fixtures/xmind/minimal.xmind",
+            "--parent",
+            "path:/Q2",
+            "--input",
+            "docs/examples/simple-tree.yaml",
+            "--dry-run",
+        ])
+        .output()
+        .expect("add-tree dry-run command runs");
+
+    assert_eq!(dry_run.status.code(), Some(0));
+    let dry_run_stdout = String::from_utf8_lossy(&dry_run.stdout);
+    assert!(
+        dry_run_stdout.contains("planned 9 added topics"),
+        "dry-run human output should describe the planned change: {dry_run_stdout}"
+    );
+
+    let temp_dir = tempfile::tempdir().expect("temp dir is created");
+    let workbook = copy_minimal_workbook(temp_dir.path(), "human-apply.xmind");
+    let workbook_arg = workbook.to_string_lossy().into_owned();
+    let apply = Command::cargo_bin("xmind")
+        .expect("xmind binary is built for CLI tests")
+        .args([
+            "add-tree",
+            &workbook_arg,
+            "--parent",
+            "path:/Q2",
+            "--input",
+            "docs/examples/simple-tree.yaml",
+            "--apply",
+        ])
+        .output()
+        .expect("add-tree apply command runs");
+
+    assert_eq!(apply.status.code(), Some(0));
+    let apply_stdout = String::from_utf8_lossy(&apply.stdout);
+    assert!(
+        apply_stdout.contains("applied 9 added topics"),
+        "apply human output should describe the applied change: {apply_stdout}"
+    );
+    assert!(
+        !apply_stdout.contains("planned"),
+        "apply human output must not describe a committed write as planned: {apply_stdout}"
+    );
+}
+
+#[test]
+fn add_tree_yaml_input_apply_writes_backup_and_preserves_unknown_package_entries() {
+    let temp_dir = tempfile::tempdir().expect("temp dir is created");
+    let workbook = temp_dir.path().join("with-unknown-entry.xmind");
+    write_workbook_with_unknown_entry(&workbook);
+    let workbook_arg = workbook.to_string_lossy().into_owned();
+    let before_bytes = fs::read(&workbook).expect("workbook bytes are readable before apply");
+
+    let output = Command::cargo_bin("xmind")
+        .expect("xmind binary is built for CLI tests")
+        .args([
+            "add-tree",
+            &workbook_arg,
+            "--parent",
+            "path:/Q2",
+            "--input",
+            "docs/examples/simple-tree.yaml",
+            "--apply",
+            "--backup",
+            "--json",
+        ])
+        .output()
+        .expect("add-tree command runs");
+
+    assert_eq!(
+        output.status.code(),
+        Some(0),
+        "stdout:\n{}\nstderr:\n{}",
+        String::from_utf8_lossy(&output.stdout),
+        String::from_utf8_lossy(&output.stderr)
+    );
+    assert!(
+        output.stderr.is_empty(),
+        "json add-tree output should not emit stderr diagnostics: {}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+
+    let body: Value = serde_json::from_slice(&output.stdout).expect("stdout is JSON");
+    assert_eq!(body["ok"], true);
+    assert_eq!(body["command"], "add-tree");
+    assert_eq!(body["dry_run"], false);
+    assert_eq!(body["applied"], true);
+    assert_eq!(body["result"]["created_root"]["path"], "/Q2/支付能力");
+    assert_eq!(body["result"]["summary"]["added"], 9);
+
+    let backup_path = body["result"]["backup_path"]
+        .as_str()
+        .expect("backup path is reported when --backup is used");
+    assert_eq!(
+        fs::read(backup_path).expect("backup bytes are readable"),
+        before_bytes
+    );
+    assert_eq!(
+        read_zip_entry(&workbook, "vendor/unknown.json"),
+        br#"{"vendor":true}"#
+    );
+
+    let tree_output = Command::cargo_bin("xmind")
+        .expect("xmind binary is built for CLI tests")
+        .args(["tree", &workbook_arg, "--json", "--depth", "3"])
+        .output()
+        .expect("tree command runs after add-tree apply");
+    assert_eq!(tree_output.status.code(), Some(0));
+    let tree: Value = serde_json::from_slice(&tree_output.stdout).expect("tree stdout is JSON");
+    assert_eq!(
+        tree["result"]["root"]["children"][0]["children"][1]["title"],
+        "支付能力"
+    );
+}
+
+#[test]
+fn add_tree_json_input_apply_writes_subtree() {
+    let temp_dir = tempfile::tempdir().expect("temp dir is created");
+    let workbook = copy_minimal_workbook(temp_dir.path(), "json-apply.xmind");
+    let workbook_arg = workbook.to_string_lossy().into_owned();
+
+    let output = Command::cargo_bin("xmind")
+        .expect("xmind binary is built for CLI tests")
+        .args([
+            "add-tree",
+            &workbook_arg,
+            "--parent",
+            "path:/Q2",
+            "--input",
+            "docs/examples/simple-tree.json",
+            "--apply",
+            "--json",
+        ])
+        .output()
+        .expect("add-tree command runs");
+
+    assert_eq!(
+        output.status.code(),
+        Some(0),
+        "stdout:\n{}\nstderr:\n{}",
+        String::from_utf8_lossy(&output.stdout),
+        String::from_utf8_lossy(&output.stderr)
+    );
+    let body: Value = serde_json::from_slice(&output.stdout).expect("stdout is JSON");
+    assert_eq!(body["result"]["summary"]["added"], 8);
+    assert_tree_contains_title(&workbook_arg, "支付能力");
+}
+
+#[test]
+fn add_tree_markdown_input_apply_writes_subtree() {
+    let temp_dir = tempfile::tempdir().expect("temp dir is created");
+    let workbook = copy_minimal_workbook(temp_dir.path(), "markdown-apply.xmind");
+    let markdown = temp_dir.path().join("outline.md");
+    fs::write(
+        &markdown,
+        r#"# Payment Capability
+
+## Checkout
+
+## Refund
+"#,
+    )
+    .expect("markdown input is written");
+    let workbook_arg = workbook.to_string_lossy().into_owned();
+    let markdown_arg = markdown.to_string_lossy().into_owned();
+
+    let output = Command::cargo_bin("xmind")
+        .expect("xmind binary is built for CLI tests")
+        .args([
+            "add-tree",
+            &workbook_arg,
+            "--parent",
+            "path:/Q2",
+            "--from-markdown",
+            &markdown_arg,
+            "--apply",
+            "--json",
+        ])
+        .output()
+        .expect("add-tree command runs");
+
+    assert_eq!(
+        output.status.code(),
+        Some(0),
+        "stdout:\n{}\nstderr:\n{}",
+        String::from_utf8_lossy(&output.stdout),
+        String::from_utf8_lossy(&output.stderr)
+    );
+    let body: Value = serde_json::from_slice(&output.stdout).expect("stdout is JSON");
+    assert_eq!(body["result"]["summary"]["added"], 3);
+    assert_tree_contains_title(&workbook_arg, "Payment Capability");
+}
+
+#[test]
 fn add_tree_rejects_empty_nested_title() {
     let temp_dir = tempfile::tempdir().expect("temp dir is created");
     let input = temp_dir.path().join("invalid-tree.yaml");
@@ -160,6 +362,61 @@ children:
     assert_eq!(body["command"], "add-tree");
     assert_eq!(body["error"]["code"], "invalid_tree_input");
     assert_eq!(body["error"]["field_path"], "children[0].title");
+}
+
+fn copy_minimal_workbook(dir: &std::path::Path, file_name: &str) -> std::path::PathBuf {
+    let workbook = dir.join(file_name);
+    fs::copy("tests/fixtures/xmind/minimal.xmind", &workbook)
+        .expect("minimal workbook fixture is copied");
+    workbook
+}
+
+fn write_workbook_with_unknown_entry(path: &std::path::Path) {
+    let content_json = read_zip_entry(
+        std::path::Path::new("tests/fixtures/xmind/minimal.xmind"),
+        "content.json",
+    );
+    let file = fs::File::create(path).expect("workbook fixture is created");
+    let mut writer = zip::ZipWriter::new(file);
+    let options = FileOptions::default().compression_method(zip::CompressionMethod::Deflated);
+
+    writer
+        .start_file("content.json", options)
+        .expect("content.json entry starts");
+    writer
+        .write_all(&content_json)
+        .expect("content.json entry is written");
+    writer
+        .start_file("vendor/unknown.json", options)
+        .expect("unknown entry starts");
+    writer
+        .write_all(br#"{"vendor":true}"#)
+        .expect("unknown entry is written");
+    writer.finish().expect("workbook fixture is finalized");
+}
+
+fn read_zip_entry(path: &std::path::Path, entry_name: &str) -> Vec<u8> {
+    let file = fs::File::open(path).expect("zip file is opened");
+    let mut archive = zip::ZipArchive::new(file).expect("zip file is readable");
+    let mut entry = archive.by_name(entry_name).expect("zip entry exists");
+    let mut bytes = Vec::new();
+    entry.read_to_end(&mut bytes).expect("zip entry is read");
+    bytes
+}
+
+fn assert_tree_contains_title(workbook_arg: &str, expected_title: &str) {
+    let output = Command::cargo_bin("xmind")
+        .expect("xmind binary is built for CLI tests")
+        .args(["tree", workbook_arg, "--json", "--depth", "3"])
+        .output()
+        .expect("tree command runs after add-tree apply");
+    assert_eq!(output.status.code(), Some(0));
+    let tree: Value = serde_json::from_slice(&output.stdout).expect("tree stdout is JSON");
+    let titles = serde_json::to_string(&tree["result"]["root"]).expect("tree serializes");
+    assert!(
+        titles.contains(expected_title),
+        "tree output should contain {expected_title}: {titles}"
+    );
 }
 
 #[test]

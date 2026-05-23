@@ -2679,16 +2679,6 @@ fn render_add_tree(
     from_markdown: Option<&Path>,
     markdown_mode: Option<MarkdownMode>,
 ) -> i32 {
-    if !invocation.dry_run {
-        let error = CliErrorBody::new(
-            ErrorCode::InvalidUsage,
-            "Only add-tree --dry-run is implemented for YAML tree input.",
-            true,
-            "Retry with --dry-run until the add-tree writer slice is implemented.",
-        );
-        return render_error(invocation, json, error);
-    }
-
     let workbook = match read_workbook_or_render_error(&invocation, json) {
         Ok(workbook) => workbook,
         Err(exit_code) => return exit_code,
@@ -2792,7 +2782,7 @@ fn render_add_tree(
         .first()
         .expect("tree input creates at least the root topic")
         .clone();
-    let result = AddTreeDryRunResultDto {
+    let mut result = AddTreeDryRunResultDto {
         will_change: !added_paths.is_empty(),
         parent: TopicRefDto {
             id: parent.topic.id.0.clone(),
@@ -2823,21 +2813,44 @@ fn render_add_tree(
             .collect(),
         backup_path: None,
     };
+    let summary_added = result.summary.added;
+
+    if !invocation.dry_run {
+        let parent_id = parent.topic.id.0.clone();
+        let topic = topic_tree_input_to_topic(tree);
+        result.backup_path = match create_mutation_backup(&invocation) {
+            Ok(backup_path) => backup_path,
+            Err(error) => return render_backup_error(invocation, json, error),
+        };
+        if let Err(error) = crate::infra::xmind::encode::append_topic_tree(
+            &invocation.workbook,
+            &parent_id,
+            &topic,
+            InsertPosition::Last,
+        ) {
+            return render_workbook_write_error(invocation, json, error);
+        }
+    }
 
     if json {
         let envelope = CommandEnvelope {
             ok: true,
             command: Some(invocation.command),
             workbook: Some(invocation.workbook.display().to_string()),
-            dry_run: true,
-            applied: false,
+            dry_run: invocation.dry_run,
+            applied: !invocation.dry_run,
             result: Some(result),
             error: None,
             warnings: Vec::new(),
         };
         crate::cli::render_json_envelope(&envelope);
     } else if !invocation.quiet {
-        println!("planned {} added topics", result.summary.added);
+        let verb = if invocation.dry_run {
+            "planned"
+        } else {
+            "applied"
+        };
+        println!("{verb} {summary_added} added topics");
     }
 
     0

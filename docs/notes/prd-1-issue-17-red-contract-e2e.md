@@ -64,6 +64,14 @@
 
   Result on 2026-05-23: passed with 0 run and 6 ignored.
 
+- Issue #18 update:
+
+  ```bash
+  PATH=/opt/homebrew/opt/rustup/bin:$PATH cargo test --test e2e_red_contract_gaps --all-features -- --nocapture
+  ```
+
+  Result on 2026-05-23 after implementing issue #18: passed with 1 passed and 5 ignored. `add_tree_apply_mutates_copied_workbook` now runs by default; the remaining ignored tests still track issues #19 through #22.
+
 - Full quality gate:
 
   ```bash

@@ -481,12 +481,12 @@ fn root_readme_publishes_repository_baseline_without_overclaiming_release_channe
     }
 
     assert!(
-        !readme.contains("xmind add-tree roadmap.xmind \\\n  --parent \"path:/Q2\" \\\n  --input docs/examples/simple-tree.yaml \\\n  --apply"),
-        "root README should not present unresolved `add-tree --apply` behavior as a current workflow"
+        readme.contains("xmind add-tree roadmap.xmind \\\n  --parent \"path:/Q2\" \\\n  --input docs/examples/simple-tree.yaml \\\n  --apply \\\n  --backup \\\n  --json"),
+        "root README should present implemented `add-tree --apply --backup` safe edit workflow"
     );
     assert!(
-        readme.contains("`add-tree --apply` is planned as part of PRD #1 issue #18"),
-        "root README should mark unresolved `add-tree --apply` behavior as planned follow-up"
+        !readme.contains("`add-tree --apply` is planned as part of PRD #1 issue #18"),
+        "root README should not describe implemented `add-tree --apply` as a planned follow-up"
     );
 }
 
