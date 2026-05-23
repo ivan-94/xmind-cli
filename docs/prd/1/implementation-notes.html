@@ -204,6 +204,19 @@
           上传前生成聚合 <code>SHA256SUMS</code>；<code>tests/cli/release_workflow_test.rs</code>
           验证生成步骤先于发布步骤，避免脚本依赖不存在的 checksum source。
         </li>
+        <li>
+          Cross-review 修复：<code>Cargo.toml</code> 现在显式配置
+          <code>unix-archive = ".tar.gz"</code>，避免 cargo-dist 默认 Unix
+          archive 格式与 <code>scripts/install.sh</code>、安装文档和测试约定分叉。
+        </li>
+        <li>
+          Cross-review 修复：GitHub Release 发布前调用
+          <code>.github/scripts/extract-release-notes.sh</code>，只把当前 tag
+          对应的 <code>CHANGELOG.md</code> 版本小节写入
+          <code>target/release-notes.md</code>；若缺少匹配
+          <code>## vX.Y.Z - YYYY-MM-DD</code> 小节则失败，避免发布
+          <code>Unreleased</code> 或完整 changelog。
+        </li>
       </ul>
     </section>
 

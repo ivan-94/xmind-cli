@@ -24,6 +24,7 @@ installers = []
 checksum = "sha256"
 create-release = true
 pr-run-mode = "plan"
+unix-archive = ".tar.gz"
 targets = [
   "aarch64-apple-darwin",
   "x86_64-apple-darwin",

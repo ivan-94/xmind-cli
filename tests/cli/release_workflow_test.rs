@@ -1,4 +1,6 @@
 use std::fs;
+#[cfg(unix)]
+use std::process::Command;
 
 #[test]
 fn cargo_dist_release_contract_is_checked_in() {
@@ -24,6 +26,7 @@ fn cargo_dist_release_contract_is_checked_in() {
         r#"checksum = "sha256""#,
         r#"create-release = true"#,
         r#"pr-run-mode = "plan""#,
+        r#"unix-archive = ".tar.gz""#,
         r#"dist = true"#,
         r#""aarch64-apple-darwin""#,
         r#""x86_64-apple-darwin""#,
@@ -64,6 +67,10 @@ fn cargo_dist_release_contract_is_checked_in() {
         "find . -maxdepth 1 -type f ! -name 'SHA256SUMS' ! -name '*.sha256' -exec basename",
         "shasum -a 256",
         "cat SHA256SUMS",
+        "Extract release notes",
+        "bash .github/scripts/extract-release-notes.sh",
+        "${{ github.ref_name }}",
+        "target/release-notes.md",
         "GitHub Release",
     ] {
         assert!(
@@ -85,6 +92,14 @@ fn cargo_dist_release_contract_is_checked_in() {
     assert!(
         release_workflow.contains("files: target/distrib/*"),
         "GitHub Release should upload SHA256SUMS with target/distrib artifacts"
+    );
+    assert!(
+        release_workflow.contains("body_path: target/release-notes.md"),
+        "GitHub Release should publish only the changelog section extracted for the release tag"
+    );
+    assert!(
+        !release_workflow.contains("body_path: CHANGELOG.md"),
+        "GitHub Release must not publish the whole changelog or Unreleased section"
     );
 
     assert!(
@@ -154,6 +169,98 @@ fn cargo_dist_release_contract_is_checked_in() {
     assert!(
         changelog.contains("cargo-dist release workflow"),
         "changelog should mention cargo-dist release workflow"
+    );
+}
+
+#[cfg(unix)]
+#[test]
+fn release_notes_extraction_uses_matching_version_section_only() {
+    let temp = tempfile::tempdir().expect("temp dir is created");
+    let changelog = temp.path().join("CHANGELOG.md");
+    let output = temp.path().join("release-notes.md");
+    fs::write(
+        &changelog,
+        r#"# Changelog
+
+## Unreleased
+
+### Added
+
+- Draft work that must not be published.
+
+## v0.1.0 - 2026-05-23
+
+### Added
+
+- First release.
+
+## v0.0.9 - 2026-05-22
+
+### Fixed
+
+- Older release.
+"#,
+    )
+    .expect("changelog is written");
+
+    let output_status = Command::new("bash")
+        .arg(".github/scripts/extract-release-notes.sh")
+        .arg("v0.1.0")
+        .arg(&changelog)
+        .arg(&output)
+        .output()
+        .expect("release note extraction starts");
+
+    assert!(
+        output_status.status.success(),
+        "release note extraction should succeed\nstdout:\n{}\nstderr:\n{}",
+        String::from_utf8_lossy(&output_status.stdout),
+        String::from_utf8_lossy(&output_status.stderr)
+    );
+
+    let body = fs::read_to_string(&output).expect("release notes are written");
+    assert!(body.contains("## v0.1.0 - 2026-05-23"));
+    assert!(body.contains("- First release."));
+    assert!(!body.contains("Draft work that must not be published."));
+    assert!(!body.contains("Older release."));
+}
+
+#[cfg(unix)]
+#[test]
+fn release_notes_extraction_fails_when_version_section_is_missing() {
+    let temp = tempfile::tempdir().expect("temp dir is created");
+    let changelog = temp.path().join("CHANGELOG.md");
+    let output = temp.path().join("release-notes.md");
+    fs::write(
+        &changelog,
+        r#"# Changelog
+
+## Unreleased
+
+### Added
+
+- Draft work.
+"#,
+    )
+    .expect("changelog is written");
+
+    let output_status = Command::new("bash")
+        .arg(".github/scripts/extract-release-notes.sh")
+        .arg("v0.1.0")
+        .arg(&changelog)
+        .arg(&output)
+        .output()
+        .expect("release note extraction starts");
+
+    assert!(
+        !output_status.status.success(),
+        "release note extraction should fail without a matching version section"
+    );
+    let stderr = String::from_utf8_lossy(&output_status.stderr);
+    assert!(stderr.contains("missing a release notes section for v0.1.0"));
+    assert!(
+        !output.exists(),
+        "missing release notes section must not leave a body file for publication"
     );
 }
 

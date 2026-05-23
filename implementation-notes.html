@@ -138,6 +138,36 @@
     </section>
 
     <section class="entry">
+      <h2>Cross-review Release Install Fix</h2>
+      <ul>
+        <li>
+          Source Manifest: cross-review release-install P1 and release-note P2 findings,
+          <code>Cargo.toml</code>, <code>.github/workflows/release.yml</code>,
+          <code>.github/scripts/extract-release-notes.sh</code>,
+          <code>CHANGELOG.md</code>, <code>scripts/install.sh</code>,
+          <code>docs/technical/release-policy.md</code>,
+          <code>tests/cli/release_workflow_test.rs</code>, and
+          <code>tests/cli/install_script_test.rs</code>.
+        </li>
+        <li>
+          决策：<code>[workspace.metadata.dist].unix-archive</code> 显式固定为
+          <code>.tar.gz</code>，让 cargo-dist 的 macOS/Linux artifact 格式与安装脚本、
+          安装文档和现有测试的 <code>xmind-cli-vX.Y.Z-&lt;target&gt;.tar.gz</code>
+          约定一致。
+        </li>
+        <li>
+          决策：GitHub Release body 不再直接使用完整 <code>CHANGELOG.md</code>；
+          workflow 先抽取当前 tag 对应的 <code>## vX.Y.Z - YYYY-MM-DD</code>
+          小节到 <code>target/release-notes.md</code>，找不到匹配小节则发布失败。
+        </li>
+        <li>
+          权衡：没有引入完整 release notes 生成系统；只新增一个可测试的 shell
+          helper 来守住当前发布契约，保持 release workflow 范围窄。
+        </li>
+      </ul>
+    </section>
+
+    <section class="entry">
       <h2>Slice #22: import --into Backup Safety</h2>
       <ul>
         <li>

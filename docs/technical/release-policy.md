@@ -111,7 +111,7 @@ For each GitHub Release:
 6. Add a short install section that links to `docs/installation.md`.
 7. Add checksum verification commands using `SHA256SUMS`.
 
-Release notes must not claim crates.io, Homebrew, install script, or platform support before those channels are implemented and validated. The cargo-dist GitHub Release body should start from the matching `CHANGELOG.md` section; the checked-in workflow points at `CHANGELOG.md` as the release notes source until a later slice narrows it to the exact tag section.
+Release notes must not claim crates.io, Homebrew, install script, or platform support before those channels are implemented and validated. The cargo-dist GitHub Release body is generated from the matching `CHANGELOG.md` version section for the pushed tag; release publication fails if that section is missing.
 
 ## Checksums
 
