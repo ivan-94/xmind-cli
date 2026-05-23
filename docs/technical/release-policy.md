@@ -202,9 +202,10 @@ The planned Homebrew tap repository is `ivan-94/homebrew-tap`. The repository
 name follows Homebrew tap convention while keeping ownership under the same
 GitHub account as `ivan-94/xmind-cli`.
 
-Homebrew is not an active install channel for the first release. Do not add
-`"homebrew"` installers, tap publish jobs, or README install commands until a
-formula can be verified against a real GitHub Release artifact.
+Homebrew is not an active install channel for the first release. On 2026-05-23
+the user explicitly chose to defer creating the tap/formula until the program is
+stable. Do not add `"homebrew"` installers, tap publish jobs, or README install
+commands until a formula can be verified against a real GitHub Release artifact.
 
 Enable the tap only when all of these conditions are true:
 
@@ -223,9 +224,9 @@ brew test
 ```
 
 The formula update path should set the version, URL, and checksum from the
-published release metadata in one change. If those inputs are unavailable,
-leave Homebrew documented as planned rather than publishing a placeholder
-formula.
+published release metadata in one change. If those inputs are unavailable, or if
+the program is not yet stable enough for a tagged release, leave Homebrew
+documented as planned rather than publishing a placeholder formula.
 
 ## First Release Non-Goals
 

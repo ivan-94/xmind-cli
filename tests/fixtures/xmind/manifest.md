@@ -9,39 +9,47 @@
 - Parent PRD #1: `https://github.com/ivan-94/xmind-cli/issues/1`
 - `docs/technical/e2e-test-plan.md`: fixture strategy, size targets, and manifest fields
 - `tests/fixtures/xmind/README.md`: current fixture inventory and structures
-- `tests/fixtures/xmind/*.xmind`: committed workbook fixtures inventoried below
+- `tests/fixtures/xmind/**/*.xmind`: committed workbook fixtures inventoried below
 - Local XMind availability checks on 2026-05-23:
   `/Applications/Xmind.app`, `plutil -p .../Info.plist`,
   `osascript -e 'id of app "Xmind"' -e 'version of app "Xmind"'`,
-  `sdef /Applications/Xmind.app`, and Computer Use save attempt.
+  `codesign --verify --deep --strict --verbose=2 /Applications/Xmind.app`,
+  `sdef /Applications/Xmind.app`, and the Computer Use save flow.
+- User instruction on 2026-05-23: use Computer Use to create the real XMind fixture directly.
 - `~/.agents/docs/agents/workflows.md` and `~/.agents/docs/agents/handoff-policy.md`: persistent artifact Source Manifest requirements
 
 ### Produced artifacts
 
 - `tests/fixtures/xmind/manifest.md`
 - `tests/fixtures/xmind/README.md`
+- `tests/fixtures/xmind/real-app/real-app-fixture.xmind`
 - `docs/technical/e2e-test-plan.md`
 - `implementation-notes.html`
 - `docs/prd/1/implementation-notes.html`
 - `tests/cli/doc_examples_test.rs`
+- `tests/e2e/pr_subset_test.rs`
+- `tests/e2e/support.rs`
 
 ### Key decisions
 
-- The current valid workbook fixtures are labeled `synthetic-generated` because they are generated from repository JSON fixture content, not saved by the XMind App.
-- `real-xmind-app` is reserved for fixtures saved by the XMind App and should be the default for future golden user-representative fixtures.
+- The repository now includes one `real-xmind-app` fixture saved by the XMind App through a verified Computer Use flow.
+- Existing deterministic workbook fixtures remain labeled `synthetic-generated` because they are generated from repository JSON fixture content, not saved by the XMind App.
 - Corrupt or impossible edge cases use `synthetic-corrupt` and must not be used as representative user workbooks.
-- No issue #11 fixture is labeled `real-xmind-app` in this slice because the available GUI automation path did not successfully save a file into the assigned worktree.
+- The real app fixture is privacy-safe repository-authored content: root title `Real App Fixture` with XMind default branch topics `分支主题 1` through `分支主题 5`.
+- Broader real-app categories such as duplicate sheet titles, embedded images, notes, labels, and path escaping remain future full-matrix expansion, not a blocker for this first PR-gate real fixture.
 
 ### Verification evidence
 
-- Every committed `.xmind` file under `tests/fixtures/xmind/` is listed in the inventory table.
-- Current binary fixture size total is 2,072 bytes; every fixture is below 1 MB and the total set is below 10 MB.
-- `cargo test --test doc_examples_test fixture_manifest_records_real_app_handoff_when_no_real_fixtures_exist` preserves the issue #11 handoff evidence below.
+- Every committed `.xmind` file under `tests/fixtures/xmind/` is listed in the inventory table, including nested real-app fixtures.
+- Current binary fixture size total is 131,535 bytes; every fixture is below 1 MB and the total set is below 10 MB.
+- `PATH=/opt/homebrew/opt/rustup/bin:$PATH cargo run --quiet -- tree tests/fixtures/xmind/real-app/real-app-fixture.xmind --json` decoded root title `Real App Fixture` and five branch topics.
+- `PATH=/opt/homebrew/opt/rustup/bin:$PATH cargo run --quiet -- validate tests/fixtures/xmind/real-app/real-app-fixture.xmind --json` returned `valid: true` with no warnings or errors.
+- `cargo test --test doc_examples_test fixture_manifest_records_real_app_fixture_and_followups` guards the real-app evidence and follow-up notes.
 
 ### Open questions / risks
 
-- Issue #11 should add real XMind App golden fixtures. Until then, these synthetic-generated valid workbooks are useful for deterministic CLI behavior tests but are not a substitute for app-saved compatibility coverage.
-- Remaining real fixture creation is human-gated: an operator must complete XMind's macOS Save panel and then review the resulting `.xmind` files before they are committed.
+- The first real-app fixture proves XMind App save/read compatibility for a simple wider workbook, but the full matrix still benefits from more app-saved variants after the CLI stabilizes.
+- Future real-app fixtures must still be reviewed for privacy, license safety, size, and mutation-copy behavior before commit.
 
 ## Governance Rules
 
@@ -61,20 +69,21 @@
 
 | Fixture path | Source | Creation method | Covered behavior | PR gate | Full matrix | Mutation-safe copy strategy | Privacy/license notes | Regeneration status |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| `tests/fixtures/xmind/minimal.xmind` | synthetic-generated | Generated from `tests/fixtures/xmind/minimal-content.json` as a minimal valid package. | Single-sheet read paths, baseline `inspect`, `sheets`, `tree`, `get`, `find`, `validate`, dry-run examples, and shallow mutation tests. | yes | yes | Read tests may use in place; write tests must copy to a temporary directory before mutation. | Repository-authored synthetic content; no user data or third-party licensed assets. | Regenerable from the adjacent JSON content; should be replaced or complemented by a `real-xmind-app` minimal golden fixture in issue #11. |
-| `tests/fixtures/xmind/duplicate-titles.xmind` | synthetic-generated | Generated from `tests/fixtures/xmind/duplicate-titles-content.json`. | Ambiguous topic title selectors, duplicate topic title resolution, move/copy/patch selector behavior. | yes | yes | Write tests must copy to a temporary directory before mutation. | Repository-authored synthetic content; no user data or third-party licensed assets. | Regenerable from the adjacent JSON content; future real fixture should preserve duplicate title semantics. |
-| `tests/fixtures/xmind/multiple-sheets.xmind` | synthetic-generated | Generated from `tests/fixtures/xmind/multiple-sheets-content.json`. | Multi-sheet inspection, sheet selection, sheet metadata, and command output that reports workbook sheet structure. | yes | yes | Write tests must copy to a temporary directory before mutation. | Repository-authored synthetic content; no user data or third-party licensed assets. | Regenerable from the adjacent JSON content; future real fixture should preserve two-sheet coverage. |
-| `tests/fixtures/xmind/duplicate-sheets.xmind` | synthetic-generated | Generated from `tests/fixtures/xmind/duplicate-sheets-content.json`. | Ambiguous sheet selector behavior and duplicate sheet title diagnostics. | yes | yes | Write tests must copy to a temporary directory before mutation. | Repository-authored synthetic content; no user data or third-party licensed assets. | Regenerable from the adjacent JSON content; future real fixture should preserve duplicate sheet titles. |
-| `tests/fixtures/xmind/metadata.xmind` | synthetic-generated | Generated from `tests/fixtures/xmind/metadata-content.json`. | Notes, labels, markers, hyperlinks, metadata reads, metadata search, and metadata mutation tests. | yes | yes | Write tests must copy to a temporary directory before mutation. | Repository-authored synthetic content; no user data or third-party licensed assets. | Regenerable from the adjacent JSON content; future real fixture should validate XMind App metadata serialization. |
-| `tests/fixtures/xmind/topic-image.xmind` | synthetic-generated | Generated from `tests/fixtures/xmind/topic-image-content.json` with a `resources/payment.png` package entry. | Topic image references, resource listing, asset export, and image metadata reads. | yes | yes | Write tests must copy to a temporary directory before mutation. | Repository-authored synthetic content and placeholder resource; no user data or third-party licensed assets. | Regenerable from the adjacent JSON content and resource entry; future real fixture should validate XMind App image packaging. |
+| `tests/fixtures/xmind/minimal.xmind` | synthetic-generated | Generated from `tests/fixtures/xmind/minimal-content.json` as a minimal valid package. | Single-sheet read paths, baseline `inspect`, `sheets`, `tree`, `get`, `find`, `validate`, dry-run examples, and shallow mutation tests. | yes | yes | Read tests may use in place; write tests must copy to a temporary directory before mutation. | Repository-authored synthetic content; no user data or third-party licensed assets. | Regenerable from the adjacent JSON content; complemented by the app-saved `real-app-fixture.xmind`. |
+| `tests/fixtures/xmind/duplicate-titles.xmind` | synthetic-generated | Generated from `tests/fixtures/xmind/duplicate-titles-content.json`. | Ambiguous topic title selectors, duplicate topic title resolution, move/copy/patch selector behavior. | yes | yes | Write tests must copy to a temporary directory before mutation. | Repository-authored synthetic content; no user data or third-party licensed assets. | Regenerable from the adjacent JSON content; future real fixture may preserve duplicate title semantics. |
+| `tests/fixtures/xmind/multiple-sheets.xmind` | synthetic-generated | Generated from `tests/fixtures/xmind/multiple-sheets-content.json`. | Multi-sheet inspection, sheet selection, sheet metadata, and command output that reports workbook sheet structure. | yes | yes | Write tests must copy to a temporary directory before mutation. | Repository-authored synthetic content; no user data or third-party licensed assets. | Regenerable from the adjacent JSON content; future real fixture may preserve two-sheet coverage. |
+| `tests/fixtures/xmind/duplicate-sheets.xmind` | synthetic-generated | Generated from `tests/fixtures/xmind/duplicate-sheets-content.json`. | Ambiguous sheet selector behavior and duplicate sheet title diagnostics. | yes | yes | Write tests must copy to a temporary directory before mutation. | Repository-authored synthetic content; no user data or third-party licensed assets. | Regenerable from the adjacent JSON content; future real fixture may preserve duplicate sheet titles. |
+| `tests/fixtures/xmind/metadata.xmind` | synthetic-generated | Generated from `tests/fixtures/xmind/metadata-content.json`. | Notes, labels, markers, hyperlinks, metadata reads, metadata search, and metadata mutation tests. | yes | yes | Write tests must copy to a temporary directory before mutation. | Repository-authored synthetic content; no user data or third-party licensed assets. | Regenerable from the adjacent JSON content; future real fixture may validate XMind App metadata serialization. |
+| `tests/fixtures/xmind/topic-image.xmind` | synthetic-generated | Generated from `tests/fixtures/xmind/topic-image-content.json` with a `resources/payment.png` package entry. | Topic image references, resource listing, asset export, and image metadata reads. | yes | yes | Write tests must copy to a temporary directory before mutation. | Repository-authored synthetic content and placeholder resource; no user data or third-party licensed assets. | Regenerable from the adjacent JSON content and resource entry; future real fixture may validate XMind App image packaging. |
 | `tests/fixtures/xmind/malformed.xmind` | synthetic-corrupt | Hand-written invalid bytes for parser error coverage. | Parse failure, malformed workbook error shape, and recovery messaging. | yes | yes | Never mutate in place; tests should read directly or copy only when asserting path-specific error handling. | Repository-authored invalid binary content; no user data or third-party licensed assets. | Intentionally not regenerated by normal fixture generation; edit only when parse-failure coverage changes. |
+| `tests/fixtures/xmind/real-app/real-app-fixture.xmind` | real-xmind-app | Created in `/Applications/Xmind.app` version `26.02.04171` by opening a new workbook, editing the root topic to `Real App Fixture`, adding one XMind default sibling branch with Return, and saving through the macOS Save panel via Computer Use. | Real XMind App package structure, app-generated `content.json` and `content.xml`, thumbnail entry, non-ASCII default branch titles, `tree`, `inspect`, and `validate` compatibility. | yes | yes | Read tests may use in place; mutating tests must copy to a temporary directory before mutation. | Repository-authored content only; no user data or third-party licensed assets. | Regenerate manually or through verified Computer Use in XMind App `26.02.04171` or later; verify with `xmind tree` and `xmind validate` before commit. |
 
-## Issue #11 Real XMind App Handoff
+## Issue #11 Real XMind App Fixture Evidence and Follow-ups
 
-This slice discovered a local XMind desktop app but did not add real-app
-fixtures. Do not label any fixture `real-xmind-app` unless it was actually saved
-by the real XMind app or a verified XMind app automation flow, then reviewed for
-privacy and size.
+Issue #11 now has a committed, repository-safe fixture saved by the real XMind
+App. Future additions should follow the same provenance rule: label a fixture
+`real-xmind-app` only when it was actually saved by the XMind App or a verified
+XMind App automation flow, then reviewed for privacy and size.
 
 ### XMind availability evidence
 
@@ -92,57 +101,47 @@ privacy and size.
   `sdef: couldn't get sdef for /Applications/Xmind.app (error -192)`, so no
   scriptable document-save API was available through AppleScript.
 
-### Automation attempt and blocker
+### Automation evidence
 
-- XMind was already running with user workbooks open, so this slice avoided
-  editing those documents.
-- A safe attempt copied `tests/fixtures/xmind/minimal.xmind` to
-  `.scratch/real-fixture-source/minimal-source.xmind` and opened that copy with
-  XMind. XMind refused `tests/fixtures/xmind/minimal.xmind` derived content with
-  the in-app error "unable to open file" / "file may be corrupted", which proves
-  the synthetic package cannot be converted into a real-app fixture by resaving.
-- A new workbook was created through XMind UI, renamed `RealAppMinimal`, and
-  XMind's `Command+Shift+S` flow reached the "current device" macOS Save panel.
-  The Computer Use path-selection attempt for
-  `tests/fixtures/xmind/real-app/` returned to the editor without creating a
-  file in the worktree. Because no saved file existed to verify, no
-  `real-xmind-app` fixture was committed.
+- XMind was already running with user workbooks open, so this flow created and
+  saved only the new `未命名 2` workbook and avoided saving user documents.
+- A new workbook was created through XMind UI, the root topic was edited to
+  `Real App Fixture`, one additional default branch was added, and the workbook
+  was saved through XMind's local-device Save panel to
+  `tests/fixtures/xmind/real-app/real-app-fixture.xmind`.
+- The saved package contains `content.json`, `metadata.json`, `manifest.json`,
+  `content.xml`, and `Thumbnails/thumbnail.png`, matching an app-saved XMind
+  package shape.
 
-### Manual creation steps
+### Verification commands
 
-1. In `/Applications/Xmind.app`, create each required privacy-safe workbook:
-   minimal workbook, multiple sheets, duplicate sheet titles, duplicate topic
-   titles, notes/labels/markers/hyperlinks, images/resources, non-ASCII titles,
-   and path escaping cases. Unknown package entries or unknown fields may need a
-   synthetic complement if the real app cannot express them.
+Installed-binary form:
+
+```bash
+xmind inspect tests/fixtures/xmind/real-app/real-app-fixture.xmind --json
+xmind tree tests/fixtures/xmind/real-app/real-app-fixture.xmind --json
+xmind validate tests/fixtures/xmind/real-app/real-app-fixture.xmind --json
+```
+
+Local source-tree form:
+
+```bash
+PATH=/opt/homebrew/opt/rustup/bin:$PATH cargo run --quiet -- inspect tests/fixtures/xmind/real-app/real-app-fixture.xmind --json
+PATH=/opt/homebrew/opt/rustup/bin:$PATH cargo run --quiet -- tree tests/fixtures/xmind/real-app/real-app-fixture.xmind --json
+PATH=/opt/homebrew/opt/rustup/bin:$PATH cargo run --quiet -- validate tests/fixtures/xmind/real-app/real-app-fixture.xmind --json
+```
+
+### Future full-matrix fixture expansion
+
+1. Add more app-saved fixtures after the CLI stabilizes for multiple sheets,
+   duplicate titles, notes/labels/markers/hyperlinks, images/resources,
+   non-ASCII path escaping, and deeper trees.
 2. Save each workbook directly under `tests/fixtures/xmind/real-app/` with a
-   descriptive lowercase filename, for example
-   `real-app-minimal.xmind`.
+   descriptive lowercase filename.
 3. Confirm each workbook opens in XMind after saving and contains no private
    user content or third-party licensed assets.
-4. For every new fixture, add one inventory row above with source
+4. Add one inventory row above for every new fixture with source
    `real-xmind-app`, exact XMind version, creation method, covered behavior,
    PR-gate/full-matrix scope, copy strategy, privacy/license notes, and
    regeneration status.
-5. Run the CLI read commands against every new fixture:
-
-   ```bash
-   xmind inspect tests/fixtures/xmind/real-app/<fixture>.xmind --json
-   xmind tree tests/fixtures/xmind/real-app/<fixture>.xmind --json
-   xmind validate tests/fixtures/xmind/real-app/<fixture>.xmind --json
-   ```
-
-6. Run the relevant fixture manifest and CLI test subset, then the repository
-   quality gate when practical:
-
-   ```bash
-   PATH=/opt/homebrew/opt/rustup/bin:$PATH cargo test --test doc_examples_test xmind_fixture_manifest_covers_committed_workbooks_and_governance
-   PATH=/opt/homebrew/opt/rustup/bin:$PATH ./scripts/quality-gate.sh
-   ```
-
-### Remaining human-gated gaps
-
-- No real XMind app-saved fixture exists in this commit.
-- The issue #11 acceptance matrix is still open for all real-app categories.
-- Real fixture review must be performed by a human or an agent with reliable
-  XMind Save panel control before any fixture is labeled `real-xmind-app`.
+5. Run the CLI read commands and the relevant fixture manifest and E2E tests.

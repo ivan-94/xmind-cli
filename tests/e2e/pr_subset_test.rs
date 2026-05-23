@@ -6,7 +6,8 @@ use support::{
     assert_success_envelope, copy_fixture, run_human, run_human_error, run_json, run_json_error,
     run_success, temp_file, validate_workbook, write_unsupported_xmind_variant,
     write_xmind_package, DUPLICATE_SHEETS_FIXTURE, DUPLICATE_TITLES_FIXTURE, MALFORMED_FIXTURE,
-    METADATA_FIXTURE, MINIMAL_FIXTURE, MULTIPLE_SHEETS_FIXTURE, TOPIC_IMAGE_FIXTURE,
+    METADATA_FIXTURE, MINIMAL_FIXTURE, MULTIPLE_SHEETS_FIXTURE, REAL_APP_FIXTURE,
+    TOPIC_IMAGE_FIXTURE,
 };
 
 type MutationAssertion = fn(&Value);
@@ -49,6 +50,27 @@ fn default_pr_subset_covers_read_command_success_paths() {
     }
 
     run_success(&["diff", MINIMAL_FIXTURE, "--json"]);
+}
+
+#[test]
+fn real_app_fixture_decodes_tree_and_validates() {
+    let inspect = run_json(&["inspect", REAL_APP_FIXTURE, "--json"]);
+    assert_success_envelope(&inspect, "inspect", Some(REAL_APP_FIXTURE));
+    assert_eq!(inspect["result"]["format"], "xmind-zen");
+
+    let tree = run_json(&["tree", REAL_APP_FIXTURE, "--json"]);
+    assert_success_envelope(&tree, "tree", Some(REAL_APP_FIXTURE));
+    let root = &tree["result"]["root"];
+    assert_eq!(root["title"], "Real App Fixture");
+    let children = root["children"]
+        .as_array()
+        .expect("real app fixture root has children");
+    assert_eq!(children.len(), 5);
+    assert_eq!(children[0]["title"], "分支主题 1");
+
+    let validation = run_json(&["validate", REAL_APP_FIXTURE, "--json"]);
+    assert_success_envelope(&validation, "validate", Some(REAL_APP_FIXTURE));
+    assert_eq!(validation["result"]["valid"], true);
 }
 
 #[test]

@@ -14,6 +14,7 @@ pub const MALFORMED_FIXTURE: &str = "tests/fixtures/xmind/malformed.xmind";
 pub const METADATA_FIXTURE: &str = "tests/fixtures/xmind/metadata.xmind";
 pub const MULTIPLE_SHEETS_FIXTURE: &str = "tests/fixtures/xmind/multiple-sheets.xmind";
 pub const TOPIC_IMAGE_FIXTURE: &str = "tests/fixtures/xmind/topic-image.xmind";
+pub const REAL_APP_FIXTURE: &str = "tests/fixtures/xmind/real-app/real-app-fixture.xmind";
 
 pub struct FixtureCopy {
     _temp_dir: TempDir,

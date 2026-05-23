@@ -344,13 +344,12 @@ fn xmind_fixture_manifest_covers_committed_workbooks_and_governance() {
         );
     }
 
-    let fixture_dir =
-        std::fs::read_dir("tests/fixtures/xmind").expect("fixture directory is readable");
-    for entry in fixture_dir {
-        let path = entry.expect("fixture entry is readable").path();
-        if path.extension().and_then(|extension| extension.to_str()) != Some("xmind") {
-            continue;
-        }
+    let mut fixture_paths = Vec::new();
+    collect_xmind_fixtures(
+        std::path::Path::new("tests/fixtures/xmind"),
+        &mut fixture_paths,
+    );
+    for path in fixture_paths {
         let path = path.to_string_lossy();
         assert!(
             manifest.contains(path.as_ref()),
@@ -383,19 +382,21 @@ fn xmind_fixture_manifest_covers_committed_workbooks_and_governance() {
 }
 
 #[test]
-fn fixture_manifest_records_real_app_handoff_when_no_real_fixtures_exist() {
+fn fixture_manifest_records_real_app_fixture_and_followups() {
     let manifest_path = "tests/fixtures/xmind/manifest.md";
     let manifest = std::fs::read_to_string(manifest_path).expect("fixture manifest is readable");
 
     for required in [
-        "## Issue #11 Real XMind App Handoff",
+        "## Issue #11 Real XMind App Fixture Evidence and Follow-ups",
+        "tests/fixtures/xmind/real-app/real-app-fixture.xmind",
+        "real-xmind-app",
+        "Real App Fixture",
         "/Applications/Xmind.app",
         "CFBundleShortVersionString",
         "26.02.04171",
         "net.xmind.vana.app",
         "sdef: couldn't get sdef",
-        "XMind refused `tests/fixtures/xmind/minimal.xmind`",
-        "Do not label any fixture `real-xmind-app` unless",
+        "Computer Use",
         "xmind inspect",
         "xmind tree",
         "xmind validate",
@@ -404,6 +405,19 @@ fn fixture_manifest_records_real_app_handoff_when_no_real_fixtures_exist() {
             manifest.contains(required),
             "{manifest_path} should preserve real-app handoff evidence `{required}`"
         );
+    }
+}
+
+fn collect_xmind_fixtures(dir: &std::path::Path, output: &mut Vec<std::path::PathBuf>) {
+    for entry in std::fs::read_dir(dir).expect("fixture directory is readable") {
+        let path = entry.expect("fixture entry is readable").path();
+        if path.is_dir() {
+            collect_xmind_fixtures(&path, output);
+            continue;
+        }
+        if path.extension().and_then(|extension| extension.to_str()) == Some("xmind") {
+            output.push(path);
+        }
     }
 }
 

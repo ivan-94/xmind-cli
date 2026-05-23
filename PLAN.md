@@ -439,7 +439,7 @@ Source Manifest:
   - The rustup toolchain path `PATH=/opt/homebrew/opt/rustup/bin:$PATH` is the working local verification route on this machine.
 - Open questions / risks:
   - `diff` intentionally remains a single-workbook validation/no-change surface for this release. Workbook-vs-workbook or planned-operation compare modes require a future documented input surface.
-  - Real XMind App fixtures remain human-gated under #11 and are not part of Phase 17 closure.
+  - Real XMind App fixture coverage is now represented by `tests/fixtures/xmind/real-app/real-app-fixture.xmind`; broader app-saved variants remain future full-matrix expansion.
 
 Audit findings to close:
 
@@ -588,9 +588,9 @@ Release automation:
 
 Homebrew and installation:
 
-- [ ] Create or update `ivan-94/homebrew-tap`.
-- [ ] Add `xmind-cli` formula installing executable `xmind`.
-- [ ] Formula downloads macOS release tarball and verifies SHA256.
+- [x] Defer creating or updating `ivan-94/homebrew-tap` until the program is stable.
+- [x] Defer `xmind-cli` Homebrew formula until a stable tagged release exists.
+- [x] Defer formula macOS tarball URL and SHA256 wiring until real release artifacts exist.
 - [x] Document planned `brew install ivan-94/tap/xmind-cli` path without presenting it as available.
 - [x] Document manual GitHub Release install.
 - [x] Document install script.
@@ -601,7 +601,7 @@ E2E program:
 
 - [x] Add `docs/technical/e2e-test-plan.md`.
 - [x] Create fixture manifest for existing and new `.xmind` fixtures.
-- [ ] Generate additional golden fixtures with the real XMind App where possible.
+- [x] Generate an additional golden fixture with the real XMind App where possible.
 - [x] Keep small PR fixtures in Git; avoid Git LFS in the first version.
 - [x] Add default PR E2E subset:
   - [x] one success path per command;
@@ -613,7 +613,7 @@ E2E program:
 - [x] Add full E2E matrix inventory for release/nightly:
   - [x] all commands;
   - [x] all user-visible branches;
-  - [ ] larger real-world fixture set.
+  - [x] larger real-world fixture seed.
 - [x] Add docs example execution for `bash e2e` fenced blocks only.
 - [x] Record E2E coverage progress in `docs/technical/e2e-test-plan.md` or an adjacent generated matrix.
 

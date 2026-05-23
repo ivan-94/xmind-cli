@@ -100,7 +100,7 @@
         <li>
           <code>#3</code> branch protection 已通过
           <code>scripts/configure-branch-protection.sh apply</code> 写入 GitHub；
-          <code>#11</code> real XMind golden fixture generation 仍带有 GUI/人工审核依赖。
+          <code>#11</code> real XMind golden fixture 已通过 Computer Use 在本机 XMind App 中创建并提交。
         </li>
         <li>
           Phase 17 命令行为闭环已按文档契约收敛：<code>diff</code> 当前公开输入形态
@@ -147,9 +147,8 @@
           <code>synthetic-generated</code>。
         </li>
         <li>
-          <code>real-xmind-app</code> 保留给后续 <code>#11</code> 从真实 XMind App
-          生成或保存的代表性用户 fixture。本 Slice 不伪造真实 App 来源，也不新增
-          golden fixture。
+          <code>real-xmind-app</code> 仅用于真实 XMind App 或经验证 GUI 自动化保存的 fixture；
+          当前已新增 <code>tests/fixtures/xmind/real-app/real-app-fixture.xmind</code>。
         </li>
         <li>
           <code>malformed.xmind</code> 是故意损坏的错误路径 fixture，标记为
@@ -312,9 +311,8 @@
           的待办状态更新为已落地状态；#15 不再是 coverage report blocker。
         </li>
         <li>
-          风险：本 slice 只补覆盖，不扩展命令行为；真实 XMind App fixture 仍沿用
-          #11 的 human-gated 后续路径，当前 E2E 继续使用已登记的
-          <code>synthetic-generated</code> workbook fixtures。
+          风险：本 slice 只补覆盖，不扩展命令行为；父级收尾已新增基础
+          <code>real-xmind-app</code> fixture，更多 app-saved variants 可等程序稳定后扩展。
         </li>
       </ul>
     </section>
@@ -370,7 +368,7 @@
     </section>
 
     <section class="entry">
-      <h2>Slice #11: Real XMind Fixture Handoff</h2>
+      <h2>Slice #11: Real XMind Fixture Evidence</h2>
       <ul>
         <li>
           2026-05-23 本机发现 <code>/Applications/Xmind.app</code>，
@@ -390,16 +388,15 @@
           real app fixture。
         </li>
         <li>
-          新建 workbook 的 <code>Command+Shift+S</code> 流程能到达“当前设备”
-          macOS Save panel，但本次 Computer Use 路径选择未能在 worktree 中实际创建
-          文件。因此本 slice 未新增任何 <code>real-xmind-app</code> fixture。
+          2026-05-23 父级收尾使用 Computer Use 在新建 workbook 中设置根主题
+          <code>Real App Fixture</code>，保留 XMind App 默认分支结构，并通过 macOS Save panel
+          保存到 <code>tests/fixtures/xmind/real-app/real-app-fixture.xmind</code>。
         </li>
         <li>
-          后续人工步骤、每个 fixture 必跑的
-          <code>xmind inspect</code> / <code>xmind tree</code> /
-          <code>xmind validate</code> 命令，以及 remaining acceptance gaps 已记录在
+          该 fixture 已通过 <code>xmind tree</code> / <code>xmind validate</code> 校验；
+          后续更多 app-saved variants 与命令记录见
           <code>tests/fixtures/xmind/manifest.md</code> 的
-          <code>Issue #11 Real XMind App Handoff</code> 小节。
+          <code>Issue #11 Real XMind App Fixture Evidence and Follow-ups</code> 小节。
         </li>
       </ul>
     </section>
@@ -502,7 +499,7 @@
         </li>
         <li>
           保守路径：当前没有可在本 slice 中验证的真实 GitHub Release artifact
-          和 formula 路径，因此不新增 Homebrew formula、cargo-dist
+          和 formula 路径；用户在 2026-05-23 明确选择等程序稳定后再做，因此不新增 Homebrew formula、cargo-dist
           <code>"homebrew"</code> installer 或 tap publish job。
         </li>
         <li>
@@ -612,8 +609,8 @@
         </li>
         <li>
           夹具决策：image 覆盖继续使用现有 synthetic
-          <code>tests/fixtures/xmind/topic-image.xmind</code> 和测试内临时图片文件，
-          不等待 issue #11 的 real XMind App fixtures，也不新增 golden fixture。
+          <code>tests/fixtures/xmind/topic-image.xmind</code> 和测试内临时图片文件；
+          父级收尾另补了基础 real XMind App fixture。
         </li>
       </ul>
     </section>

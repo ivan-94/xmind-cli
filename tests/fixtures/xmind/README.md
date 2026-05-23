@@ -28,11 +28,10 @@ topic image reference plus a `resources/payment.png` package entry.
 
 ## Real XMind App Fixtures
 
-No `real-xmind-app` fixtures are committed yet. Issue #11 discovery found
-`/Applications/Xmind.app` version `26.02.04171`, but the app rejected the current
-synthetic `minimal.xmind` package and the available GUI automation did not
-complete a reliable Save As into this worktree.
+`real-app/real-app-fixture.xmind` is saved by `/Applications/Xmind.app` version
+`26.02.04171` through a verified Computer Use flow. It contains a repository-safe
+root topic `Real App Fixture` and five XMind-generated default branches.
 
-Use `tests/fixtures/xmind/manifest.md` as the source of truth for the manual
-creation checklist, required acceptance matrix, and verification commands before
-adding any fixture under `tests/fixtures/xmind/real-app/`.
+Use `tests/fixtures/xmind/manifest.md` as the source of truth for provenance,
+privacy review, the future full-matrix expansion checklist, and verification
+commands before adding any new fixture under `tests/fixtures/xmind/real-app/`.

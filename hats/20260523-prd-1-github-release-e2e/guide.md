@@ -31,12 +31,13 @@
 - HAT guide: `hats/20260523-prd-1-github-release-e2e/guide.md`.
 - HAT prepare script: `hats/20260523-prd-1-github-release-e2e/prepare.sh`.
 - Cross-review fix commit: `ed4b37f Fix release archive and notes contracts`.
+- Real XMind App fixture: `tests/fixtures/xmind/real-app/real-app-fixture.xmind`.
 
 ### Key Decisions
 
 - Issue `#3` branch protection was configured through `scripts/configure-branch-protection.sh apply`.
-- Treat issue `#11` real XMind App fixtures as human-gated because repository-safe real app-saved fixtures still need human-provided or human-approved files.
-- Keep Homebrew as a documented future path, not a delivered formula or tap automation.
+- Issue `#11` now has one repository-safe real XMind App fixture created through Computer Use; broader app-saved variants remain future full-matrix expansion after the CLI stabilizes.
+- Keep Homebrew as a documented future path, not a delivered formula or tap automation; the user explicitly deferred it until the program is stable.
 - Fix the cross-review P1 by pinning cargo-dist Unix archives to `.tar.gz`, matching `scripts/install.sh` and release docs.
 - Fix the release-note P2 by extracting the matching `CHANGELOG.md` version section for the pushed tag and failing release publication if it is missing.
 
@@ -46,14 +47,15 @@
 - Cross-review external track completed via `claude -p ... --disallowedTools Edit Write MultiEdit NotebookEdit`; log: `.scratch/cross-review/20260523-181334-claude.md`.
 - Cross-review self track reported one P1 and one P2; both were fixed in commit `ed4b37f`.
 - Focused worker validation before commit: `cargo fmt --all -- --check`, `cargo test --test release_workflow_test --all-features`, `cargo test --test install_script_test --all-features`, release-policy doc example test, and `cargo check --workspace --all-targets --all-features`.
+- Real fixture validation: `xmind tree tests/fixtures/xmind/real-app/real-app-fixture.xmind --json` and `xmind validate tests/fixtures/xmind/real-app/real-app-fixture.xmind --json` both passed through `cargo run --quiet`.
 - HAT prepare syntax validation: `bash -n hats/20260523-prd-1-github-release-e2e/prepare.sh`.
 - `shellcheck`: not available in the local environment, so it was not run.
 
 ### Open Questions / Risks
 
 - GitHub branch protection was configured through the GitHub API and verified with `gh api /repos/ivan-94/xmind-cli/branches/master/protection`.
-- Real XMind App fixture coverage remains pending until a human supplies and approves app-saved `.xmind` files.
-- A real tagged cargo-dist release has not been executed in this local HAT. The workflow now has stronger contract tests, but first release publication should still be monitored by a maintainer.
+- Real XMind App fixture coverage has an initial app-saved fixture; deeper/more varied app-saved files can be added later when the program is stable.
+- A real tagged cargo-dist release and Homebrew formula publication are intentionally deferred until the program is stable. The workflow now has stronger contract tests, but first release publication should still be monitored by a maintainer.
 - Full E2E matrix remains intentionally ignored in default PR tests and should be run explicitly for release/nightly confidence when needed.
 
 ## Environment Information
@@ -74,7 +76,7 @@
 | Item | Needed From | Status | Notes |
 | --- | --- | --- | --- |
 | Branch protection configuration | Repository maintainer/admin | Done | API verification reports strict required checks `Rust quality gate`, `Stable PR E2E subset`, and `Security`; force pushes and deletions are disabled. |
-| Real XMind App fixtures | Human with approved fixture files | Human-gated | Follow `tests/fixtures/xmind/manifest.md` issue #11 handoff. |
+| Real XMind App fixtures | Local XMind App via Computer Use | Done for initial fixture | `tests/fixtures/xmind/real-app/real-app-fixture.xmind` is committed and covered by read/validate checks. |
 | First tagged GitHub Release | Maintainer | Not run in HAT | Use release checklist and monitor artifact names/checksums. |
 
 ## Acceptance Accounts
@@ -84,7 +86,7 @@ No user accounts are required for local CLI HAT. GitHub maintainer credentials a
 ## Acceptance Data
 
 - Committed fixtures under `tests/fixtures/xmind/`.
-- Synthetic fixture manifest and real-app handoff under `tests/fixtures/xmind/manifest.md`.
+- Synthetic fixture manifest and real-app fixture provenance under `tests/fixtures/xmind/manifest.md`.
 - Temporary HAT workspace created by `prepare.sh prepare`: `.scratch/hat/prd-1-github-release-e2e/`.
 - Cleanup only removes the HAT workspace above.
 
@@ -192,24 +194,24 @@ Evidence:
 Notes:
 - This closes the automated issue `#3` setup path; later PRs still need live CI evidence.
 
-#### P1.3 Real XMind Fixture Handoff
+#### P1.3 Real XMind Fixture Coverage
 
 Preconditions:
-- Human has approved real XMind App-created fixture files.
+- `tests/fixtures/xmind/real-app/real-app-fixture.xmind` exists.
 
 Steps:
-1. Follow `tests/fixtures/xmind/manifest.md` issue #11 handoff.
-2. Add files with `origin = real-xmind-app` and privacy/license notes.
-3. Run read and validate E2E tests against the new fixtures.
+1. Run `PATH=/opt/homebrew/opt/rustup/bin:$PATH cargo run --quiet -- tree tests/fixtures/xmind/real-app/real-app-fixture.xmind --json`.
+2. Run `PATH=/opt/homebrew/opt/rustup/bin:$PATH cargo run --quiet -- validate tests/fixtures/xmind/real-app/real-app-fixture.xmind --json`.
+3. Confirm `tests/fixtures/xmind/manifest.md` labels the fixture `real-xmind-app` and records privacy/license notes.
 
 Expected:
-- Real app-saved fixtures are documented and pass selected CLI read/validate coverage.
+- The app-saved fixture is documented and passes selected CLI read/validate coverage.
 
 Evidence:
-- Fixture manifest diff and test output.
+- Fixture manifest row and test output.
 
 Notes:
-- This is intentionally not completed by the current automated PRD delivery.
+- Broader app-saved variants can be added later for release/nightly depth after the CLI stabilizes.
 
 ### P2 - Documentation and Handoff
 
@@ -243,7 +245,7 @@ Evidence:
 Human verifier:
 - Use terminal commands in this guide.
 - Use GitHub UI only for branch protection, PR review, CI evidence, and release publication.
-- For real fixtures, manually provide or approve `.xmind` files before committing them.
+- For any future real fixtures, verify `.xmind` provenance, privacy, size, and CLI read/validate behavior before committing them.
 
 Agent notes:
 - This repository has no browser UI or `window.__hat` surface.
@@ -253,7 +255,7 @@ Agent notes:
 ## Pass Criteria
 
 - All P0 checks pass.
-- P1 checks either pass or are explicitly marked human-gated with evidence and owner.
+- P1 checks either pass or are explicitly marked deferred with evidence and owner.
 - No release documentation claims a channel or platform that is not implemented.
 - Cleanup strategy is limited to HAT-created `.scratch/hat/prd-1-github-release-e2e/`.
 

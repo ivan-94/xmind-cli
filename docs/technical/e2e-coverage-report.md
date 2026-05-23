@@ -12,6 +12,7 @@ Living checklist for GitHub issues #24 and #23. This report maps the command and
 - Parent PRD #1 implementation notes: `docs/prd/1/implementation-notes.html`.
 - Repository implementation notes: `implementation-notes.html`.
 - E2E plan: `docs/technical/e2e-test-plan.md`.
+- Real XMind App fixture manifest: `tests/fixtures/xmind/manifest.md`.
 - Command references: `docs/reference/commands/*.md`.
 - Current E2E tests: `tests/e2e/pr_subset_test.rs`, `tests/e2e/full_matrix_test.rs`, `tests/e2e/red_contract_gaps_test.rs`, and `tests/e2e/batch_exchange_recovery_test.rs`.
 - Current CLI tests: `tests/cli/*_test.rs`.
@@ -38,8 +39,8 @@ Living checklist for GitHub issues #24 and #23. This report maps the command and
 
 ### Open questions / risks
 
-- Full matrix execution still depends on real XMind App fixture coverage in #11.
-- GitHub-required PR E2E enforcement still depends on branch protection setup in #3.
+- Full matrix execution now has an initial real XMind App fixture from #11, but richer app-saved variants remain useful after the CLI stabilizes.
+- GitHub-required PR E2E enforcement was configured through branch protection setup in #3.
 - Batch/exchange/recovery rows now cite `tests/e2e/batch_exchange_recovery_test.rs`; remaining TODOs are real fixture/full-matrix governance rather than issue #15 coverage work.
 
 ## PR Subset vs Full Matrix Status
@@ -47,8 +48,8 @@ Living checklist for GitHub issues #24 and #23. This report maps the command and
 - PR subset: current required runner is `cargo test --test e2e_pr_subset --all-features`, documented by issue #12 and exercised in `tests/e2e/pr_subset_test.rs`.
 - Full matrix: inventory exists in `tests/e2e/full_matrix_test.rs::full_matrix_command_inventory_is_filterable_for_nightly_or_release_jobs`, but the test is ignored so release/nightly jobs can opt in explicitly.
 - Release smoke: binary jobs intentionally run only `xmind --version`, `xmind tree ... --json`, and `xmind validate ... --json`; the full command matrix remains in Rust E2E tests.
-- Human-gated fixture axis: #11 must add real XMind App-saved fixtures before the matrix can claim real-user fixture completeness.
-- CI enforcement axis: #3 must enable branch protection/required checks before the PR subset is protected on GitHub.
+- Real fixture axis: #11 added `tests/fixtures/xmind/real-app/real-app-fixture.xmind`; the full matrix can grow additional app-saved variants later.
+- CI enforcement axis: #3 configured branch protection and required checks for the PR subset on GitHub.
 
 ## Command Coverage Matrix
 
@@ -56,10 +57,10 @@ Living checklist for GitHub issues #24 and #23. This report maps the command and
 | --- | --- | --- | --- |
 | `xmind inspect` | Supported format, resources/capabilities, malformed workbook, unsupported variant, fields/compact output, human output. | `tests/e2e/pr_subset_test.rs::read_e2e_inspect_reports_supported_resources_and_parse_errors`; `tests/cli/inspect_test.rs::inspect_json_reports_unknown_package_entry_preservation`; `tests/cli/inspect_test.rs::inspect_json_reports_unknown_json_field_preservation`; `tests/cli/runtime_errors_test.rs::json_validate_unsupported_workbook_variant_returns_unsupported_format`. | PR subset covered; Full matrix TODO #11 for real-app fixture variants. |
 | `xmind sheets` | Duplicate titles, field filtering, sheet metadata, missing/parse errors, human output. | `tests/e2e/pr_subset_test.rs::read_e2e_sheets_covers_duplicates_fields_metadata_and_human_output`; `tests/cli/sheets_test.rs::sheets_json_compact_format_limits_sheet_fields`. | PR subset covered; Full matrix TODO #11 for real-app duplicate-sheet fixtures. |
-| `xmind tree` | Depth, fields, include assets, sheet selection, text/human output, sheet errors. | `tests/e2e/pr_subset_test.rs::read_e2e_tree_covers_depth_fields_assets_sheet_selection_and_human_output`; `tests/e2e/pr_subset_test.rs::default_pr_subset_covers_representative_json_error_families`; `tests/cli/tree_test.rs::tree_json_ambiguous_sheet_title_returns_candidates`. | PR subset covered; Full matrix TODO #11 for larger/deeper real fixtures. |
+| `xmind tree` | Depth, fields, include assets, sheet selection, text/human output, sheet errors. | `tests/e2e/pr_subset_test.rs::read_e2e_tree_covers_depth_fields_assets_sheet_selection_and_human_output`; `tests/e2e/pr_subset_test.rs::real_app_fixture_decodes_tree_and_validates`; `tests/e2e/pr_subset_test.rs::default_pr_subset_covers_representative_json_error_families`; `tests/cli/tree_test.rs::tree_json_ambiguous_sheet_title_returns_candidates`. | PR subset covered; Full matrix has #11 app-saved seed and can add deeper variants later. |
 | `xmind get` | Id/path/title/query selectors, depth, assets, sheet selection, not found, ambiguous selector, fields/compact output. | `tests/e2e/pr_subset_test.rs::read_e2e_get_covers_selectors_depth_assets_and_selector_errors`; `tests/cli/get_test.rs::get_json_compact_format_limits_topic_fields`. | PR subset covered; Full matrix TODO #11 for path escaping/non-ASCII fixture cases. |
 | `xmind find` | Exact title, title contains, content contains, query selectors, limit/offset, no matches, invalid usage. | `tests/e2e/pr_subset_test.rs::read_e2e_find_covers_match_modes_pagination_and_empty_results`; `tests/cli/find_test.rs::find_json_query_and_requires_both_conditions`; `tests/cli/find_test.rs::find_json_query_parentheses_group_expression`; `tests/e2e/pr_subset_test.rs::read_e2e_read_commands_return_invalid_usage_errors`. | PR subset covered; Full matrix TODO #11 for richer metadata fixtures. |
-| `xmind validate` | Valid, warnings, `--strict` warning failure, structural errors, malformed workbook, human output. | `tests/e2e/pr_subset_test.rs::read_e2e_validate_covers_valid_strict_parse_error_and_human_output`; `tests/e2e/pr_subset_test.rs::read_e2e_validate_warnings_are_reported_and_strict_turns_them_into_failures`; `tests/e2e/pr_subset_test.rs::read_e2e_validate_reports_structural_errors`; `tests/e2e/red_contract_gaps_test.rs::validate_strict_reports_structural_diagnostics`. | PR subset covered; Full matrix TODO #11 for real-app private metadata variants. |
+| `xmind validate` | Valid, warnings, `--strict` warning failure, structural errors, malformed workbook, human output. | `tests/e2e/pr_subset_test.rs::read_e2e_validate_covers_valid_strict_parse_error_and_human_output`; `tests/e2e/pr_subset_test.rs::real_app_fixture_decodes_tree_and_validates`; `tests/e2e/pr_subset_test.rs::read_e2e_validate_warnings_are_reported_and_strict_turns_them_into_failures`; `tests/e2e/pr_subset_test.rs::read_e2e_validate_reports_structural_errors`; `tests/e2e/red_contract_gaps_test.rs::validate_strict_reports_structural_diagnostics`. | PR subset covered; Full matrix has #11 app-saved seed and can add private metadata variants later. |
 | `xmind diff` | Documented single-workbook summary/changes envelope, no-change human output, file/parse/usage/sheet errors. | `tests/e2e/pr_subset_test.rs::default_pr_subset_covers_read_command_success_paths`; `tests/e2e/pr_subset_test.rs::default_pr_subset_checks_lightweight_human_output`; `tests/e2e/red_contract_gaps_test.rs::diff_json_emits_documented_summary_and_changes_envelope`. | PR subset covered for current contract; Full matrix TODO #11 for real-app workbook variants. |
 | `xmind add` | Dry-run, apply, backup, positions, create missing path, parent not found, ambiguous parent. | `tests/e2e/pr_subset_test.rs::default_pr_subset_applies_topic_mutations_to_temp_copies_then_validates`; `tests/e2e/pr_subset_test.rs::e2e_add_covers_positions_missing_path_backup_and_selector_errors`; `tests/cli/add_test.rs::add_dry_run_human_output_includes_outline_diff`. | PR subset covered; Full matrix TODO #11 for real-app mutation fixtures. |
 | `xmind add-tree` | YAML/JSON/Markdown input, dry-run/apply parity, backup, invalid tree input, Markdown modes/errors. | `tests/e2e/pr_subset_test.rs::default_pr_subset_covers_batch_exchange_backup_restore_paths`; `tests/e2e/red_contract_gaps_test.rs::add_tree_apply_mutates_copied_workbook`; `tests/e2e/batch_exchange_recovery_test.rs::add_tree_e2e_covers_input_formats_dry_run_apply_backup_and_invalid_input`; `tests/cli/add_tree_test.rs::add_tree_markdown_accepts_all_documented_modes`. | PR subset and batch/recovery E2E covered; Full matrix TODO #11 for real fixtures. |
@@ -76,6 +77,5 @@ Living checklist for GitHub issues #24 and #23. This report maps the command and
 
 ## Known Blockers and Follow-ups
 
-- #3: Branch protection and required status checks must be enabled by a maintainer/admin before GitHub enforces the PR subset.
-- #11: Real XMind App-saved golden fixtures are human-gated; current committed valid fixtures remain `synthetic-generated`.
-- Human gate: release/nightly full matrix can only claim real-user coverage after fixture review confirms privacy-safe real-app files.
+- #3: Branch protection and required status checks were configured with `scripts/configure-branch-protection.sh apply`.
+- #11: One privacy-safe real XMind App-saved golden fixture is committed; future release/nightly expansion can add broader app-saved variants after the CLI stabilizes.

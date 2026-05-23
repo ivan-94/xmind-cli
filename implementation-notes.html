@@ -131,8 +131,8 @@
         <li>
           GitHub Release workflow、install script、README 用户入口、E2E 覆盖矩阵
           和 branch protection 已按 PRD #1 slices 落地。
-          Homebrew tap path 已预留为 <code>ivan-94/homebrew-tap</code>，但仍是 future
-          install channel，不提供可执行 <code>brew install</code> 指令。
+          Homebrew tap path 已预留为 <code>ivan-94/homebrew-tap</code>，但用户已确认等程序稳定后再发布；
+          当前仍是 future install channel，不提供可执行 <code>brew install</code> 指令。
         </li>
       </ul>
     </section>
@@ -324,16 +324,15 @@
           release artifact 维护成本，但需要单独审查生成的 workflow，避免引入过重或不透明的发布步骤。
         </li>
         <li>
-          Homebrew tap 涉及第二个仓库 <code>ivan-94/homebrew-tap</code>，需要在真实
-          GitHub Release artifact 和 checksum 存在后再发布 formula。
+          Homebrew tap 涉及第二个仓库 <code>ivan-94/homebrew-tap</code>，用户已确认跳过本次发布，
+          需要在程序稳定且真实 GitHub Release artifact/checksum 存在后再发布 formula。
         </li>
         <li>
-          Real XMind App golden fixtures 仍是人工门控。2026-05-23 已确认
-          <code>/Applications/Xmind.app</code> 存在且版本为 <code>26.02.04171</code>，
-          但没有 AppleScript scripting definition；GUI Save As 路径未能可靠地在
-          worktree 创建文件。不得把 synthetic fixture 标记为
-          <code>real-xmind-app</code>，具体人工创建步骤和验证命令见
-          <code>tests/fixtures/xmind/manifest.md</code>。
+          Real XMind App golden fixture 已通过 Computer Use 在
+          <code>/Applications/Xmind.app</code> 版本 <code>26.02.04171</code> 中创建并保存为
+          <code>tests/fixtures/xmind/real-app/real-app-fixture.xmind</code>。该 fixture
+          已通过 <code>xmind tree</code> 和 <code>xmind validate</code> 校验；后续更复杂
+          app-saved variants 可等程序稳定后加入 release/nightly full matrix。
         </li>
       </ul>
     </section>
@@ -342,8 +341,8 @@
       <h2>Open Questions</h2>
       <ul>
         <li>
-          当前剩余人工协作点集中在真实 XMind fixture 与 Homebrew formula 发布输入；
-          branch protection 已通过 GitHub API 配置完成。
+          当前剩余外部发布协作点集中在真实 tagged release 和 Homebrew formula 发布；
+          branch protection 已通过 GitHub API 配置完成，真实 XMind App fixture 已有初始提交。
         </li>
       </ul>
     </section>
@@ -544,8 +543,8 @@
         </li>
         <li>
           偏差/边界：本 slice 未新增 position 参数；apply 按当前 add-tree 行为将 subtree
-          追加到 parent children 末尾。真实 XMind App golden fixture 验证仍不在本 slice
-          范围内。
+          追加到 parent children 末尾。真实 XMind App golden fixture 已在父级收尾中补齐为
+          <code>tests/fixtures/xmind/real-app/real-app-fixture.xmind</code>。
         </li>
         <li>
           验证：issue #18 的 red E2E 已进入默认

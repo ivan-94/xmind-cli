@@ -18,7 +18,7 @@
 - `docs/reference/mutation-semantics.md`: dry-run, apply, backup, and transactional write rules.
 - `docs/reference/output-formats.md`: JSON envelope and human output contracts.
 - `docs/reference/errors.md` and `docs/reference/agent-error-contract.md`: error-code and recovery contracts.
-- `tests/fixtures/xmind/*.xmind`: current committed workbook fixtures.
+- `tests/fixtures/xmind/**/*.xmind`: current committed workbook fixtures, including the first XMind App-saved fixture.
 - `tests/cli/*.rs`: current CLI integration tests.
 - `tests/e2e/red_contract_gaps_test.rs`: Phase 17 command contract closure coverage for issues #18 through #22.
 - `tests/e2e/batch_exchange_recovery_test.rs`: issue #15 batch, exchange, recovery, and shell-integration E2E coverage.
@@ -44,9 +44,10 @@
 ### Verification Evidence
 
 - Current repository contains committed `.xmind` fixtures under
-  `tests/fixtures/xmind/`, but the valid fixtures are currently
-  `synthetic-generated`; issue #11 records the human-gated path for adding
-  XMind App-saved `real-xmind-app` fixtures.
+  `tests/fixtures/xmind/`, including
+  `tests/fixtures/xmind/real-app/real-app-fixture.xmind`, which was saved by
+  `/Applications/Xmind.app` version `26.02.04171` through Computer Use and
+  validated by `xmind tree` and `xmind validate`.
 - Current repository already has CLI integration tests under `tests/cli/`.
 - Phase 17 command closures are covered by `tests/e2e/red_contract_gaps_test.rs`.
 - Batch, exchange, recovery, and shell-integration coverage from issue #15 is covered by `tests/e2e/batch_exchange_recovery_test.rs`.
@@ -55,7 +56,7 @@
 ### Open Questions / Risks
 
 - The Phase 17 command-contract gaps are closed for `add-tree --apply`, `patch --apply`, `diff --json`, `validate --strict` structural diagnostics, and `import --into --backup`.
-- Large real-world fixtures must stay small enough for ordinary Git usage. First version target: each fixture under 1 MB and total E2E fixture set under 10 MB.
+- Larger real-world fixtures must stay small enough for ordinary Git usage. First version target: each fixture under 1 MB and total E2E fixture set under 10 MB.
 
 ## Goals
 
@@ -103,6 +104,12 @@ Larger but still Git-friendly workbooks for full matrix runs:
 - richer image/resource combinations,
 - non-ASCII titles and path escaping cases.
 
+The first committed release/nightly seed is
+`tests/fixtures/xmind/real-app/real-app-fixture.xmind`: a wider app-saved
+workbook with root title `Real App Fixture`, five app-generated branch topics,
+and XMind-generated metadata/thumbnail entries. Additional app-saved variants can
+be added after the CLI stabilizes.
+
 ### Synthetic Fixtures
 
 Synthetic fixtures are allowed only when a real XMind App file cannot express the scenario:
@@ -124,7 +131,7 @@ Each fixture should have manifest metadata, either in that single manifest file
 or adjacent markdown:
 
 - fixture path,
-- source: `xmind-app` or `synthetic`,
+- source: `real-xmind-app`, `synthetic-generated`, or `synthetic-corrupt`,
 - creation method,
 - covered behavior,
 - default PR gate: yes/no,

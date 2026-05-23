@@ -157,6 +157,8 @@ here only after its release slice lands.
 
 Homebrew is a future install channel, not an available installation path today.
 The planned tap repository is `ivan-94/homebrew-tap`.
+The tap and formula are intentionally deferred until the program is stable and a
+real GitHub Release artifact/checksum exists.
 
 Enable Homebrew instructions only after all of these are true:
 
