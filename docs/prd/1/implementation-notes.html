@@ -159,6 +159,39 @@
     </section>
 
     <section class="entry">
+      <h2>Slice #22: import --into Backup Safety</h2>
+      <ul>
+        <li>
+          Source Manifest: GitHub issue <code>#22</code>, parent PRD
+          <code>#1</code>, <code>docs/notes/prd-1-issue-17-red-contract-e2e.md</code>,
+          <code>tests/e2e/red_contract_gaps_test.rs</code>,
+          <code>docs/reference/commands/import.md</code>, and
+          <code>docs/reference/mutation-semantics.md</code>.
+        </li>
+        <li>
+          决策：<code>import --into</code> 现在接受 <code>--backup</code>，并复用普通
+          mutation 的 <code>.xmind-backups</code> 备份路径；备份只在
+          <code>--apply</code> 且所有输入/selector preflight 通过后创建。
+        </li>
+        <li>
+          决策：<code>import --output --backup</code> 返回
+          <code>invalid_usage</code>，因为 <code>--output</code> 创建或覆盖的是目标输出文件，
+          没有可保护的既有 workbook mutation 语义；<code>--overwrite</code> 仍是
+          <code>--output</code> 的显式替换开关。
+        </li>
+        <li>
+          验证：issue #22 对应的 red E2E 已从 ignored 集合移出，默认运行
+          <code>e2e_red_contract_gaps</code> 时该用例应保持绿色，其余 #18-#21
+          red tests 仍保持 ignored。
+        </li>
+        <li>
+          风险：真实 XMind App fixture 仍未补齐；本 slice 继续使用现有
+          <code>synthetic-generated</code> fixture 验证安全写入和备份语义。
+        </li>
+      </ul>
+    </section>
+
+    <section class="entry">
       <h2>Open Risks</h2>
       <ul>
         <li>
@@ -511,6 +544,43 @@
           风险：本 slice 没有扩大到 <code>patch --apply</code> 或
           <code>import --into --backup</code>；它们仍由 #19/#22 处理。当前写入校验仍是
           “能被本 CLI decode”级别，不等同于真实 XMind App golden fixture 验证。
+        </li>
+      </ul>
+    </section>
+
+    <section class="entry">
+      <h2>Slice #20: Diff Contract</h2>
+      <ul>
+        <li>
+          Source Manifest: GitHub issue <code>#20</code>, Parent PRD
+          <code>#1</code>, <code>docs/reference/commands/diff.md</code>,
+          <code>docs/notes/prd-1-issue-17-red-contract-e2e.md</code>,
+          <code>tests/e2e/red_contract_gaps_test.rs</code>,
+          <code>tests/e2e/pr_subset_test.rs</code>,
+          <code>src/app/mod.rs</code>, <code>src/render/diff.rs</code>,
+          root <code>implementation-notes.html</code>,
+          <code>~/.agents/docs/agents/workflows.md</code>, and
+          <code>~/.agents/docs/agents/handoff-policy.md</code>.
+        </li>
+        <li>
+          决策：#20 没有新增第二个 workbook 参数；当前 <code>diff</code> 合约收敛为
+          文档已有的单 workbook 入口，负责读取 workbook、应用 sheet selector，并返回
+          <code>summary</code> 与 <code>changes</code> envelope。真实 planned-operation
+          review 仍由 <code>patch --dry-run --json</code> 承担。
+        </li>
+        <li>
+          偏差/权衡：由于单 workbook surface 没有外部比较基线，成功输出表示当前
+          surface 没有检测到结构变更，即 <code>summary</code> 全 0 与
+          <code>changes: []</code>；human 输出为 <code>workbook: no changes</code>。
+        </li>
+        <li>
+          测试策略：#20 将
+          <code>diff_json_emits_documented_summary_and_changes_envelope</code> 从 ignored
+          红测变为默认绿测，并在 <code>e2e_pr_subset</code> 中补充 human 输出断言。
+        </li>
+        <li>
+          风险：后续若要支持 workbook-vs-workbook compare，需要新增明确输入模式、
+          文档和 E2E，不应改变当前单 workbook 合约。
         </li>
       </ul>
     </section>

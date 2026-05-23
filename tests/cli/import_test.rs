@@ -108,6 +108,171 @@ fn import_into_appends_tree_under_existing_parent() {
 }
 
 #[test]
+fn import_into_apply_with_backup_copies_original_before_replacing_workbook() {
+    let temp_dir = tempfile::tempdir().expect("temp dir is created");
+    let workbook = temp_dir.path().join("roadmap.xmind");
+    fs::copy("tests/fixtures/xmind/minimal.xmind", &workbook).expect("fixture is copied");
+    let original_bytes = fs::read(&workbook).expect("original workbook is readable");
+    let workbook_arg = workbook.to_string_lossy().into_owned();
+
+    let output = Command::cargo_bin("xmind")
+        .expect("xmind binary is built for CLI tests")
+        .args([
+            "import",
+            "--input",
+            "docs/examples/simple-tree.yaml",
+            "--into",
+            &workbook_arg,
+            "--parent",
+            "path:/Q2",
+            "--apply",
+            "--backup",
+            "--json",
+        ])
+        .output()
+        .expect("import command runs");
+
+    assert_eq!(output.status.code(), Some(0));
+    assert!(
+        output.stderr.is_empty(),
+        "json import output should not emit stderr diagnostics: {}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+
+    let body: Value = serde_json::from_slice(&output.stdout).expect("stdout is JSON");
+    let backup_path = body["result"]["backup_path"]
+        .as_str()
+        .expect("import --into --backup returns result.backup_path");
+    assert!(backup_path.contains(".xmind-backups"));
+    assert_eq!(
+        fs::read(backup_path).expect("backup is readable"),
+        original_bytes
+    );
+
+    let tree_output = Command::cargo_bin("xmind")
+        .expect("xmind binary is built for CLI tests")
+        .args(["tree", &workbook_arg, "--json", "--depth", "3"])
+        .output()
+        .expect("tree command runs on imported workbook");
+
+    assert_eq!(tree_output.status.code(), Some(0));
+    let tree: Value = serde_json::from_slice(&tree_output.stdout).expect("tree stdout is JSON");
+    let q2_children = &tree["result"]["root"]["children"][0]["children"];
+    assert_eq!(q2_children[1]["title"], "支付能力");
+}
+
+#[test]
+fn import_into_dry_run_with_backup_neither_writes_workbook_nor_backup() {
+    let temp_dir = tempfile::tempdir().expect("temp dir is created");
+    let workbook = temp_dir.path().join("roadmap.xmind");
+    fs::copy("tests/fixtures/xmind/minimal.xmind", &workbook).expect("fixture is copied");
+    let original_bytes = fs::read(&workbook).expect("original workbook is readable");
+    let workbook_arg = workbook.to_string_lossy().into_owned();
+
+    let output = Command::cargo_bin("xmind")
+        .expect("xmind binary is built for CLI tests")
+        .args([
+            "import",
+            "--input",
+            "docs/examples/simple-tree.yaml",
+            "--into",
+            &workbook_arg,
+            "--parent",
+            "path:/Q2",
+            "--dry-run",
+            "--backup",
+            "--json",
+        ])
+        .output()
+        .expect("import command runs");
+
+    assert_eq!(output.status.code(), Some(0));
+    let body: Value = serde_json::from_slice(&output.stdout).expect("stdout is JSON");
+    assert_eq!(body["dry_run"], true);
+    assert_eq!(body["applied"], false);
+    assert!(body["result"]["backup_path"].is_null());
+    assert_eq!(
+        fs::read(&workbook).expect("workbook remains readable"),
+        original_bytes
+    );
+    assert!(
+        !temp_dir.path().join(".xmind-backups").exists(),
+        "dry-run import must not create a backup directory"
+    );
+}
+
+#[test]
+fn import_into_invalid_input_leaves_workbook_and_backup_directory_untouched() {
+    let temp_dir = tempfile::tempdir().expect("temp dir is created");
+    let workbook = temp_dir.path().join("roadmap.xmind");
+    fs::copy("tests/fixtures/xmind/minimal.xmind", &workbook).expect("fixture is copied");
+    let original_bytes = fs::read(&workbook).expect("original workbook is readable");
+    let invalid_input = temp_dir.path().join("invalid.yaml");
+    fs::write(&invalid_input, "title: ''\n").expect("invalid import input is written");
+    let workbook_arg = workbook.to_string_lossy().into_owned();
+    let input_arg = invalid_input.to_string_lossy().into_owned();
+
+    let output = Command::cargo_bin("xmind")
+        .expect("xmind binary is built for CLI tests")
+        .args([
+            "import",
+            "--input",
+            &input_arg,
+            "--into",
+            &workbook_arg,
+            "--parent",
+            "path:/Q2",
+            "--apply",
+            "--backup",
+            "--json",
+        ])
+        .output()
+        .expect("import command runs");
+
+    assert_eq!(output.status.code(), Some(7));
+    let body: Value = serde_json::from_slice(&output.stdout).expect("stdout is JSON");
+    assert_eq!(body["error"]["code"], "invalid_tree_input");
+    assert_eq!(
+        fs::read(&workbook).expect("workbook remains readable"),
+        original_bytes
+    );
+    assert!(
+        !temp_dir.path().join(".xmind-backups").exists(),
+        "preflight failure must not create a backup"
+    );
+}
+
+#[test]
+fn import_output_rejects_backup_without_writing_target() {
+    let temp_dir = tempfile::tempdir().expect("temp dir is created");
+    let output_path = temp_dir.path().join("roadmap.xmind");
+    let output_arg = output_path.to_string_lossy().into_owned();
+
+    let output = Command::cargo_bin("xmind")
+        .expect("xmind binary is built for CLI tests")
+        .args([
+            "import",
+            "--input",
+            "docs/examples/simple-tree.yaml",
+            "--output",
+            &output_arg,
+            "--apply",
+            "--backup",
+            "--json",
+        ])
+        .output()
+        .expect("import command runs");
+
+    assert_eq!(output.status.code(), Some(2));
+    let body: Value = serde_json::from_slice(&output.stdout).expect("stdout is JSON");
+    assert_eq!(body["error"]["code"], "invalid_usage");
+    assert!(
+        !output_path.exists(),
+        "rejected import output must not write the target workbook"
+    );
+}
+
+#[test]
 fn import_output_overwrite_replaces_existing_workbook() {
     let temp_dir = tempfile::tempdir().expect("temp dir is created");
     let output_path = temp_dir.path().join("roadmap.xmind");

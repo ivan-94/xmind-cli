@@ -60,6 +60,9 @@ fn default_pr_subset_checks_lightweight_human_output() {
     let completion = run_human(&["completion", "bash"]);
     assert!(completion.contains("_xmind"));
     assert!(completion.contains("complete -F _xmind"));
+
+    let diff = run_human(&["diff", MINIMAL_FIXTURE]);
+    assert!(diff.contains("minimal.xmind: no changes"));
 }
 
 #[test]

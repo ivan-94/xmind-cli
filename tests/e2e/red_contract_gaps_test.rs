@@ -176,7 +176,6 @@ fn patch_apply_rolls_back_when_later_operation_errors() {
 }
 
 #[test]
-#[ignore = "red contract test for PRD #1 issue #17; enable while implementing issue #20"]
 fn diff_json_emits_documented_summary_and_changes_envelope() {
     let body = expect_json_success(&["diff", MINIMAL_FIXTURE, "--json"]);
 
@@ -221,7 +220,6 @@ fn validate_strict_reports_structural_diagnostics() {
 }
 
 #[test]
-#[ignore = "red contract test for PRD #1 issue #17; enable while implementing issue #22"]
 fn import_into_apply_backup_preserves_existing_workbook_safety() {
     let fixture = copy_fixture(MINIMAL_FIXTURE, "import-into-backup.xmind");
     let workbook = fixture.path_arg();
@@ -246,6 +244,7 @@ fn import_into_apply_backup_preserves_existing_workbook_safety() {
         .as_str()
         .expect("import --into --backup returns the created backup path");
     assert!(Path::new(backup_path).exists());
+    fixture.assert_backup_matches_original(&body);
     assert!(tree_titles(&workbook).contains(&"支付能力".to_owned()));
     fixture.assert_source_unchanged();
 }

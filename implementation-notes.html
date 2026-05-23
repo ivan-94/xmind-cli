@@ -119,19 +119,9 @@
           engine 为主。
         </li>
         <li>
-          <code>diff</code> 目前只注册在 clap subcommand 和命令参考中，dispatch
-          仍走 noop action；因此 <code>xmind diff --json</code> 不会输出文档中的
-          summary/changes envelope。
-        </li>
-        <li>
           <code>validate --strict</code> 当前只验证 workbook 能被读取，并固定返回
           <code>valid: true</code>、空 warnings/errors；尚未实现命令参考列出的
           topic id、排序、required fields、unknown preservation 等完整检查。
-        </li>
-        <li>
-          <code>import --into</code> 文档称应遵循 normal mutation backup 规则，但
-          clap surface 没有 <code>--backup</code>，应用层也以
-          <code>backup: false</code> 运行。
         </li>
         <li>
           <code>PLAN.md</code> 的部分 checkbox 和 Definition of Done 已按历史进度
@@ -146,11 +136,38 @@
     </section>
 
     <section class="entry">
+      <h2>Slice #22: import --into Backup Safety</h2>
+      <ul>
+        <li>
+          Source Manifest: GitHub issue <code>#22</code>, parent PRD
+          <code>#1</code>, <code>docs/prd/1/implementation-notes.html</code>,
+          <code>docs/notes/prd-1-issue-17-red-contract-e2e.md</code>,
+          <code>tests/e2e/red_contract_gaps_test.rs</code>,
+          <code>docs/reference/commands/import.md</code>,
+          <code>docs/reference/mutation-semantics.md</code>, and current import CLI/source/tests.
+        </li>
+        <li>
+          决策：<code>import --into --apply --backup</code> 在替换 workbook 前创建
+          sibling <code>.xmind-backups</code> 备份；候选 workbook 仍通过既有
+          write-then-validate-then-replace helper 写入，因此写入失败时原文件保持安全。
+        </li>
+        <li>
+          决策：<code>--dry-run --backup</code> 只展示计划，不创建备份目录、不改变
+          workbook；输入或 selector preflight 失败也不会创建备份。
+        </li>
+        <li>
+          验证范围：补充 CLI integration tests 覆盖 backup、dry-run、invalid input
+          和 <code>--output --backup</code> 拒绝路径；issue #22 red E2E 已改为默认绿测。
+        </li>
+      </ul>
+    </section>
+
+    <section class="entry">
       <h2>Current Risks</h2>
       <ul>
         <li>
           当前文档同步测试偏向 help/schema/stale-surface 检查，不能发现
-          <code>diff</code> noop、<code>validate</code> shallow success、
+          <code>validate</code> shallow success、
           <code>patch --apply</code> 拒绝等行为级缺口；新 slice 需要先补红灯测试。
           Slice #17 已将这些缺口记录为独立 ignored E2E 目标
           <code>e2e_red_contract_gaps</code>。Slice #18 已解除并修复
@@ -209,13 +226,40 @@
       <h2>Open Questions</h2>
       <ul>
         <li>
-          <code>import --into</code> 的 backup 语义应补实现还是收窄文档？当前更符合
-          全局 mutation 规则的方向是给 <code>import --into</code> 增加
-          <code>--backup</code>，同时保持 <code>import --output</code> 无 backup。
+          当前没有需要用户立即确认的新问题；branch protection 和真实 XMind fixture
+          仍分别由 #3 与 #11 保持 human-gated。
+        </li>
+      </ul>
+    </section>
+
+    <section class="entry">
+      <h2>Slice #20: Diff Contract</h2>
+      <ul>
+        <li>
+          Source Manifest: GitHub issue <code>#20</code>, Parent PRD
+          <code>#1</code>, <code>docs/prd/1/implementation-notes.html</code>,
+          <code>docs/notes/prd-1-issue-17-red-contract-e2e.md</code>,
+          <code>tests/e2e/red_contract_gaps_test.rs</code>,
+          <code>tests/e2e/pr_subset_test.rs</code>,
+          <code>docs/reference/commands/diff.md</code>,
+          <code>src/app/mod.rs</code>, <code>src/render/diff.rs</code>,
+          <code>~/.agents/docs/agents/workflows.md</code>, and
+          <code>~/.agents/docs/agents/handoff-policy.md</code>.
         </li>
         <li>
-          <code>diff</code> 的最终用户输入形态仍需在实现前确认：当前文档只有单 workbook
-          参数，后续应明确是 self-diff、workbook-vs-workbook，还是 patch preview 辅助命令。
+          决策：<code>xmind diff &lt;workbook&gt;</code> 的当前公开输入形态收敛为单
+          workbook surface；它读取并校验 workbook、尊重全局 sheet selector，并输出
+          documented <code>summary</code> + <code>changes</code> envelope。它不在本 slice
+          中新增 workbook-vs-workbook compare 或 patch preview 语义。
+        </li>
+        <li>
+          偏差/权衡：单 workbook 无外部比较基线，因此当前成功结果是
+          <code>summary</code> 全 0 且 <code>changes: []</code>；planned-operation review
+          继续使用 <code>patch --dry-run --json</code>。
+        </li>
+        <li>
+          风险：如果后续需要真正的 workbook-vs-workbook diff，应作为新输入模式和新
+          E2E 用例扩展，不能复用当前单 workbook 语义偷偷改变输出含义。
         </li>
       </ul>
     </section>

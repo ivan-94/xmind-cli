@@ -3,12 +3,16 @@
 ## Source Manifest
 
 - Conversation: XMind CLI product design discussion
+- GitHub issue #20: Finalize diff command contract and implementation
 - Scope: Command reference for comparing workbooks or planned operations
-- Last updated: 2026-05-22
+- Last updated: 2026-05-23
 
 ## Purpose
 
 Show structural differences for the workbook in the currently implemented diff surface.
+The current public input mode is a single workbook path; it validates and loads the
+workbook, applies any global sheet selector, and reports the structural changes
+visible to this surface. It does not compare two workbooks.
 
 ## Synopsis
 
@@ -31,23 +35,33 @@ xmind diff [options] <workbook.xmind>
   "applied": false,
   "result": {
     "summary": {
-      "added": 2,
-      "updated": 1,
+      "added": 0,
+      "updated": 0,
       "deleted": 0,
-      "moved": 1
+      "moved": 0
     },
     "changes": []
   }
 }
 ```
 
+Human output is concise:
+
+```text
+roadmap.xmind: no changes
+```
+
 ## Errors
 
 - `file_not_found`
 - `parse_failed`
-- `invalid_patch`
 - `invalid_usage`
+- `sheet_not_found`
+- `ambiguous_sheet`
 
 ## Notes for Agents
 
 Use `patch --dry-run --json` when reviewing generated patch files before applying them.
+Use `patch --dry-run --json` or future compare-specific commands for planned-operation
+or workbook-vs-workbook review; `diff` itself intentionally remains the single-workbook
+surface documented above.
