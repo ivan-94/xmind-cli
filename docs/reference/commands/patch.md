@@ -3,8 +3,10 @@
 ## Source Manifest
 
 - Conversation: XMind CLI product design discussion
+- GitHub issue #19: patch apply transactional writer
+- GitHub issue #23: final documentation synchronization
 - Scope: Command reference for declarative batch operations
-- Last updated: 2026-05-22
+- Last updated: 2026-05-23
 
 ## Purpose
 
@@ -61,10 +63,15 @@ Accepted aliases: `delete_tree`, `move_tree`, and `clone_tree`. Agents should ge
     },
     "operations": [
       { "index": 0, "op": "add_tree", "status": "applied" }
-    ]
+    ],
+    "backup_path": ".xmind-backups/roadmap-20260523T120000.xmind"
   }
 }
 ```
+
+`patch --apply` plans every operation against an in-memory working copy before
+any file write. If a later operation fails, the original workbook is left
+untouched and the JSON error includes the failing `operation_index` when known.
 
 ## Errors
 

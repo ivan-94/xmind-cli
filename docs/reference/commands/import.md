@@ -3,8 +3,10 @@
 ## Source Manifest
 
 - Conversation: XMind CLI product design discussion
+- GitHub issue #22: import --into backup safety
+- GitHub issue #23: final documentation synchronization
 - Scope: Command reference for importing structured content
-- Last updated: 2026-05-22
+- Last updated: 2026-05-23
 
 ## Purpose
 
@@ -42,7 +44,8 @@ xmind import [options] --input tree.yaml --into roadmap.xmind --parent "path:/Q2
     "output": "roadmap.xmind",
     "summary": {
       "added": 12
-    }
+    },
+    "backup_path": ".xmind-backups/roadmap-20260523T120000.xmind"
   }
 }
 ```
@@ -56,7 +59,7 @@ xmind import [options] --input tree.yaml --into roadmap.xmind --parent "path:/Q2
 
 ## Output and Overwrite Behavior
 
-`--output` creates a new workbook and fails if the target exists unless `--overwrite` is present. `--backup` with `--output` is rejected because there is no existing workbook to protect. `--into` mutates an existing workbook and follows the normal `--dry-run | --apply` and `--backup` rules.
+`--output` creates a new workbook and fails if the target exists unless `--overwrite` is present. `--backup` with `--output` is rejected because there is no existing workbook to protect. `--into` mutates an existing workbook and follows the normal `--dry-run | --apply` and `--backup` rules. For `--into --apply --backup`, `result.backup_path` points at the backup created after input and selector preflight succeeds and before the workbook is replaced.
 
 ## Dry Run Behavior
 

@@ -44,6 +44,9 @@
       <h2>Source Manifest</h2>
       <ul>
         <li><code>PLAN.md</code>: 当前实现 backlog 与新增审计闭环 slice 来源。</li>
+        <li>
+          GitHub issue <code>#23</code>: Sync documentation after Phase 17 command closures.
+        </li>
         <li><code>AGENTS.md</code>: 要求持续维护本文件。</li>
         <li>
           <code>docs/reference/</code> 与 <code>docs/concepts/</code>:
@@ -120,14 +123,16 @@
           布局或所有未知 relationship 变体的完整语义验证。
         </li>
         <li>
-          <code>PLAN.md</code> 的部分 checkbox 和 Definition of Done 已按历史进度
-          标记完成，但从文档全量实现角度看过度乐观；真实剩余范围已整理到新的
-          post-audit slice。
+          Phase 17 命令契约闭环已完成：<code>add-tree --apply</code>,
+          <code>patch --apply</code>, <code>diff --json</code>,
+          <code>validate --strict</code> 和 <code>import --into --backup</code>
+          都有默认测试覆盖。后续不要再把这些行为当成 planned drift。
         </li>
         <li>
-          GitHub 发布、branch protection 和完整 E2E 覆盖仍只是计划，尚未实现；
-          README 用户入口和安装脚本已由 PRD #1 slice #8 更新。Homebrew tap path
-          已预留为 <code>ivan-94/homebrew-tap</code>，但仍是 future install channel。
+          GitHub Release workflow、install script、README 用户入口和 E2E 覆盖矩阵
+          已按 PRD #1 slices 落地；branch protection 仍需 maintainer 权限启用。
+          Homebrew tap path 已预留为 <code>ivan-94/homebrew-tap</code>，但仍是 future
+          install channel，不提供可执行 <code>brew install</code> 指令。
         </li>
       </ul>
     </section>
@@ -178,8 +183,8 @@
         </li>
         <li>
           权衡：本 slice 不补新的命令 E2E 行为测试，只给覆盖报告增加守护测试。
-          具体 batch/exchange/recovery E2E 扩展仍由 <code>#15</code> 执行，最终
-          docs/PLAN 同步由 <code>#23</code> 执行。
+          后续 <code>#15</code> 已补齐 batch/exchange/recovery/shell integration
+          用户维度覆盖；<code>#23</code> 负责将本文件、PLAN 和 E2E 文档同步到该状态。
         </li>
       </ul>
     </section>
@@ -239,6 +244,10 @@
           的命令从 <code>tests/fixtures/xmind/*.xmind</code> 复制后再执行，并断言源 fixture
           未变化。
         </li>
+        <li>
+          验证入口：<code>tests/e2e/batch_exchange_recovery_test.rs</code> 是该覆盖的
+          权威测试文件，覆盖报告不再将 <code>#15</code> 作为 TODO。
+        </li>
       </ul>
     </section>
 
@@ -276,9 +285,9 @@
           slice 应保持约 500 行代码以内，并用公共 CLI 行为测试覆盖。
         </li>
         <li>
-          当前本机 Homebrew Rust 无法加载
-          <code>/opt/homebrew/opt/llvm/lib/libunwind.1.dylib</code>，导致
-          <code>cargo</code> 直接 abort；在修复工具链前，无法给出新的本地质量门证据。
+          本机历史上 Homebrew Rust 会因 <code>libunwind</code> /
+          <code>libLLVM</code> 组合问题崩溃；当前验证应统一使用
+          <code>PATH=/opt/homebrew/opt/rustup/bin:$PATH</code>，该路径已能运行本地质量门。
         </li>
         <li>
           发布流程计划使用 <code>cargo-dist</code>/<code>dist</code>。这能降低多平台
@@ -305,6 +314,37 @@
         <li>
           当前没有需要用户立即确认的新问题；branch protection 和真实 XMind fixture
           仍分别由 #3 与 #11 保持 human-gated。
+        </li>
+      </ul>
+    </section>
+
+    <section class="entry">
+      <h2>Slice #23: Final Documentation Synchronization</h2>
+      <ul>
+        <li>
+          Source Manifest: GitHub issue <code>#23</code>, parent PRD
+          <code>#1</code>, <code>PLAN.md</code>,
+          <code>docs/prd/1/implementation-notes.html</code>,
+          <code>docs/technical/e2e-test-plan.md</code>,
+          <code>docs/technical/e2e-coverage-report.md</code>,
+          <code>docs/reference/commands/*.md</code>,
+          <code>tests/cli/e2e_coverage_report_test.rs</code>,
+          <code>tests/e2e/red_contract_gaps_test.rs</code>, and
+          <code>tests/e2e/batch_exchange_recovery_test.rs</code>.
+        </li>
+        <li>
+          决策：本 slice 只同步文档和文档守卫测试，不新增 CLI 行为；Phase 17
+          closure 与 issue #15 E2E coverage 均以现有测试为事实来源。
+        </li>
+        <li>
+          验证：
+          <code>PATH=/opt/homebrew/opt/rustup/bin:$PATH cargo test --test e2e_coverage_report_test --all-features</code>,
+          <code>cargo test --test doc_examples_test --all-features</code>,
+          <code>cargo test --test definition_of_done_test --all-features</code>,
+          <code>cargo test --test e2e_red_contract_gaps --all-features</code>,
+          <code>cargo test --test e2e_batch_exchange_recovery --all-features</code>,
+          and <code>PATH=/opt/homebrew/opt/rustup/bin:$PATH ./scripts/quality-gate.sh</code>
+          all passed in this worktree.
         </li>
       </ul>
     </section>
