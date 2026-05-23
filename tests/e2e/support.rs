@@ -35,6 +35,31 @@ impl FixtureCopy {
             self.source
         );
     }
+
+    pub fn write_sibling(&self, file_name: &str, bytes: &[u8]) -> String {
+        let path = self
+            .path
+            .parent()
+            .expect("fixture copy has a parent temp dir")
+            .join(file_name);
+        fs::write(&path, bytes).expect("temporary sibling file is written");
+        path.to_string_lossy().into_owned()
+    }
+
+    pub fn assert_backup_matches_original(&self, body: &Value) {
+        let backup_path = body["result"]["backup_path"]
+            .as_str()
+            .expect("mutation with --backup returns result.backup_path");
+        assert!(
+            backup_path.contains(".xmind-backups"),
+            "backup path should use the mutation backup directory: {backup_path}"
+        );
+        assert_eq!(
+            fs::read(backup_path).expect("backup is readable"),
+            self.source_bytes,
+            "backup should contain the original copied workbook bytes"
+        );
+    }
 }
 
 pub fn copy_fixture(source: &'static str, file_name: &str) -> FixtureCopy {

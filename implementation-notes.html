@@ -212,5 +212,37 @@
         </li>
       </ul>
     </section>
+
+    <section class="entry">
+      <h2>Slice #14: Mutation E2E Coverage</h2>
+      <ul>
+        <li>
+          Source Manifest: GitHub issue <code>#14</code>, parent PRD
+          <code>#1</code>, <code>docs/prd/1/implementation-notes.html</code>,
+          <code>docs/technical/e2e-test-plan.md</code>,
+          <code>tests/fixtures/xmind/manifest.md</code>,
+          <code>docs/reference/commands/add.md</code>,
+          <code>docs/reference/commands/set.md</code>,
+          <code>docs/reference/commands/delete.md</code>,
+          <code>docs/reference/commands/move.md</code>,
+          <code>docs/reference/commands/copy.md</code>, and
+          <code>docs/reference/mutation-semantics.md</code>.
+        </li>
+        <li>
+          决策：mutation E2E 覆盖只扩展测试和测试辅助方法，不改变 CLI 行为；所有
+          apply 用例都写临时 fixture 副本、写后 validate，并断言 committed fixture
+          源文件字节保持不变。
+        </li>
+        <li>
+          决策：backup 断言比对备份文件内容等于变更前的临时 workbook 字节，同时检查
+          <code>.xmind-backups</code> 路径谓词。
+        </li>
+        <li>
+          风险：当前 <code>set</code> 多字段单次调用只应用首个字段；本 slice 按当前稳定
+          行为用多次 <code>set</code> 调用覆盖每个 editable field，未在覆盖 slice 中扩大
+          应用语义。
+        </li>
+      </ul>
+    </section>
   </body>
 </html>

@@ -360,5 +360,43 @@
         </li>
       </ul>
     </section>
+
+    <section class="entry">
+      <h2>Slice #14: Mutation E2E Coverage</h2>
+      <ul>
+        <li>
+          Source Manifest: GitHub issue <code>#14</code>, parent PRD
+          <code>#1</code>, <code>docs/technical/e2e-test-plan.md</code>,
+          <code>tests/fixtures/xmind/manifest.md</code>,
+          <code>docs/reference/commands/add.md</code>,
+          <code>docs/reference/commands/set.md</code>,
+          <code>docs/reference/commands/delete.md</code>,
+          <code>docs/reference/commands/move.md</code>,
+          <code>docs/reference/commands/copy.md</code>, and
+          <code>docs/reference/mutation-semantics.md</code>.
+        </li>
+        <li>
+          决策：issue #14 只补 E2E 覆盖，不改变 CLI 行为。新增测试继续使用
+          <code>e2e_pr_subset</code>，每个 apply 分支都复制 fixture 到临时目录、
+          写后运行 <code>validate --json</code>，并断言原始 committed fixture
+          字节未变化。
+        </li>
+        <li>
+          决策：backup 覆盖通过 JSON <code>result.backup_path</code> 定位备份文件，
+          并比对备份内容等于变更前的临时 workbook 字节，而不是只检查路径存在。
+        </li>
+        <li>
+          偏差/风险：当前 <code>set</code> 在同一次调用中传入多个字段时只应用首个
+          变更字段；本 slice 发现该行为但未修改应用逻辑。E2E 覆盖按当前稳定用户路径
+          将 title、note、labels、markers、hyperlink、image 和 clear 分成独立
+          <code>set</code> 调用。
+        </li>
+        <li>
+          夹具决策：image 覆盖继续使用现有 synthetic
+          <code>tests/fixtures/xmind/topic-image.xmind</code> 和测试内临时图片文件，
+          不等待 issue #11 的 real XMind App fixtures，也不新增 golden fixture。
+        </li>
+      </ul>
+    </section>
   </body>
 </html>
