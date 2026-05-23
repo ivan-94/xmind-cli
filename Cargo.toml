@@ -170,6 +170,10 @@ name = "e2e_pr_subset"
 path = "tests/e2e/pr_subset_test.rs"
 
 [[test]]
+name = "e2e_batch_exchange_recovery"
+path = "tests/e2e/batch_exchange_recovery_test.rs"
+
+[[test]]
 name = "e2e_full_matrix"
 path = "tests/e2e/full_matrix_test.rs"
 
