@@ -156,3 +156,69 @@ fn cargo_dist_release_contract_is_checked_in() {
         "changelog should mention cargo-dist release workflow"
     );
 }
+
+#[test]
+fn homebrew_tap_path_is_documented_as_future_channel_without_formula_automation() {
+    let cargo_toml = fs::read_to_string("Cargo.toml").expect("Cargo.toml is readable");
+    let release_workflow = fs::read_to_string(".github/workflows/release.yml")
+        .expect("cargo-dist release workflow should be checked in");
+    let release_policy =
+        fs::read_to_string("docs/technical/release-policy.md").expect("release policy is readable");
+    let installation =
+        fs::read_to_string("docs/installation.md").expect("installation doc is readable");
+    let readme = fs::read_to_string("README.md").expect("README is readable");
+
+    for expected in [
+        "ivan-94/homebrew-tap",
+        "future Homebrew",
+        "Homebrew formula checksums must come from the same published GitHub Release artifact checksums",
+        "brew audit --strict --online",
+        "brew test",
+        "xmind --version",
+    ] {
+        assert!(
+            release_policy.contains(expected),
+            "release policy should document Homebrew tap path detail `{expected}`"
+        );
+    }
+
+    for expected in [
+        "Homebrew tap",
+        "Planned",
+        "ivan-94/homebrew-tap",
+        "Formula publication waits for a verified GitHub Release artifact",
+    ] {
+        assert!(
+            readme.contains(expected),
+            "README should describe Homebrew future channel accurately with `{expected}`"
+        );
+    }
+
+    for expected in [
+        "Homebrew",
+        "future install channel",
+        "ivan-94/homebrew-tap",
+        "brew audit --strict --online",
+        "brew test",
+    ] {
+        assert!(
+            installation.contains(expected),
+            "installation doc should document Homebrew enablement condition `{expected}`"
+        );
+    }
+
+    for forbidden in [
+        r#""homebrew""#,
+        "publish-jobs",
+        "brew install ivan-94/tap/xmind-cli",
+        "brew install ivan-94/homebrew-tap/xmind",
+    ] {
+        assert!(
+            !cargo_toml.contains(forbidden)
+                && !release_workflow.contains(forbidden)
+                && !readme.contains(forbidden)
+                && !installation.contains(forbidden),
+            "Homebrew should remain a future channel until formula automation is validated; found `{forbidden}`"
+        );
+    }
+}

@@ -8,6 +8,7 @@
 - GitHub issue #5: `https://github.com/ivan-94/xmind-cli/issues/5`
 - GitHub issue #6: `https://github.com/ivan-94/xmind-cli/issues/6`
 - GitHub issue #8: `https://github.com/ivan-94/xmind-cli/issues/8`
+- GitHub issue #9: `https://github.com/ivan-94/xmind-cli/issues/9`
 - Release policy: `technical/release-policy.md`
 - Cargo-dist config: `../Cargo.toml` `[workspace.metadata.dist]`
 - Cargo-dist workflow: `../.github/workflows/release.yml`
@@ -150,6 +151,26 @@ changelog source of truth, release note updates, and checksum publication
 rules. The cargo-dist workflow publishes release archives with per-artifact `.sha256` checksum files from `v*` tags, then the GitHub Release job generates and uploads aggregate `SHA256SUMS` for script and manual verification. The first
 release does not publish to crates.io, and Homebrew instructions should appear
 here only after its release slice lands.
+
+## Future Homebrew Channel
+
+Homebrew is a future install channel, not an available installation path today.
+The planned tap repository is `ivan-94/homebrew-tap`.
+
+Enable Homebrew instructions only after all of these are true:
+
+1. A GitHub Release artifact exists for the formula URL.
+2. The formula checksum matches the published GitHub Release checksum for that artifact.
+3. The formula installs the `xmind` binary and its test runs `xmind --version`.
+4. The tap formula passes:
+
+```bash
+brew audit --strict --online
+brew test
+```
+
+Until those checks pass, install from source or use a verified GitHub Release
+download when one is available.
 
 ## Verify Release Automation Locally
 
