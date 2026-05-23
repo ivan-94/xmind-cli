@@ -6,6 +6,7 @@
 
 - GitHub issue #7: `https://github.com/ivan-94/xmind-cli/issues/7`
 - GitHub issue #5: `https://github.com/ivan-94/xmind-cli/issues/5`
+- GitHub issue #6: `https://github.com/ivan-94/xmind-cli/issues/6`
 - Parent PRD #1: `https://github.com/ivan-94/xmind-cli/issues/1`
 - `PLAN.md` Phase 18 release automation and Homebrew sections.
 - `Cargo.toml` `[workspace.metadata.dist]`
@@ -17,6 +18,7 @@
 - `docs/prd/1/implementation-notes.html`
 - User slice instruction on 2026-05-23: document policy only; do not implement cargo-dist, install script, Homebrew, or platform matrix.
 - User slice instruction on 2026-05-23 for issue #5: configure cargo-dist minimally for GitHub Releases from tags, generated checksums, changelog/release notes source, and no Homebrew requirement.
+- User slice instruction on 2026-05-23 for issue #6: define the release platform matrix, add binary smoke checks, keep full E2E separate, and do not implement install script or Homebrew.
 
 ### Produced Artifacts
 
@@ -39,7 +41,9 @@
 - Release artifacts publish one `SHA256SUMS` file containing SHA-256 digests for every downloadable binary archive and installer artifact.
 - crates.io publishing is out of scope for the first release.
 - issue #5 uses `cargo-dist` `0.31.0` with `ci = ["github"]`, `hosting = ["github"]`, `create-release = true`, and `installers = []`.
-- issue #5 intentionally configures only `x86_64-unknown-linux-gnu`; the final release platform matrix remains owned by the platform matrix slice.
+- issue #6 defines the first release binary matrix as macOS Apple Silicon, macOS Intel, Linux x86_64 GNU, and Windows x86_64 MSVC.
+- release jobs smoke-test each produced native binary with `xmind --version`, `xmind tree ... --json`, and `xmind validate ... --json`.
+- Full E2E matrix remains separate from release binary smoke checks.
 - cargo-dist emits per-artifact `.sha256` checksum files. The aggregate `SHA256SUMS` policy remains the user-facing checksum convention and may be assembled by a later release-polish slice if cargo-dist does not generate it directly.
 
 ### Verification Evidence
@@ -53,7 +57,7 @@
 
 ### Open Questions / Risks
 
-- Final multi-platform artifact names depend on the platform matrix slice.
+- Final multi-platform artifact names depend on cargo-dist output naming for the supported targets.
 - cargo-dist local verification requires installing `cargo-dist` 0.31.0 locally when it is not already present.
 - Homebrew formula checksum updates depend on published release artifact names.
 
@@ -127,21 +131,46 @@ Homebrew formula checksums must come from the same published GitHub Release arti
 
 The first checked-in cargo-dist configuration lives in `Cargo.toml` under `[workspace.metadata.dist]`.
 
-The issue #5 configuration is intentionally minimal:
+The issue #5 configuration starts the GitHub Release workflow. Issue #6 expands it to the first supported binary platform matrix:
 
 - `cargo-dist-version = "0.31.0"` pins the release automation generator.
 - `ci = ["github"]` and `hosting = ["github"]` make GitHub Actions and GitHub Releases the release path.
 - `create-release = true` keeps releases tag-driven from `v*` tags.
 - `checksum = "sha256"` publishes per-artifact `.sha256` checksum files.
 - `installers = []` avoids install script and Homebrew publication in this slice.
-- `targets = ["x86_64-unknown-linux-gnu"]` keeps this slice to the smallest cargo-dist-valid platform target. The final platform matrix belongs to the platform matrix slice.
+- `targets` contains `aarch64-apple-darwin`, `x86_64-apple-darwin`, `x86_64-unknown-linux-gnu`, and `x86_64-pc-windows-msvc`.
+
+## Supported Release Platforms
+
+The first GitHub Release binary matrix is:
+
+| Platform | cargo-dist target | Runner | Binary smoke |
+| --- | --- | --- | --- |
+| macOS Apple Silicon | `aarch64-apple-darwin` | `macos-14` | `xmind --version`, `xmind tree tests/fixtures/xmind/minimal.xmind --json`, `xmind validate tests/fixtures/xmind/minimal.xmind --json` |
+| macOS Intel | `x86_64-apple-darwin` | `macos-15-intel` | Same smoke commands |
+| Linux x86_64 GNU | `x86_64-unknown-linux-gnu` | `ubuntu-latest` | Same smoke commands |
+| Windows x86_64 MSVC | `x86_64-pc-windows-msvc` | `windows-latest` | Same smoke commands |
+
+The smoke suite proves the produced binary starts, reports its version, reads a minimal workbook tree as JSON, and validates the same workbook as JSON. It is intentionally not the full E2E matrix; command-by-command coverage remains in the Rust E2E suite and its release/nightly expansion.
+
+## Unsupported Platforms
+
+Do not imply downloadable release support for platforms outside the table above. In particular, the first release does not promise Linux arm64, Linux musl/static builds, macOS universal binaries, 32-bit Windows, Windows GNU, package managers, install script delivery, Homebrew, crates.io, or container images.
+
+Users on unsupported platforms may build from source with Rust when their target is compatible with the codebase, but those builds are not release artifacts until a later platform slice adds them to the supported matrix and smoke checks.
 
 Local verification commands:
 
 ```bash
 cargo install cargo-dist --version 0.31.0 --locked
 cargo dist plan
+cargo dist build --artifacts=local --target aarch64-apple-darwin
+cargo dist build --artifacts=local --target x86_64-apple-darwin
 cargo dist build --artifacts=local --target x86_64-unknown-linux-gnu
+cargo dist build --artifacts=local --target x86_64-pc-windows-msvc
+xmind --version
+xmind tree tests/fixtures/xmind/minimal.xmind --json
+xmind validate tests/fixtures/xmind/minimal.xmind --json
 ```
 
 ## First Release Non-Goals
@@ -149,4 +178,4 @@ cargo dist build --artifacts=local --target x86_64-unknown-linux-gnu
 - Do not publish to crates.io for the first release.
 - Do not promise Homebrew availability before the tap formula is merged.
 - Do not document an install script as available before issue #8 implements and verifies it.
-- Do not freeze the final platform matrix in this policy; use the platform matrix slice as the source of truth once it lands.
+- Do not add release artifact support beyond the issue #6 platform matrix without matching smoke checks and documentation.

@@ -6,6 +6,7 @@
 - Scope: Local and release installation instructions
 - GitHub issue #7: `https://github.com/ivan-94/xmind-cli/issues/7`
 - GitHub issue #5: `https://github.com/ivan-94/xmind-cli/issues/5`
+- GitHub issue #6: `https://github.com/ivan-94/xmind-cli/issues/6`
 - Release policy: `technical/release-policy.md`
 - Cargo-dist config: `../Cargo.toml` `[workspace.metadata.dist]`
 - Cargo-dist workflow: `../.github/workflows/release.yml`
@@ -55,8 +56,17 @@ target/release/xmind --version
 
 ## Verify GitHub Release Downloads
 
-When GitHub Release artifacts are available, download both the artifact and
-the `SHA256SUMS` file from the same release page.
+When GitHub Release artifacts are available, choose the artifact for one of the
+supported release platforms:
+
+| Platform | Target |
+| --- | --- |
+| macOS Apple Silicon | `aarch64-apple-darwin` |
+| macOS Intel | `x86_64-apple-darwin` |
+| Linux x86_64 GNU | `x86_64-unknown-linux-gnu` |
+| Windows x86_64 MSVC | `x86_64-pc-windows-msvc` |
+
+Download both the artifact and the `SHA256SUMS` file from the same release page.
 
 From the download directory:
 
@@ -65,6 +75,20 @@ shasum -a 256 -c SHA256SUMS
 ```
 
 Run the binary only after the downloaded artifact reports `OK`.
+
+Smoke-test the downloaded binary before using it on real workbooks:
+
+```bash
+xmind --version
+xmind tree tests/fixtures/xmind/minimal.xmind --json
+xmind validate tests/fixtures/xmind/minimal.xmind --json
+```
+
+The first GitHub Release does not publish Linux arm64, Linux musl/static builds,
+macOS universal binaries, 32-bit Windows, Windows GNU, crates.io packages,
+container images, Homebrew formulae, or install script artifacts. Homebrew and
+install script instructions will be added only after their separate release
+slices land.
 
 The release policy in `technical/release-policy.md` defines version tags,
 changelog source of truth, release note updates, and checksum publication
@@ -90,7 +114,10 @@ cargo dist plan
 Build local release artifacts without creating a GitHub Release:
 
 ```bash
+cargo dist build --artifacts=local --target aarch64-apple-darwin
+cargo dist build --artifacts=local --target x86_64-apple-darwin
 cargo dist build --artifacts=local --target x86_64-unknown-linux-gnu
+cargo dist build --artifacts=local --target x86_64-pc-windows-msvc
 ```
 
 ## Shell Completion

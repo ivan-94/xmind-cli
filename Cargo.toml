@@ -15,8 +15,8 @@ inherits = "release"
 lto = "thin"
 
 [workspace.metadata.dist]
-# Source Manifest: GitHub issue #5, parent PRD #1, PLAN.md Phase 18, docs/technical/release-policy.md, docs/installation.md, CHANGELOG.md.
-# Keep issue #5 minimal: GitHub Release archives/checksums only. Install script, Homebrew, and the final platform matrix are separate slices.
+# Source Manifest: GitHub issues #5 and #6, parent PRD #1, PLAN.md Phase 18, docs/technical/release-policy.md, docs/installation.md, CHANGELOG.md.
+# Keep release automation to GitHub Release archives/checksums plus platform smoke checks. Install script and Homebrew are separate slices.
 cargo-dist-version = "0.31.0"
 ci = ["github"]
 hosting = ["github"]
@@ -24,7 +24,12 @@ installers = []
 checksum = "sha256"
 create-release = true
 pr-run-mode = "plan"
-targets = ["x86_64-unknown-linux-gnu"]
+targets = [
+  "aarch64-apple-darwin",
+  "x86_64-apple-darwin",
+  "x86_64-unknown-linux-gnu",
+  "x86_64-pc-windows-msvc",
+]
 
 [package.metadata.xmind-cli]
 spec_sources = [

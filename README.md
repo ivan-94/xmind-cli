@@ -6,6 +6,7 @@
 
 - GitHub PRD: <https://github.com/ivan-94/xmind-cli/issues/1>
 - GitHub issue: <https://github.com/ivan-94/xmind-cli/issues/2>
+- GitHub issue: <https://github.com/ivan-94/xmind-cli/issues/6>
 - `PLAN.md`: Phase 18 GitHub bootstrap, repository positioning, install channels, and release/E2E scope.
 - `docs/prd/1/implementation-notes.html`: PRD #1 slice workflow, current decisions, and verification baseline.
 - `docs/README.md`: documentation map and product posture.
@@ -75,11 +76,16 @@ The project is unofficial and is not endorsed by or affiliated with XMind.
 | --- | --- | --- |
 | Cargo source install | Available today | `cargo install --path .` |
 | Local release build | Available today | `cargo build --workspace --release`, then run `target/release/xmind` |
-| GitHub release binaries | Planned | Will be published from GitHub Releases after release automation lands. |
+| GitHub release binaries | Planned | First matrix: macOS Apple Silicon, macOS Intel, Linux x86_64 GNU, and Windows x86_64 MSVC. |
 | Install script | Planned | Will be documented after the script is added and release artifacts are stable. |
 | Homebrew tap | Planned | Expected path is `ivan-94/homebrew-tap`; formula publication is a separate follow-up. |
 
 See [docs/installation.md](docs/installation.md) for current local install, release build, shell completion, and verification commands.
+
+The first binary release matrix does not imply support for Linux arm64,
+Linux musl/static builds, macOS universal binaries, 32-bit Windows,
+Windows GNU, crates.io packages, container images, Homebrew, or install script
+artifacts.
 
 ## Quick Start
 

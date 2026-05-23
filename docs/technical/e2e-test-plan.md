@@ -13,6 +13,7 @@
   - Generate golden fixtures from the real XMind App where possible, including via Computer Use.
 - `PLAN.md`: implementation backlog and post-audit contract closure plan.
 - GitHub issue #10: fixture manifest and governance rules slice.
+- GitHub issue #6: release platform matrix and binary smoke checks.
 - `docs/reference/commands/*.md`: command behavior and option contracts.
 - `docs/reference/mutation-semantics.md`: dry-run, apply, backup, and transactional write rules.
 - `docs/reference/output-formats.md`: JSON envelope and human output contracts.
@@ -143,6 +144,8 @@ Release smoke is separate:
 - run `xmind --version`,
 - run `xmind tree tests/fixtures/xmind/minimal.xmind --json`,
 - run `xmind validate tests/fixtures/xmind/minimal.xmind --json`.
+- run those smoke checks for the supported release binary targets documented in
+  `docs/technical/release-policy.md`.
 
 ## Assertion Strategy
 
