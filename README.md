@@ -7,6 +7,7 @@
 - GitHub PRD: <https://github.com/ivan-94/xmind-cli/issues/1>
 - GitHub issue: <https://github.com/ivan-94/xmind-cli/issues/2>
 - GitHub issue: <https://github.com/ivan-94/xmind-cli/issues/6>
+- GitHub issue: <https://github.com/ivan-94/xmind-cli/issues/9>
 - `PLAN.md`: Phase 18 GitHub bootstrap, repository positioning, install channels, and release/E2E scope.
 - `docs/prd/1/implementation-notes.html`: PRD #1 slice workflow, current decisions, and verification baseline.
 - `docs/README.md`: documentation map and product posture.
@@ -28,6 +29,7 @@
 - Position the repository as the public GitHub entrypoint for `ivan-94/xmind-cli` while the executable remains `xmind`.
 - State that this is an unofficial XMind CLI and is not affiliated with XMind.
 - Describe planned release channels without presenting unreleased binaries, scripts, or Homebrew formulae as available.
+- Reserve `ivan-94/homebrew-tap` as the future Homebrew tap, but do not present it as installable before a verified formula exists.
 
 ### Verification evidence
 
@@ -78,7 +80,7 @@ The project is unofficial and is not endorsed by or affiliated with XMind.
 | Local release build | Available today | `cargo build --workspace --release`, then run `target/release/xmind` |
 | GitHub release binaries | Planned | First matrix: macOS Apple Silicon, macOS Intel, Linux x86_64 GNU, and Windows x86_64 MSVC. |
 | Install script | Planned | Will be documented after the script is added and release artifacts are stable. |
-| Homebrew tap | Planned | Expected path is `ivan-94/homebrew-tap`; formula publication is a separate follow-up. |
+| Homebrew tap | Planned | Expected path is `ivan-94/homebrew-tap`. Formula publication waits for a verified GitHub Release artifact, checksum, and passing formula audit/test. |
 
 See [docs/installation.md](docs/installation.md) for current local install, release build, shell completion, and verification commands.
 

@@ -138,8 +138,41 @@
           post-audit slice。
         </li>
         <li>
-          GitHub 发布、branch protection、Homebrew tap、README 用户入口和完整 E2E
-          覆盖仍只是计划，尚未实现。
+          GitHub 发布、branch protection、README 用户入口和完整 E2E
+          覆盖仍只是计划，尚未实现。Homebrew tap path 已预留为
+          <code>ivan-94/homebrew-tap</code>，但仍是 future install channel。
+        </li>
+      </ul>
+    </section>
+
+    <section class="entry">
+      <h2>Slice #9: Homebrew Tap Publication Path</h2>
+      <ul>
+        <li>
+          Source Manifest: GitHub issue <code>#9</code>, Parent PRD
+          <code>#1</code>, <code>README.md</code>,
+          <code>docs/installation.md</code>,
+          <code>docs/technical/release-policy.md</code>,
+          <code>docs/prd/1/implementation-notes.html</code>,
+          <code>tests/cli/release_workflow_test.rs</code>,
+          <code>~/.agents/docs/agents/workflows.md</code>, and
+          <code>~/.agents/docs/agents/handoff-policy.md</code>.
+        </li>
+        <li>
+          决策：tap repository 预留为
+          <code>ivan-94/homebrew-tap</code>；README 与安装文档只把它标为
+          planned/future channel，不提供 <code>brew install</code> 命令。
+        </li>
+        <li>
+          权衡：cargo-dist 已有 release workflow 和 per-artifact checksum 配置，
+          但本 slice 没有真实 GitHub Release artifact 可用于 formula URL/checksum
+          验证，因此不加入 Homebrew 自动化，避免把未验证渠道写成可用。
+        </li>
+        <li>
+          后续启用条件：formula 必须安装 <code>xmind</code>，测试
+          <code>xmind --version</code>，并通过
+          <code>brew audit --strict --online</code> 与 <code>brew test</code>；
+          checksum 必须来自同一 GitHub Release artifact。
         </li>
       </ul>
     </section>

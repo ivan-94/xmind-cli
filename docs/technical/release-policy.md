@@ -7,6 +7,7 @@
 - GitHub issue #7: `https://github.com/ivan-94/xmind-cli/issues/7`
 - GitHub issue #5: `https://github.com/ivan-94/xmind-cli/issues/5`
 - GitHub issue #6: `https://github.com/ivan-94/xmind-cli/issues/6`
+- GitHub issue #9: `https://github.com/ivan-94/xmind-cli/issues/9`
 - Parent PRD #1: `https://github.com/ivan-94/xmind-cli/issues/1`
 - `PLAN.md` Phase 18 release automation and Homebrew sections.
 - `Cargo.toml` `[workspace.metadata.dist]`
@@ -19,6 +20,7 @@
 - User slice instruction on 2026-05-23: document policy only; do not implement cargo-dist, install script, Homebrew, or platform matrix.
 - User slice instruction on 2026-05-23 for issue #5: configure cargo-dist minimally for GitHub Releases from tags, generated checksums, changelog/release notes source, and no Homebrew requirement.
 - User slice instruction on 2026-05-23 for issue #6: define the release platform matrix, add binary smoke checks, keep full E2E separate, and do not implement install script or Homebrew.
+- User slice instruction on 2026-05-23 for issue #9: choose a conservative Homebrew path, document tap ownership and enablement conditions, and do not claim Homebrew is currently available without a verifiable release artifact.
 
 ### Produced Artifacts
 
@@ -45,6 +47,7 @@
 - release jobs smoke-test each produced native binary with `xmind --version`, `xmind tree ... --json`, and `xmind validate ... --json`.
 - Full E2E matrix remains separate from release binary smoke checks.
 - cargo-dist emits per-artifact `.sha256` checksum files. The aggregate `SHA256SUMS` policy remains the user-facing checksum convention and may be assembled by a later release-polish slice if cargo-dist does not generate it directly.
+- `ivan-94/homebrew-tap` is the reserved future Homebrew tap repository. Formula automation is deferred until a published release artifact, matching checksum, and formula audit/test path are available.
 
 ### Verification Evidence
 
@@ -60,6 +63,7 @@
 - Final multi-platform artifact names depend on cargo-dist output naming for the supported targets.
 - cargo-dist local verification requires installing `cargo-dist` 0.31.0 locally when it is not already present.
 - Homebrew formula checksum updates depend on published release artifact names.
+- Homebrew remains a future Homebrew channel until the tap formula can be tested against a real GitHub Release artifact.
 
 ## Versioning
 
@@ -172,6 +176,37 @@ xmind --version
 xmind tree tests/fixtures/xmind/minimal.xmind --json
 xmind validate tests/fixtures/xmind/minimal.xmind --json
 ```
+
+## Future Homebrew Tap
+
+The planned Homebrew tap repository is `ivan-94/homebrew-tap`. The repository
+name follows Homebrew tap convention while keeping ownership under the same
+GitHub account as `ivan-94/xmind-cli`.
+
+Homebrew is not an active install channel for the first release. Do not add
+`"homebrew"` installers, tap publish jobs, or README install commands until a
+formula can be verified against a real GitHub Release artifact.
+
+Enable the tap only when all of these conditions are true:
+
+1. A versioned GitHub Release artifact exists for the macOS formula URL.
+2. The formula `sha256` is copied from the same published GitHub Release
+   artifact checksum. Homebrew formula checksums must come from the same
+   published GitHub Release artifact checksums; do not invent or manually
+   diverge checksum values.
+3. The formula installs the `xmind` binary.
+4. The formula test runs `xmind --version`.
+5. The formula passes:
+
+```bash
+brew audit --strict --online
+brew test
+```
+
+The formula update path should set the version, URL, and checksum from the
+published release metadata in one change. If those inputs are unavailable,
+leave Homebrew documented as planned rather than publishing a placeholder
+formula.
 
 ## First Release Non-Goals
 

@@ -290,6 +290,39 @@
     </section>
 
     <section class="entry">
+      <h2>Slice #9: Homebrew Tap Publication Path</h2>
+      <ul>
+        <li>
+          Source Manifest: GitHub issue <code>#9</code>, Parent PRD
+          <code>#1</code>, <code>README.md</code>,
+          <code>docs/installation.md</code>,
+          <code>docs/technical/release-policy.md</code>,
+          <code>tests/cli/release_workflow_test.rs</code>,
+          <code>implementation-notes.html</code>,
+          <code>~/.agents/docs/agents/workflows.md</code>, and
+          <code>~/.agents/docs/agents/handoff-policy.md</code>.
+        </li>
+        <li>
+          决策：Homebrew tap ownership 预留为
+          <code>ivan-94/homebrew-tap</code>，与主仓库
+          <code>ivan-94/xmind-cli</code> 保持同一 GitHub owner。
+        </li>
+        <li>
+          保守路径：当前没有可在本 slice 中验证的真实 GitHub Release artifact
+          和 formula 路径，因此不新增 Homebrew formula、cargo-dist
+          <code>"homebrew"</code> installer 或 tap publish job。
+        </li>
+        <li>
+          启用条件：后续只有在存在 versioned release artifact、公式 URL 与
+          checksum 可从同一 release 校验、formula 安装 <code>xmind</code> binary
+          并通过 <code>brew audit --strict --online</code> 与
+          <code>brew test</code> 后，才能把 Homebrew 从 planned 改为 active
+          install channel。
+        </li>
+      </ul>
+    </section>
+
+    <section class="entry">
       <h2>Slice #12: Rust E2E Harness</h2>
       <ul>
         <li>
