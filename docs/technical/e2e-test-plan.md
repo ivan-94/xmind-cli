@@ -38,7 +38,10 @@
 
 ### Verification Evidence
 
-- Current repository already contains real `.xmind` fixtures under `tests/fixtures/xmind/`.
+- Current repository contains committed `.xmind` fixtures under
+  `tests/fixtures/xmind/`, but the valid fixtures are currently
+  `synthetic-generated`; issue #11 records the human-gated path for adding
+  XMind App-saved `real-xmind-app` fixtures.
 - Current repository already has CLI integration tests under `tests/cli/`.
 - No new test command was executed while writing this planning document; this document defines future work.
 
