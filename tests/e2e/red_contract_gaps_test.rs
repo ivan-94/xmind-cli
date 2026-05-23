@@ -194,7 +194,6 @@ fn diff_json_emits_documented_summary_and_changes_envelope() {
 }
 
 #[test]
-#[ignore = "red contract test for PRD #1 issue #17; enable while implementing issue #21"]
 fn validate_strict_reports_structural_diagnostics() {
     let temp_dir = tempfile::tempdir().expect("temp dir is created for structural fixture");
     let workbook = temp_dir.path().join("duplicate-topic-id.xmind");

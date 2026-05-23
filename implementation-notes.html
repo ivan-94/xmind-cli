@@ -128,9 +128,9 @@
           summary/changes envelope。
         </li>
         <li>
-          <code>validate --strict</code> 当前只验证 workbook 能被读取，并固定返回
-          <code>valid: true</code>、空 warnings/errors；尚未实现命令参考列出的
-          topic id、排序、required fields、unknown preservation 等完整检查。
+          <code>validate</code> 已具备第一层结构诊断和
+          <code>--strict</code> warning failure，但仍未扩展到 XMind App 私有视觉、
+          布局或所有未知 relationship 变体的完整语义验证。
         </li>
         <li>
           <code>import --into</code> 文档称应遵循 normal mutation backup 规则，但
@@ -154,7 +154,7 @@
       <ul>
         <li>
           当前文档同步测试偏向 help/schema/stale-surface 检查，不能发现
-          <code>diff</code> noop、<code>validate</code> shallow success、
+          <code>diff</code> noop、旧版本 <code>validate</code> shallow success、
           <code>patch --apply</code> 拒绝等行为级缺口；新 slice 需要先补红灯测试。
           Slice #17 已将这些缺口记录为独立 ignored E2E 目标
           <code>e2e_red_contract_gaps</code>，默认质量门保持绿色，后续 #18-#22
@@ -219,6 +219,36 @@
         <li>
           <code>diff</code> 的最终用户输入形态仍需在实现前确认：当前文档只有单 workbook
           参数，后续应明确是 self-diff、workbook-vs-workbook，还是 patch preview 辅助命令。
+        </li>
+      </ul>
+    </section>
+
+    <section class="entry">
+      <h2>Slice #21: Validate Structural Diagnostics</h2>
+      <ul>
+        <li>
+          Source Manifest: GitHub issue <code>#21</code>, parent PRD <code>#1</code>,
+          <code>docs/prd/1/implementation-notes.html</code>,
+          <code>docs/reference/commands/validate.md</code>,
+          <code>docs/technical/e2e-test-plan.md</code>,
+          <code>tests/e2e/red_contract_gaps_test.rs</code>,
+          <code>tests/e2e/pr_subset_test.rs</code>,
+          <code>src/app/validate.rs</code>, and <code>src/app/mod.rs</code>.
+        </li>
+        <li>
+          决策：<code>validate</code> 使用 raw package/raw JSON 结构检查报告
+          <code>validation_failed</code>，覆盖缺失 <code>content.json</code>、缺失
+          root topic、重复 topic id、broken relationships，以及缺失 image resource
+          warning；invalid zip/JSON 和 unsupported legacy variant 保持既有错误码。
+        </li>
+        <li>
+          配套修复：tree input 自动生成 topic id 时现在会为重复标题或空标题添加唯一
+          后缀，避免 <code>import --output</code> 生成会被新 validate 规则拒绝的 workbook。
+        </li>
+        <li>
+          风险：relationship 诊断按当前 fixture 与常见 <code>end1Id</code> /
+          <code>end2Id</code> 结构实现，未尝试覆盖 XMind App 可能存在的所有私有
+          relationship 形态。
         </li>
       </ul>
     </section>

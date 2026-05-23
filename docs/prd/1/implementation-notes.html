@@ -470,5 +470,51 @@
         </li>
       </ul>
     </section>
+
+    <section class="entry">
+      <h2>Slice #21: Validate Structural Diagnostics</h2>
+      <ul>
+        <li>
+          Source Manifest: GitHub issue <code>#21</code>, parent PRD <code>#1</code>,
+          <code>AGENTS.md</code>, <code>~/.agents/docs/agents/workflows.md</code>,
+          <code>~/.agents/docs/agents/handoff-policy.md</code>,
+          <code>/Users/ivan/.agents/skills/tdd/SKILL.md</code>,
+          <code>docs/notes/prd-1-issue-17-red-contract-e2e.md</code>,
+          <code>docs/reference/commands/validate.md</code>,
+          <code>docs/technical/e2e-test-plan.md</code>,
+          <code>tests/e2e/red_contract_gaps_test.rs</code>,
+          <code>tests/e2e/pr_subset_test.rs</code>, and validate implementation files under
+          <code>src/app/</code>.
+        </li>
+        <li>
+          决策：<code>validate</code> 现在先读取 raw package 与 raw
+          <code>content.json</code>，再做结构诊断；这样缺失
+          <code>content.json</code>、缺失 sheet/root topic 必填字段、重复 topic id
+          和 broken relationship reference 不会在 domain decode 阶段被吞掉或提前失败。
+        </li>
+        <li>
+          决策：invalid zip/invalid JSON 继续使用既有 <code>parse_failed</code>，
+          <code>content.xml</code> 旧格式继续使用 <code>unsupported_format</code>；
+          能读取 package 但结构不完整的 workbook 使用 <code>validation_failed</code>
+          并在 <code>result.errors</code> / <code>result.warnings</code> 中给出诊断。
+        </li>
+        <li>
+          决策：缺失 image resource 先作为 warning；普通 validate 返回
+          <code>valid: true</code> 并携带 warning，<code>--strict</code> 将 warning
+          提升为 exit 9 的 <code>validation_failed</code>。本 slice 未扩展到视觉、
+          布局或 XMind App 私有语义验证。
+        </li>
+        <li>
+          配套修复：公开 validate 开始检测 duplicate topic id 后，既有
+          <code>import --output</code> E2E 暴露出 tree input 未显式提供 id 时会重复生成
+          <code>topic-new</code>。本 slice 将 tree input 转 topic 的自动 id 生成改为
+          workbook 内唯一后缀，保持写出候选与 validate 结构规则一致。
+        </li>
+        <li>
+          验证：先运行指定红测确认 duplicate topic id 仍错误返回成功；实现后该测试和
+          <code>e2e_pr_subset</code> 中 validate warning/structural 用例均已转为默认绿测。
+        </li>
+      </ul>
+    </section>
   </body>
 </html>
