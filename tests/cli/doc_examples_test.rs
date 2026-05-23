@@ -306,4 +306,13 @@ fn root_readme_publishes_repository_baseline_without_overclaiming_release_channe
             "root README should not claim unreleased install channel `{overclaim}` is available"
         );
     }
+
+    assert!(
+        !readme.contains("xmind add-tree roadmap.xmind \\\n  --parent \"path:/Q2\" \\\n  --input docs/examples/simple-tree.yaml \\\n  --apply"),
+        "root README should not present unresolved `add-tree --apply` behavior as a current workflow"
+    );
+    assert!(
+        readme.contains("`add-tree --apply` is planned as part of PRD #1 issue #18"),
+        "root README should mark unresolved `add-tree --apply` behavior as planned follow-up"
+    );
 }

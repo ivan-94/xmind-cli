@@ -99,7 +99,7 @@ xmind find roadmap.xmind --title "Payment" --json
 xmind get roadmap.xmind --node "path:/Q2/Payment" --json
 ```
 
-Common safe edit workflow:
+Common safe edit preview:
 
 ```bash
 xmind add-tree roadmap.xmind \
@@ -107,14 +107,11 @@ xmind add-tree roadmap.xmind \
   --input docs/examples/simple-tree.yaml \
   --dry-run \
   --json
-
-xmind add-tree roadmap.xmind \
-  --parent "path:/Q2" \
-  --input docs/examples/simple-tree.yaml \
-  --apply \
-  --backup \
-  --json
 ```
+
+`add-tree --apply` is planned as part of PRD #1 issue #18. Until that lands, treat
+`add-tree` as a preview-only example in this README and use implemented mutation
+commands for applied workbook edits.
 
 ## Safety Model
 
