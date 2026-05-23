@@ -4,7 +4,7 @@
 
 - Conversation: XMind CLI product design discussion
 - Scope: Documentation-first product shape for an agent-friendly XMind CLI
-- Last updated: 2026-05-21
+- Last updated: 2026-05-23
 
 ## Purpose
 
@@ -21,7 +21,7 @@ The CLI treats an XMind file as a structured workbook, not as a zip archive or s
 - `guides/`: workflows for agents and humans.
 - `examples/`: copyable inputs and representative outputs.
 - `design/`: command taxonomy, naming rules, compatibility policy, and future ideas.
-- `technical/`: Rust implementation architecture, stack choices, quality gates, testing strategy, and roadmap.
+- `technical/`: Rust implementation architecture, stack choices, quality gates, E2E strategy, testing strategy, and roadmap.
 - `installation.md`: local install, release build, and shell completion setup.
 
 ## Reading Order
@@ -69,7 +69,8 @@ For Rust implementation:
 9. `technical/output-and-errors.md`
 10. `technical/quality-gates.md`
 11. `technical/testing-strategy.md`
-12. `technical/implementation-roadmap.md`
+12. `technical/e2e-test-plan.md`
+13. `technical/implementation-roadmap.md`
 
 For local installation:
 

@@ -11,7 +11,7 @@
   - `docs/schemas/*.md`
   - `docs/technical/*.md`
 - Scope: Full implementation todo plan for the Rust-based AI-native XMind CLI
-- Last updated: 2026-05-21
+- Last updated: 2026-05-23
 
 ## Goal
 
@@ -409,6 +409,210 @@ Implement a Rust CLI named `xmind` that satisfies the documented product, comman
 - [x] Add shell completion generation.
 - [x] Add installation instructions.
 - [x] Add changelog.
+
+## Phase 17: Post-Audit Documentation Contract Closure
+
+Source Manifest:
+
+- Sources:
+  - `docs/reference/commands/add-tree.md`
+  - `docs/reference/commands/patch.md`
+  - `docs/reference/commands/diff.md`
+  - `docs/reference/commands/validate.md`
+  - `docs/reference/commands/import.md`
+  - `docs/reference/mutation-semantics.md`
+  - `implementation-notes.html`
+  - `src/app/mod.rs`
+  - `src/app/patch.rs`
+  - `src/cli/commands.rs`
+- Produced artifacts:
+  - `implementation-notes.html`
+  - `PLAN.md`
+- Key decisions:
+  - Treat documented-but-missing behavior as implementation backlog, not as silently accepted drift.
+  - Add red tests first for each gap so help/schema-only checks cannot mask behavior-level mismatches.
+  - Prefer implementing `import --into --backup` over weakening the mutation backup contract; keep `import --output` without backup.
+- Verification evidence:
+  - Attempted `./scripts/quality-gate.sh` and `cargo test --test doc_examples_test --all-features`.
+  - Both commands were blocked before test execution because `/opt/homebrew/bin/cargo` could not load `/opt/homebrew/opt/llvm/lib/libunwind.1.dylib`.
+- Open questions / risks:
+  - `diff` has a documented command but no useful input surface beyond one workbook. Decide whether current `xmind diff <workbook>` should emit an empty self-diff, or whether the command reference should gain explicit compare/preview inputs before implementation.
+
+Audit findings to close:
+
+- [ ] Add behavior tests proving the current gaps fail for the right reasons:
+  - [ ] `add-tree --apply` currently returns `invalid_usage`.
+  - [ ] `patch --apply` currently returns `invalid_usage`.
+  - [ ] `diff --json` currently emits no documented envelope.
+  - [ ] `validate --strict` currently performs only parse/read validation.
+  - [ ] `import --into --backup` is documented by contract but not exposed by clap.
+- [ ] Implement `add-tree --apply`:
+  - [ ] Reuse the existing YAML/JSON/Markdown tree input parser and validation.
+  - [ ] Reuse the same selector resolution and diff planning as dry-run.
+  - [ ] Write through the transactional XMind writer path.
+  - [ ] Honor `--backup` and include backup path in JSON results.
+  - [ ] Add applied-write tests proving dry-run/apply parity and unknown data preservation.
+- [ ] Implement `patch --apply`:
+  - [ ] Convert the dry-run working-copy result into an applied workbook write.
+  - [ ] Preserve operation-indexed diagnostics before any write.
+  - [ ] Keep patch application all-or-nothing.
+  - [ ] Honor `--backup` and include backup path in JSON results.
+  - [ ] Add tests for successful multi-op apply, failed op rollback, backup creation, and dry-run/apply diff parity.
+- [ ] Close the `diff` command contract:
+  - [ ] Decide and document the supported input shape for this release.
+  - [ ] Implement JSON output matching `summary` plus `changes`, or update command docs/tests to the chosen narrower behavior.
+  - [ ] Add help, JSON, and human-output tests so `diff` can no longer be a noop.
+- [ ] Implement real `validate` checks:
+  - [ ] Detect missing sheets/root topics/required fields where the supported storage model requires them.
+  - [ ] Detect duplicate topic ids within a workbook.
+  - [ ] Detect invalid topic ordering or malformed child arrays that the reader can preserve but should warn about.
+  - [ ] Report warnings and errors with stable paths/sheet context.
+  - [ ] Make `--strict` fail when warnings are present.
+- [ ] Resolve `import --into` backup semantics:
+  - [ ] Add `--backup` support for `import --into`.
+  - [ ] Keep `import --output` overwrite behavior separate from mutation backup behavior.
+  - [ ] Add CLI help and behavior tests covering both target modes.
+- [ ] Strengthen documentation synchronization:
+  - [ ] Add a test that every documented command with a JSON output contract has a non-empty JSON envelope implementation.
+  - [ ] Add targeted doc-example or command-reference tests for apply paths, not only dry-run examples.
+  - [ ] Update `implementation-notes.html` after the slice closes, removing resolved deviations and risks.
+- [ ] Restore local quality evidence:
+  - [ ] Repair or route around the local Rust/Homebrew `libunwind.1.dylib` issue.
+  - [ ] Run `./scripts/quality-gate.sh`.
+  - [ ] Run `cargo doc --workspace --no-deps` if not already covered by the quality gate.
+  - [ ] Record the passing commands in `implementation-notes.html`.
+
+## Phase 18: GitHub Infrastructure, Release, and E2E Program
+
+Source Manifest:
+
+- Sources:
+  - User alignment on 2026-05-23:
+    - remote repository is `git@github.com:ivan-94/xmind-cli.git`;
+    - repository already exists and is public;
+    - use GitHub Issues as the formal tracker;
+    - release through GitHub Releases first, not crates.io;
+    - use `cargo-dist` / `dist` for release automation;
+    - first install channels are GitHub Release binaries, checksums, install script, Homebrew tap, and `cargo install --git` fallback;
+    - E2E means user-perspective tests over real `.xmind` files;
+    - default E2E uses one Rust integration-test runner, release uses a thin smoke test;
+    - fixtures should include real XMind App-created workbooks, with Computer Use acceptable for creation.
+  - `docs/technical/e2e-test-plan.md`
+  - `docs/agents/issue-tracker.md`
+  - `.github/workflows/ci.yml`
+  - `Cargo.toml`
+  - `CHANGELOG.md`
+  - `implementation-notes.html`
+- Produced artifacts:
+  - `PLAN.md`
+  - `docs/technical/e2e-test-plan.md`
+  - `docs/agents/issue-tracker.md`
+  - `docs/technical/README.md`
+  - `docs/README.md`
+  - `implementation-notes.html`
+- Key decisions:
+  - Keep executable name `xmind`, but use `xmind-cli` for repository, package, release artifacts, and Homebrew formula.
+  - Use `v*` SemVer tags starting at `v0.1.0`; `Cargo.toml` version must match the tag without `v`.
+  - Root `README.md` becomes the GitHub user entrypoint and must identify the project as an unofficial XMind CLI.
+  - Branch protection should be reproducible through a script or documented `gh api` commands, but not run automatically in CI.
+  - Homebrew tap uses `ivan-94/homebrew-tap`; formula automation can follow after release artifacts are stable.
+- Verification evidence:
+  - `git remote -v` had no configured remote before this planning slice.
+  - `git remote -v` now reports `origin git@github.com:ivan-94/xmind-cli.git` for fetch and push.
+  - `.github/workflows/ci.yml` already exists with fmt, clippy, tests, docs, release build smoke, cargo audit, and cargo deny jobs.
+  - Current E2E fixture directory already contains real `.xmind` files under `tests/fixtures/xmind/`.
+- Open questions / risks:
+  - Branch protection requires GitHub permissions and may need manual UI fallback.
+  - Homebrew tap automation touches a second repository and should remain a separate issue from first release artifact generation.
+
+GitHub bootstrap:
+
+- [x] Set local `origin` to `git@github.com:ivan-94/xmind-cli.git`.
+- [ ] Push the current main branch after review.
+- [ ] Update root `README.md`:
+  - [ ] project positioning and unofficial XMind disclaimer;
+  - [ ] install channels;
+  - [ ] quick start;
+  - [ ] safety model;
+  - [ ] CI/release badges;
+  - [ ] supported platforms;
+  - [ ] docs entrypoints;
+  - [ ] license.
+- [ ] Update issue tracking to GitHub Issues:
+  - [x] Update `docs/agents/issue-tracker.md`.
+  - [ ] Create GitHub Issues for Phase 17 and Phase 18 slices.
+  - [ ] Keep `.scratch/` for temporary local drafts only.
+- [ ] Add branch protection setup:
+  - [ ] script or documented `gh api` commands;
+  - [ ] require PR before merge;
+  - [ ] require status checks;
+  - [ ] require branch up to date before merge;
+  - [ ] disallow force pushes and deletions;
+  - [ ] document UI fallback when API permissions are missing.
+
+Merge-gate CI:
+
+- [ ] Split or name required jobs clearly enough for branch protection:
+  - [ ] format;
+  - [ ] clippy;
+  - [ ] unit/integration tests;
+  - [ ] docs build;
+  - [ ] release build smoke;
+  - [ ] security checks;
+  - [ ] default PR E2E subset.
+- [ ] Keep full E2E matrix out of required PR checks until stable.
+- [ ] Add CI documentation explaining PR gate vs release/nightly gate.
+
+Release automation:
+
+- [ ] Evaluate and initialize `cargo-dist` / `dist` for this Rust CLI.
+- [ ] Configure GitHub Release artifacts for:
+  - [ ] `x86_64-unknown-linux-gnu`;
+  - [ ] `aarch64-unknown-linux-gnu`;
+  - [ ] `x86_64-apple-darwin`;
+  - [ ] `aarch64-apple-darwin`;
+  - [ ] `x86_64-pc-windows-msvc`.
+- [ ] Generate checksums and installer script.
+- [ ] Add release smoke:
+  - [ ] `xmind --version`;
+  - [ ] `xmind tree tests/fixtures/xmind/minimal.xmind --json`;
+  - [ ] `xmind validate tests/fixtures/xmind/minimal.xmind --json`.
+- [ ] Enforce release version rules:
+  - [ ] tag format `v*`;
+  - [ ] `Cargo.toml` version equals tag without `v`;
+  - [ ] `CHANGELOG.md` moves `Unreleased` content into `## vX.Y.Z - YYYY-MM-DD`.
+- [ ] Keep crates.io publish out of the first release.
+
+Homebrew and installation:
+
+- [ ] Create or update `ivan-94/homebrew-tap`.
+- [ ] Add `xmind-cli` formula installing executable `xmind`.
+- [ ] Formula downloads macOS release tarball and verifies SHA256.
+- [ ] Document `brew install ivan-94/tap/xmind-cli`.
+- [ ] Document manual GitHub Release install.
+- [ ] Document install script.
+- [ ] Document `cargo install --git git@github.com:ivan-94/xmind-cli.git` as developer fallback.
+- [ ] Defer Homebrew tap auto-update until release artifacts are stable.
+
+E2E program:
+
+- [x] Add `docs/technical/e2e-test-plan.md`.
+- [ ] Create fixture manifest for existing and new `.xmind` fixtures.
+- [ ] Generate additional golden fixtures with the real XMind App where possible.
+- [ ] Keep small PR fixtures in Git; avoid Git LFS in the first version.
+- [ ] Add default PR E2E subset:
+  - [ ] one success path per command;
+  - [ ] representative error family paths;
+  - [ ] one apply + validate per mutation family;
+  - [ ] patch multi-op dry-run/apply;
+  - [ ] import/export round trip;
+  - [ ] backup/restore.
+- [ ] Add full E2E matrix for release/nightly:
+  - [ ] all commands;
+  - [ ] all user-visible branches;
+  - [ ] larger real-world fixture set.
+- [ ] Add docs example execution for `bash e2e` fenced blocks only.
+- [ ] Record E2E coverage progress in `docs/technical/e2e-test-plan.md` or an adjacent generated matrix.
 
 ## First Useful Vertical Slice
 

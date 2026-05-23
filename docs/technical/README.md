@@ -4,11 +4,11 @@
 
 - Conversation: XMind CLI product and technical design discussion
 - Scope: Rust implementation planning for an AI-native XMind CLI
-- Last updated: 2026-05-22
+- Last updated: 2026-05-23
 
 ## Purpose
 
-This directory translates the product and command reference contracts into an implementable Rust architecture. It defines the technical stack, crate layout, module boundaries, data flow, quality gates, testing strategy, and AI-native feedback requirements.
+This directory translates the product and command reference contracts into an implementable Rust architecture. It defines the technical stack, crate layout, module boundaries, data flow, quality gates, testing strategy, E2E strategy, and AI-native feedback requirements.
 
 The implementation should optimize for correctness, deterministic machine output, safe workbook mutation, and fast agent feedback loops before adding broad XMind feature coverage.
 
@@ -24,7 +24,8 @@ The implementation should optimize for correctness, deterministic machine output
 8. `output-and-errors.md`
 9. `quality-gates.md`
 10. `testing-strategy.md`
-11. `implementation-roadmap.md`
+11. `e2e-test-plan.md`
+12. `implementation-roadmap.md`
 
 ## Engineering Posture
 

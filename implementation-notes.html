@@ -43,125 +43,68 @@
     <section class="entry">
       <h2>Source Manifest</h2>
       <ul>
-        <li><code>PLAN.md</code>: 当前实现 backlog 与闭环粒度来源。</li>
+        <li><code>PLAN.md</code>: 当前实现 backlog 与新增审计闭环 slice 来源。</li>
         <li><code>AGENTS.md</code>: 要求持续维护本文件。</li>
         <li>
           <code>docs/reference/</code> 与 <code>docs/concepts/</code>:
-          CLI、patch、Markdown、错误包络等契约来源。
+          CLI、patch、mutation、validate、diff、错误包络等契约来源。
         </li>
         <li>
           当前代码与测试：<code>src/app/</code>,
-          <code>src/domain/</code>, <code>tests/cli/</code>。
+          <code>src/cli/</code>, <code>src/domain/</code>,
+          <code>src/infra/</code>, <code>tests/cli/</code>。
+        </li>
+        <li>
+          2026-05-23 <code>grill-me</code> 对齐：GitHub remote、GitHub Issues、
+          release automation、Homebrew、E2E 用户维度测试和真实 fixture 策略。
         </li>
       </ul>
     </section>
 
     <section class="entry">
-      <h2>Current Design Decisions</h2>
+      <h2>Current Baseline</h2>
       <ul>
         <li>
-          实现继续以公开 CLI 集成测试驱动，所有 PLAN slice 必须先证明
-          RED，再用最小实现变绿，最后跑质量门。
+          当前 CLI 是单 binary Rust package，公开入口由 clap subcommands
+          驱动；JSON envelope、错误码、退出码和 candidate 诊断是 agent contract
+          的稳定核心。
         </li>
         <li>
-          读操作和 mutation dry-run 使用统一 JSON envelope；错误码、退出码
-          和可重试建议以 agent-readable contract 为准。
+          读命令、sheet/topic selector、query、compact JSON、单点 mutation、
+          backup/restore、import/export、topic image 和 asset export 已有代码与
+          CLI 测试覆盖。
         </li>
         <li>
-          XMind 写入路径使用先生成候选文件、校验、再替换的事务式语义；
-          保留未知 JSON 字段和未知 package entries。
+          已实现的写路径使用候选文件校验后替换，并保留未知 JSON 字段和未知
+          package entries；dry-run 不写文件。
         </li>
         <li>
-          Markdown tree input 支持 frontmatter、heading/list/ordered/task/hybrid
-          outline、note mapping 和行号诊断；inline metadata 当前明确拒绝。
+          Tree input 支持 YAML/JSON 与 Markdown frontmatter、heading/list/ordered
+          list、task list、hybrid outline 和 note mapping；Markdown inline
+          metadata 仍是明确拒绝，而不是部分支持。
         </li>
         <li>
-          <code>--markdown-mode</code> 是严格枚举；<code>heading</code>
-          拒绝列表项，<code>list</code> 拒绝 heading，<code>hybrid</code>
-          与 <code>auto</code> 共享当前解析器。
+          Patch engine 已覆盖 dry-run working copy 规划、operation-indexed
+          diagnostics、alias normalization、conflict detection，以及文档化 patch
+          ops；但写回仍未开放。
         </li>
         <li>
-          Patch 文件读取按扩展名分派：<code>.yaml/.yml</code> 走 YAML，
-          <code>.json</code> 走 JSON，避免 JSON patch 被 YAML 兼容性误接受。
+          文档同步测试覆盖 help surface、schema docs、可运行示例、错误码和若干
+          stale CLI surface；它们不能替代逐命令行为验收。
         </li>
         <li>
-          Phase 15 起命令参考以 clap help 快照为当前实现真相；未暴露在
-          <code>xmind ... --help</code> 的旧规划参数不再出现在
-          <code>docs/reference/commands/*.md</code> 的 synopsis/options 中。
+          CI workflow、security job、release build smoke、completion、installation
+          docs 和 changelog 均已存在；本地质量门仍以
+          <code>./scripts/quality-gate.sh</code> 为准。
         </li>
         <li>
-          可执行命令示例集中维护在 <code>docs/examples/README.md</code>，
-          并由 <code>tests/cli/doc_examples_test.rs</code> 对现有 fixtures
-          逐条运行；其他叙述性文档中的示例仍按 Phase 15 后续 docs sync 处理。
+          Canonical remote 已确定为
+          <code>git@github.com:ivan-94/xmind-cli.git</code>，该 GitHub 仓库已存在且为
+          public；正式 issue tracker 切换为 GitHub Issues。
         </li>
         <li>
-          CLI help 由 <code>tests/cli/help_snapshots_test.rs</code> 和
-          <code>tests/cli/snapshots/help_snapshots_test__*.snap</code>
-          持续检查，覆盖 top-level 与所有已注册 subcommands。
-        </li>
-        <li>
-          文档契约测试会拒绝继续宣传已移除或未实现的 CLI surface，例如
-          <code>--validate-after</code>、dedicated asset 子命令、
-          <code>xmind tree --node</code> 和 <code>xmind restore --output</code>。
-        </li>
-        <li>
-          Schema 文档现在由 <code>schema_docs_track_serializable_contracts</code>
-          回归保护，覆盖 envelope validation payload 移除、error
-          <code>operation</code> 字段、patch DTO 字段和 topic tree 输入字段。
-        </li>
-        <li>
-          Technical docs 现在以当前单 binary package 与已实现模块为准，
-          <code>technical_docs_track_implemented_modules</code> 会阻止旧 crate
-          boundary、旧 app 文件、旧 fixture 名称和未采用依赖重新出现。
-        </li>
-        <li>
-          <code>src/app/mod.rs</code> 第二轮拆分已将 <code>set</code>
-          mutation renderer 移到 <code>src/app/set.rs</code>；
-          <code>mod.rs</code> 仍保留共享 dispatch、read/export/import 和部分
-          mutation orchestration，后续 CI/release hardening 前不再扩大本轮重构。
-        </li>
-        <li>
-          CI workflow 使用 GitHub Actions，在 pull request 与 main/master push
-          上运行 <code>cargo fmt</code>、<code>cargo clippy</code>、
-          <code>cargo test</code> 和 <code>cargo doc</code>；本地质量门仍由
-          <code>./scripts/quality-gate.sh</code> 控制。
-        </li>
-        <li>
-          安全检查在 CI 独立 job 运行：<code>rustsec/audit-check@v2.0.0</code>
-          执行 cargo audit，<code>EmbarkStudios/cargo-deny-action@v2</code>
-          执行 cargo deny；本地环境未预装这些 cargo 子命令，因此不加入
-          <code>./scripts/quality-gate.sh</code>。
-        </li>
-        <li>
-          CI 的 Rust job 增加 <code>cargo build --workspace --release</code>
-          作为发布构建 smoke test；它验证 release 二进制能完成编译，不替代更慢的
-          release-mode 全量测试。
-        </li>
-        <li>
-          Shell completion 通过 <code>xmind completion &lt;shell&gt;</code> 输出到
-          stdout；该命令不读取 workbook，也不包 JSON envelope，便于直接重定向给
-          shell 初始化脚本。
-        </li>
-        <li>
-          安装说明集中在 <code>docs/installation.md</code>，覆盖
-          <code>cargo install --path .</code>、release 构建产物位置、completion
-          生成和发布前本地质量门。
-        </li>
-        <li>
-          当前变更记录从根目录 <code>CHANGELOG.md</code> 的
-          <code>Unreleased</code> 段开始维护，先覆盖 CI、安全检查、release smoke、
-          completion、安装说明和本轮 app 模块拆解。
-        </li>
-        <li>
-          <code>xmind restore</code> 现在从 workbook 旁的 <code>.xmind-backups</code>
-          中选择同名最新备份恢复；当前没有显式指定备份源的参数，选择规则记录在
-          restore 命令参考中。
-        </li>
-        <li>
-          Definition of Done 的最终证据来自新增
-          <code>definition_of_done_test</code>、JSON envelope snapshot、dry-run
-          snapshot、restore/add/set/inspect 代表性行为测试，以及
-          <code>cargo doc --workspace --no-deps</code>。
+          E2E 定义为用户维度测试：基于真实 <code>.xmind</code> 文件覆盖所有命令和用户可见分支；
+          第一版使用 Rust integration test runner，release 只做薄 smoke。
         </li>
       </ul>
     </section>
@@ -178,13 +121,28 @@
           engine 为主。
         </li>
         <li>
-          <code>patch --dry-run</code> 已覆盖 Phase 11 中已勾选的 patch
-          op、match_by、诊断和冲突检测；<code>patch --apply</code> 与真正的
-          working-copy 执行仍在后续闭环。
+          <code>diff</code> 目前只注册在 clap subcommand 和命令参考中，dispatch
+          仍走 noop action；因此 <code>xmind diff --json</code> 不会输出文档中的
+          summary/changes envelope。
         </li>
         <li>
-          Markdown inline metadata 未解析，只返回
-          <code>invalid_tree_input</code>。需要引入明确 grammar 后才能支持。
+          <code>validate --strict</code> 当前只验证 workbook 能被读取，并固定返回
+          <code>valid: true</code>、空 warnings/errors；尚未实现命令参考列出的
+          topic id、排序、required fields、unknown preservation 等完整检查。
+        </li>
+        <li>
+          <code>import --into</code> 文档称应遵循 normal mutation backup 规则，但
+          clap surface 没有 <code>--backup</code>，应用层也以
+          <code>backup: false</code> 运行。
+        </li>
+        <li>
+          <code>PLAN.md</code> 的部分 checkbox 和 Definition of Done 已按历史进度
+          标记完成，但从文档全量实现角度看过度乐观；真实剩余范围已整理到新的
+          post-audit slice。
+        </li>
+        <li>
+          GitHub 发布、branch protection、Homebrew tap、README 用户入口和完整 E2E
+          覆盖仍只是计划，尚未实现。
         </li>
       </ul>
     </section>
@@ -192,6 +150,20 @@
     <section class="entry">
       <h2>Current Risks</h2>
       <ul>
+        <li>
+          当前文档同步测试偏向 help/schema/stale-surface 检查，不能发现
+          <code>diff</code> noop、<code>validate</code> shallow success、
+          <code>patch --apply</code> 拒绝等行为级缺口；新 slice 需要先补红灯测试。
+        </li>
+        <li>
+          <code>add-tree --apply</code> 和 <code>patch --apply</code> 很容易各自复制
+          写入逻辑。后续实现应复用 tree input、patch working copy、transactional
+          writer 和 backup 路径，避免 dry-run 与 apply 规划分叉。
+        </li>
+        <li>
+          <code>validate</code> 的范围需要谨慎收敛：先实现文档列出的结构完整性
+          检查，不要在同一 slice 扩展到未文档化的 XMind 视觉/布局验证。
+        </li>
         <li>
           <code>src/app/mod.rs</code> 仍然过大。已开始将 patch 文件读取拆到
           <code>src/app/patch.rs</code>，并将 tree input / Markdown parsing
@@ -203,8 +175,17 @@
           slice 应保持约 500 行代码以内，并用公共 CLI 行为测试覆盖。
         </li>
         <li>
-          当前质量门需要通过 Homebrew rustup 路径运行：
-          <code>PATH=/opt/homebrew/opt/rustup/bin:$PATH ./scripts/quality-gate.sh</code>。
+          当前本机 Homebrew Rust 无法加载
+          <code>/opt/homebrew/opt/llvm/lib/libunwind.1.dylib</code>，导致
+          <code>cargo</code> 直接 abort；在修复工具链前，无法给出新的本地质量门证据。
+        </li>
+        <li>
+          发布流程计划使用 <code>cargo-dist</code>/<code>dist</code>。这能降低多平台
+          release artifact 维护成本，但需要单独审查生成的 workflow，避免引入过重或不透明的发布步骤。
+        </li>
+        <li>
+          Homebrew tap 涉及第二个仓库 <code>ivan-94/homebrew-tap</code>，应独立于首个
+          GitHub Release artifact 交付，避免一次性调试两个发布面。
         </li>
       </ul>
     </section>
@@ -213,313 +194,13 @@
       <h2>Open Questions</h2>
       <ul>
         <li>
-          是否需要为 Markdown 诊断扩展结构化 <code>line</code>/<code>column</code>
-          字段。目前行号只在 message 文本里。
+          <code>import --into</code> 的 backup 语义应补实现还是收窄文档？当前更符合
+          全局 mutation 规则的方向是给 <code>import --into</code> 增加
+          <code>--backup</code>，同时保持 <code>import --output</code> 无 backup。
         </li>
         <li>
-          Patch operation 的内部 domain model 何时从 DTO 过渡到强类型 enum。
-          建议在多 op 执行语义开始共享状态时处理。
-        </li>
-      </ul>
-    </section>
-
-    <section class="entry">
-      <h2>2026-05-22 Slice Notes</h2>
-      <ul>
-        <li>
-          当前 slice 实现 <code>Parse patch JSON</code>，并把 patch 文件读取逻辑
-          从 <code>src/app/mod.rs</code> 拆到 <code>src/app/patch.rs</code>。
-        </li>
-        <li>
-          这个 slice 同时压缩本文件，删除已经完成且不再构成风险的历史流水账。
-        </li>
-        <li>
-          Patch alias <code>delete_tree</code>, <code>move_tree</code>,
-          <code>clone_tree</code> 会分别规范化为 <code>delete</code>,
-          <code>move</code>, <code>copy</code>。
-        </li>
-        <li>
-          Patch precondition ops <code>assert_exists</code> 和
-          <code>assert_not_exists</code> 只影响校验结果，不产生 diff；
-          失败时会携带 <code>operation_index</code> 和 canonical operation。
-        </li>
-        <li>
-          Patch <code>add</code> 当前实现 dry-run 规划：校验 parent path 和
-          非空 title，输出单条 <code>added</code> diff，不写 workbook。
-        </li>
-        <li>
-          Patch <code>set</code> 当前实现 dry-run 规划：校验 node 和 fields，
-          支持 title/note/labels/markers/hyperlink/image 字段类型检查，并输出
-          <code>updated</code> diff；实际写入仍等待 patch apply slice。
-        </li>
-        <li>
-          <code>src/app/mod.rs</code> 重构 first pass 已将 patch dry-run planning
-          与 tree input / Markdown parsing 移出主模块；CLI 行为由
-          <code>add_tree_test</code> 和 <code>patch_test</code> 做回归保护。
-        </li>
-        <li>
-          Patch <code>replace_tree</code> 当前实现 dry-run 规划：非 root target
-          会输出旧子树 <code>deleted</code> diff 与新树 <code>added</code>
-          diff；root target 按 mutation root rule 返回 <code>invalid_patch</code>。
-        </li>
-        <li>
-          Patch <code>merge_tree</code> 当前实现 dry-run 规划的默认
-          <code>match_by: title_path</code>：匹配到的主题在输入 metadata
-          发生变化时输出 <code>updated</code> diff，缺失子树输出
-          <code>added</code> diff；<code>prune</code> 和其他
-          <code>match_by</code> 策略仍按 PLAN 后续任务处理，当前会返回
-          <code>invalid_patch</code>，避免生成不准确计划。
-        </li>
-        <li>
-          Patch <code>delete</code> 当前实现默认删除子树的 dry-run
-          规划，并输出每个被删除主题的 <code>deleted</code> diff；
-          <code>children_only</code> 与 <code>promote_children</code>
-          仍按 PLAN 后续任务处理，当前会返回 <code>invalid_patch</code>。
-        </li>
-        <li>
-          Patch <code>move</code> 当前实现 dry-run 规划，并将 moved diff
-          表达为 <code>{event, from, to}</code>，而不是 path-only 事件；
-          position 解析和“不能移动到自身/后代”冲突规则复用现有
-          <code>xmind move</code> 行为。
-        </li>
-        <li>
-          Patch <code>copy</code> 当前实现默认复制子树的 dry-run
-          规划，输出 copied subtree 的 <code>added</code> diff；
-          <code>preserve_ids: true</code> 沿用现有同 workbook duplicate-id
-          冲突规则，返回 <code>patch_conflict</code>。
-        </li>
-        <li>
-          Patch <code>ensure_path</code> 当前实现 dry-run 规划：解析不带
-          <code>path:</code> 前缀的 canonical path，并只为缺失路径段输出
-          <code>added</code> diff；已存在路径会产生零 diff 的 planned operation。
-        </li>
-        <li>
-          Patch <code>sort_children</code> 当前实现 direct children 的
-          <code>by: title</code> / <code>order: asc|desc</code> dry-run
-          规划；排序会改变顺序时用目标节点的 <code>updated</code> diff
-          表示，<code>recursive: true</code> 仍返回 <code>invalid_patch</code>。
-        </li>
-        <li>
-          Patch <code>set_tree_metadata</code> 当前实现 <code>add_labels</code>
-          dry-run 规划；<code>recursive: true</code> 会遍历目标子树，并只为缺少
-          任一目标 label 的主题输出 <code>updated</code> diff。其他 metadata
-          patch 字段尚未进入文档化输入范围。
-        </li>
-        <li>
-          Patch <code>delete</code> 已支持 <code>children_only: true</code>
-          dry-run 规划：保留目标主题，仅为 descendants 输出 <code>deleted</code>
-          diff。
-        </li>
-        <li>
-          Patch <code>delete</code> 已支持 <code>promote_children: true</code>
-          dry-run 规划：目标主题输出 <code>deleted</code> diff，直接 children
-          输出 <code>{event, from, to}</code> moved diff。
-        </li>
-        <li>
-          Patch <code>copy</code> 的 <code>preserve_ids: true</code>
-          当前按同 workbook duplicate-id 风险处理，返回
-          <code>patch_conflict</code>；<code>preserve_ids: false</code>
-          是默认复制路径。
-        </li>
-        <li>
-          Patch <code>merge_tree</code> 已支持 <code>prune: true</code>
-          dry-run 规划：在 <code>title_path</code> 匹配范围内，未被输入 tree
-          匹配的 existing descendants 会输出 <code>deleted</code> diff。
-        </li>
-        <li>
-          Patch <code>merge_tree</code> 的默认和显式
-          <code>match_by: title_path</code> 已覆盖；它按相对 title path
-          匹配 existing topics，匹配节点可输出 <code>updated</code>，
-          缺失节点输出 <code>added</code>。
-        </li>
-        <li>
-          Patch <code>merge_tree</code> 已支持 <code>match_by: id</code>
-          dry-run 规划；输入 tree 的每个节点必须带 id，否则返回
-          <code>invalid_patch</code> 和对应 <code>field_path</code>。
-        </li>
-        <li>
-          Patch <code>merge_tree</code> 已支持 <code>match_by: path</code>
-          dry-run 规划；为此 tree input DTO 接受 per-node <code>path</code>
-          字段，值为 canonical absolute topic path，例如 <code>/Q2/Payment</code>。
-        </li>
-        <li>
-          Patch <code>merge_tree</code> 已支持 <code>match_by: title</code>
-          dry-run 规划；当前按同一 parent 下的 sibling title 匹配，与
-          <code>title_path</code> 在无重复 sibling title 时行为一致。
-        </li>
-        <li>
-          Patch 操作级诊断已统一到可机器定位的字段路径：涉及具体 op
-          字段的错误会返回 <code>operation_index</code>、<code>operation</code>
-          和形如 <code>ops[1].node</code> 的 <code>field_path</code>。
-        </li>
-        <li>
-          Patch 冲突检测已覆盖“前序 delete/prune 计划删除的路径被后续 op
-          再次引用”的 dry-run 场景；这会返回 <code>patch_conflict</code>
-          并指向后续 op 的 selector 字段。
-        </li>
-        <li>
-          Patch dry-run 现在使用内存 working copy 顺序规划操作；后续 op 的
-          selector 会看到前序 op 已创建、重命名、删除、移动或合并后的主题。
-          该行为只影响规划与诊断，<code>patch --apply</code> 写回仍未开放。
-        </li>
-        <li>
-          Patch dry-run 已加入快照回归覆盖，当前重点固定多 op working-copy
-          JSON 输出结构，防止 summary、operations 与 diff envelope 发生无意漂移。
-        </li>
-        <li>
-          Patch idempotency 已开始落到行为测试：<code>set</code>
-          写入与当前主题相同的字段值时不再产生 <code>updated</code> diff。
-        </li>
-        <li>
-          <code>export --format json</code> 已输出原始 JSON payload，当前复用
-          tree payload 结构（<code>sheet</code> + <code>root</code>）。其他
-          export 格式和文件输出仍在后续任务中实现。
-        </li>
-        <li>
-          <code>export --format markdown</code> 当前输出 heading outline，仅包含主题
-          title 层级；notes/metadata 的导出开关尚未接入 CLI。
-        </li>
-        <li>
-          <code>export --format outline</code> 输出两空格缩进的纯文本标题树，
-          用于比 Markdown 更紧凑的人工/Agent 浏览。
-        </li>
-        <li>
-          <code>export --format text</code> 当前作为默认人类可读导出，复用 outline
-          的缩进标题树格式。
-        </li>
-        <li>
-          <code>export --format assets</code> 当前输出 workbook resource id
-          列表；实际将资源文件写入目录仍依赖后续 <code>--output</code>
-          任务。
-        </li>
-        <li>
-          <code>export --output</code> 已支持将当前 export payload 写入新文件；
-          默认仍拒绝覆盖既有目标并返回 <code>write_failed</code>。
-          调用方可以显式传入 <code>--overwrite</code> 替换既有文件。
-        </li>
-        <li>
-          <code>export --json</code> 对 stdout 导出使用标准成功 envelope，
-          原始导出内容放在 <code>result</code> 字段中；当同时使用
-          <code>--output</code> 时，stdout envelope 只报告写入路径。
-        </li>
-        <li>
-          <code>import --output</code> 已支持从 YAML/JSON tree input
-          创建新 workbook；<code>.md</code>/<code>.markdown</code> 输入会复用
-          Markdown outline parser。当前切片仅支持 <code>--apply</code>，
-          dry-run 和覆盖既有输出仍由后续任务处理。
-        </li>
-        <li>
-          <code>import --into</code> 已支持将输入树追加到既有 workbook 的
-          <code>--parent</code> 选择器下；未传 <code>--parent</code> 时默认使用
-          <code>root</code>。当前采用 append-last 语义，尚未暴露 position 选项。
-        </li>
-        <li>
-          <code>import --overwrite</code> 目前作用于 <code>--output</code>
-          创建新 workbook 的路径：默认拒绝覆盖既有文件，显式传入时替换目标。
-          对 <code>--into</code> 导入既有 workbook 的场景不改变语义。
-        </li>
-        <li>
-          <code>import --output --dry-run</code> 已解析和校验输入并返回
-          summary，但不会创建目标文件；creation diff 以空 workbook 为基线，
-          从新根路径 <code>/</code> 开始列出 added 事件。
-        </li>
-        <li>
-          已增加 Markdown outline 的 export → import round-trip 覆盖：
-          当前验证主题标题层级往返；notes/metadata/assets 的往返仍取决于后续导出扩展。
-        </li>
-        <li>
-          overwrite 行为已有成对回归测试：默认拒绝覆盖并保留既有目标，
-          显式 <code>--overwrite</code> 时才替换 export/import output。
-        </li>
-      </ul>
-    </section>
-    <section>
-      <h2>Phase 13 - Assets and Images</h2>
-      <ul>
-        <li>
-          已建立 topic image 支持类型检测：当前按内容识别 PNG、JPEG、GIF
-          和 SVG，并已接入 <code>set --image</code>。
-        </li>
-        <li>
-          图片 checksum 采用 <code>sha256:&lt;hex&gt;</code> 形状，作为后续
-          asset metadata 与导出清单的稳定标识。
-        </li>
-        <li>
-          <code>set --image</code> 已可将本地 PNG/JPEG/GIF/SVG 作为 topic image
-          写入 <code>resources/</code> 并更新 topic 引用；当前 asset id 采用
-          <code>xap:resources/&lt;file-name&gt;</code>，同名资源会被替换。命令编排放在
-          <code>src/app/set_image.rs</code>，避免继续扩大
-          <code>src/app/mod.rs</code>。
-        </li>
-        <li>
-          替换已有 topic image 时只更新 topic 引用并加入新资源；旧资源按
-          <code>reference-only</code> 约定保留在 workbook 中，后续如需清理应通过显式
-          cleanup 设计处理。
-        </li>
-        <li>
-          <code>set --clear image</code> 采用同一 <code>reference-only</code>
-          语义：只移除 topic 上的 image 引用，不删除 workbook 中已有的
-          <code>resources/</code> 条目。
-        </li>
-        <li>
-          当本地图片文件名与 workbook 中未关联资源同名时，新的 topic image 会使用
-          <code>sha256</code> 前缀生成不冲突的 <code>resources/</code> 路径，避免覆盖无关资源。
-          只有目标 topic 原本就引用同一 asset id 时，才允许同名资源替换。
-        </li>
-        <li>
-          <code>export --format assets --output &lt;dir&gt;</code> 会导出 workbook
-          中的 <code>resources/</code> 原始文件，并保留资源目录结构；不带
-          <code>--overwrite</code> 时仍拒绝覆盖已有输出路径。
-        </li>
-        <li>
-          不支持的本地图片内容会返回 <code>unsupported_asset_type</code>，JSON
-          模式下保持标准错误 envelope，退出码为 11。
-        </li>
-        <li>
-          <code>topic-image.xmind</code> fixture 现在覆盖 <code>get</code>、
-          <code>tree --include-assets</code>、<code>inspect</code> 与 asset export 路径。
-        </li>
-        <li>
-          asset preservation 测试同时覆盖同名 <code>resources/</code> 冲突与未知
-          package entry，例如 <code>metadata.json</code>，确保图片写入不会丢失无关条目。
-        </li>
-      </ul>
-    </section>
-    <section>
-      <h2>Phase 14 - Error Coverage</h2>
-      <ul>
-        <li>
-          <code>invalid_usage</code> 已由 CLI JSON envelope 测试覆盖，包括 clap
-          参数解析错误与字段路径诊断。
-        </li>
-        <li>
-          <code>invalid_tree_input</code> 已由 add-tree YAML/Markdown 错误测试覆盖，
-          包括嵌套字段路径与 Markdown 行号诊断。
-        </li>
-        <li>
-          <code>patch_conflict</code> 已由 patch dry-run 冲突测试覆盖，包含
-          <code>operation_index</code>、<code>operation</code>、selector 或 field path。
-        </li>
-        <li>
-          <code>validation_failed</code> 通过写入候选 workbook 校验失败的单元测试覆盖；
-          该错误映射为不可重试，并确认原 workbook 不应被替换。
-        </li>
-        <li>
-          <code>write_failed</code> 已由 export/import without-overwrite JSON 测试覆盖，
-          用于验证存在输出路径时的拒绝写入行为。
-        </li>
-        <li>
-          <code>unsupported_asset_type</code> 已由 <code>set --image</code>
-          CLI JSON 错误测试覆盖，确认退出码 11 与标准 envelope。
-        </li>
-        <li>
-          <code>root_operation_not_allowed</code> 已由 delete root 操作测试覆盖，
-          并补充 patch replace root 的约束测试。
-        </li>
-        <li>
-          标准错误字段由 <code>CliErrorBody</code> 的序列化 contract 测试锁定：
-          <code>code</code>、<code>message</code>、<code>retryable</code>、
-          <code>suggested_fix</code> 与 <code>exit_code</code> 都是必填输出。
+          <code>diff</code> 的最终用户输入形态仍需在实现前确认：当前文档只有单 workbook
+          参数，后续应明确是 self-diff、workbook-vs-workbook，还是 patch preview 辅助命令。
         </li>
       </ul>
     </section>
