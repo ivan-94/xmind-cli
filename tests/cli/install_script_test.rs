@@ -84,6 +84,34 @@ fn installs_local_release_archive_after_checksum_verification() {
 }
 
 #[test]
+fn missing_checksum_file_fails_with_actionable_error_and_no_install() {
+    let fixture = local_release_fixture("v0.1.0", "x86_64-unknown-linux-gnu", "missing");
+    let install_dir = tempfile::tempdir().expect("install dir is created");
+
+    let output = Command::new("bash")
+        .arg(install_script())
+        .args(["--version", "v0.1.0"])
+        .env("XMIND_INSTALL_OS", "Linux")
+        .env("XMIND_INSTALL_ARCH", "x86_64")
+        .env("XMIND_INSTALL_DIR", install_dir.path())
+        .env("XMIND_INSTALL_BASE_URL", fixture.release_dir.path())
+        .output()
+        .expect("install script starts");
+
+    assert!(
+        !output.status.success(),
+        "install should fail when SHA256SUMS is missing"
+    );
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    assert!(stderr.contains("failed to download"));
+    assert!(stderr.contains("Refusing to install without checksums"));
+    assert!(
+        !install_dir.path().join("xmind").exists(),
+        "missing checksum file must not install a binary"
+    );
+}
+
+#[test]
 fn checksum_mismatch_fails_with_actionable_error_and_no_install() {
     let fixture = local_release_fixture("v0.1.0", "x86_64-unknown-linux-gnu", "bad");
     let install_dir = tempfile::tempdir().expect("install dir is created");
@@ -155,16 +183,18 @@ fn local_release_fixture(version: &str, target: &str, checksum_mode: &str) -> Lo
         .expect("tar command starts");
     assert!(status.success(), "tar should create fixture archive");
 
-    let checksum = match checksum_mode {
-        "ok" => sha256_file(&archive_path),
-        "bad" => "0000000000000000000000000000000000000000000000000000000000000000".to_owned(),
-        other => panic!("unknown checksum mode {other}"),
-    };
-    fs::write(
-        release_dir.path().join("SHA256SUMS"),
-        format!("{checksum}  {archive_name}\n"),
-    )
-    .expect("SHA256SUMS is written");
+    if checksum_mode != "missing" {
+        let checksum = match checksum_mode {
+            "ok" => sha256_file(&archive_path),
+            "bad" => "0000000000000000000000000000000000000000000000000000000000000000".to_owned(),
+            other => panic!("unknown checksum mode {other}"),
+        };
+        fs::write(
+            release_dir.path().join("SHA256SUMS"),
+            format!("{checksum}  {archive_name}\n"),
+        )
+        .expect("SHA256SUMS is written");
+    }
 
     LocalReleaseFixture { release_dir }
 }

@@ -336,6 +336,10 @@
           风险：artifact 命名仍需在首次真实 cargo-dist release 前复核；若实际文件名与
           文档约定不一致，应改 release automation 或脚本，而不是放宽匹配。
         </li>
+        <li>
+          父级 review 修复：release workflow 在发布前生成并上传聚合
+          <code>SHA256SUMS</code>；脚本继续严格校验精确 artifact 条目，不回退到模糊匹配。
+        </li>
       </ul>
     </section>
 

@@ -12,6 +12,7 @@
 - Cargo-dist config: `../Cargo.toml` `[workspace.metadata.dist]`
 - Cargo-dist workflow: `../.github/workflows/release.yml`
 - Install script: `../scripts/install.sh`
+- Parent review fix on 2026-05-23: release workflow must publish the aggregate `SHA256SUMS` consumed by the install script.
 - Last updated: 2026-05-23
 
 ## Choose An Install Channel
@@ -35,7 +36,7 @@ For GitHub Release binary downloads:
 For the install script:
 
 - Bash, `curl`, `shasum`, and `tar` on macOS/Linux.
-- A tagged GitHub Release that publishes the matching archive and `SHA256SUMS`.
+- A tagged GitHub Release from this workflow; it publishes the matching archive and aggregate `SHA256SUMS` together.
 
 ## Install From Source
 
@@ -99,7 +100,7 @@ xmind-cli-vX.Y.Z-<target>.tar.gz
 xmind-cli-vX.Y.Z-x86_64-pc-windows-msvc.zip
 ```
 
-Download both the artifact and the `SHA256SUMS` file from the same release page.
+Download both the artifact and the aggregate `SHA256SUMS` file from the same release page. The checked-in release workflow generates `SHA256SUMS` from the actual `target/distrib` release archives before uploading `target/distrib/*`.
 
 From the download directory on macOS/Linux:
 
@@ -146,9 +147,7 @@ after its separate release slice lands.
 
 The release policy in `technical/release-policy.md` defines version tags,
 changelog source of truth, release note updates, and checksum publication
-rules. The cargo-dist workflow currently publishes release archives with
-per-artifact `.sha256` checksum files from `v*` tags, while this script consumes
-the aggregate `SHA256SUMS` convention documented by the release policy. The first
+rules. The cargo-dist workflow publishes release archives with per-artifact `.sha256` checksum files from `v*` tags, then the GitHub Release job generates and uploads aggregate `SHA256SUMS` for script and manual verification. The first
 release does not publish to crates.io, and Homebrew instructions should appear
 here only after its release slice lands.
 

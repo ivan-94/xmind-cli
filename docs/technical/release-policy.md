@@ -11,6 +11,7 @@
 - `PLAN.md` Phase 18 release automation and Homebrew sections.
 - `Cargo.toml` `[workspace.metadata.dist]`
 - `.github/workflows/release.yml`
+- Parent review instruction on 2026-05-23 for issue #8: fix the end-to-end checksum contract so the release workflow publishes the checksum source consumed by `scripts/install.sh`.
 - `CHANGELOG.md`
 - `docs/installation.md`
 - `docs/technical/e2e-test-plan.md`
@@ -47,13 +48,13 @@
 - issue #6 defines the first release binary matrix as macOS Apple Silicon, macOS Intel, Linux x86_64 GNU, and Windows x86_64 MSVC.
 - release jobs smoke-test each produced native binary with `xmind --version`, `xmind tree ... --json`, and `xmind validate ... --json`.
 - Full E2E matrix remains separate from release binary smoke checks.
-- cargo-dist emits per-artifact `.sha256` checksum files. The aggregate `SHA256SUMS` policy remains the user-facing checksum convention and is consumed by the standalone install script.
+- cargo-dist emits per-artifact `.sha256` checksum files. The `github-release` job generates `SHA256SUMS` from the actual downloaded `target/distrib` release archives before publication, and the standalone install script consumes that aggregate checksum file.
 - issue #8 adds `scripts/install.sh` as a repository-maintained installer, separate from cargo-dist generated installers; `[workspace.metadata.dist].installers` remains empty.
 
 ### Verification Evidence
 
 - Documentation policy is guarded by `tests/cli/doc_examples_test.rs`.
-- Release workflow configuration is guarded by `tests/cli/release_workflow_test.rs`.
+- Release workflow configuration, including aggregate `SHA256SUMS` generation before release publication, is guarded by `tests/cli/release_workflow_test.rs`.
 - Install script behavior is guarded by `tests/cli/install_script_test.rs`.
 - RED: `PATH=/opt/homebrew/opt/rustup/bin:$PATH cargo test --test doc_examples_test release_policy_documents_versioning_changelog_notes_and_checksums` failed before `docs/technical/release-policy.md` existed.
 - GREEN: `PATH=/opt/homebrew/opt/rustup/bin:$PATH cargo test --test doc_examples_test release_policy_documents_versioning_changelog_notes_and_checksums` passed after adding the policy and checksum docs.
@@ -110,17 +111,13 @@ Release notes must not claim crates.io, Homebrew, install script, or platform su
 
 ## Checksums
 
-Every GitHub Release must publish checksums next to the downloadable artifacts. cargo-dist currently generates per-artifact `.sha256` checksum files, and the first-version user-facing policy also uses an aggregate `SHA256SUMS` file. The aggregate file contains one line per artifact:
+Every GitHub Release must publish checksums next to the downloadable artifacts. cargo-dist generates per-artifact `.sha256` checksum files, and the checked-in `github-release` job also generates an aggregate `SHA256SUMS` file from the actual release archives present in `target/distrib` before publishing. The aggregate file contains one line per artifact:
 
 ```text
 <sha256>  <artifact-file-name>
 ```
 
-Generate or verify this file through the release automation once the full release artifact slice is complete. Until then, manual release candidates may use platform tools such as:
-
-```bash
-shasum -a 256 xmind-cli-*.tar.gz xmind-cli-*.zip > SHA256SUMS
-```
+The release workflow creates `SHA256SUMS` in `target/distrib` after downloading all matrix artifacts and before the `softprops/action-gh-release` upload. The upload step publishes `target/distrib/*`, so the aggregate checksum file and the archives are attached to the same GitHub Release.
 
 Users verify downloads from the directory containing the downloaded artifact and `SHA256SUMS`:
 
@@ -142,6 +139,7 @@ The issue #5 configuration starts the GitHub Release workflow. Issue #6 expands 
 - `ci = ["github"]` and `hosting = ["github"]` make GitHub Actions and GitHub Releases the release path.
 - `create-release = true` keeps releases tag-driven from `v*` tags.
 - `checksum = "sha256"` publishes per-artifact `.sha256` checksum files.
+- The `github-release` job additionally generates aggregate `SHA256SUMS` from `target/distrib` archives before publishing `target/distrib/*`.
 - `installers = []` avoids cargo-dist generated installers and Homebrew publication; the standalone `scripts/install.sh` remains repository-maintained.
 - `targets` contains `aarch64-apple-darwin`, `x86_64-apple-darwin`, `x86_64-unknown-linux-gnu`, and `x86_64-pc-windows-msvc`.
 
@@ -184,6 +182,7 @@ xmind validate tests/fixtures/xmind/minimal.xmind --json
 
 - map only the supported release platforms to artifacts;
 - preview release tag, target, artifact URL, checksum URL, and install path in `--dry-run` without writing user files;
+- rely on the `SHA256SUMS` file published by the checked-in GitHub Release workflow;
 - verify `SHA256SUMS` before extraction;
 - fail when the checksum file does not contain the exact artifact name;
 - fail on checksum mismatch before installing anything;

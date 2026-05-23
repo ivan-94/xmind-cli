@@ -198,6 +198,12 @@
           <code>.zip</code> artifact 名称。若 cargo-dist 实际发布文件名不同，发布前必须
           调整脚本或 release automation，不能让脚本猜测并安装相近 artifact。
         </li>
+        <li>
+          父级 review 修复：<code>.github/workflows/release.yml</code> 的
+          <code>github-release</code> job 现在在 <code>softprops/action-gh-release</code>
+          上传前生成聚合 <code>SHA256SUMS</code>；<code>tests/cli/release_workflow_test.rs</code>
+          验证生成步骤先于发布步骤，避免脚本依赖不存在的 checksum source。
+        </li>
       </ul>
     </section>
 
