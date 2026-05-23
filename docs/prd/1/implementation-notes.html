@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <title>PRD #1 Implementation Notes</title>
+    <style>
+      body {
+        font-family:
+          -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        line-height: 1.5;
+        max-width: 960px;
+        margin: 32px auto;
+        padding: 0 20px;
+        color: #202124;
+      }
+
+      h1,
+      h2 {
+        line-height: 1.2;
+      }
+
+      code {
+        background: #f1f3f4;
+        border-radius: 4px;
+        padding: 1px 4px;
+      }
+
+      .entry {
+        border-top: 1px solid #dadce0;
+        margin-top: 20px;
+        padding-top: 16px;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>PRD #1 Implementation Notes</h1>
+    <p>
+      本文件用于记录 PRD #1 交付期间，父 Agent 和各 Slice Agent 对规格的解释、
+      设计决策、故意偏离、权衡与未决风险。它是 live artifact；每个 Slice
+      开始前必须先读取，产生新的实现解释或风险时必须更新。
+    </p>
+
+    <section class="entry">
+      <h2>Source Manifest</h2>
+      <ul>
+        <li>
+          GitHub PRD:
+          <code>https://github.com/ivan-94/xmind-cli/issues/1</code>
+        </li>
+        <li>
+          Slice issues:
+          <code>#2</code> 到 <code>#24</code>，每个 issue 通过正文中的
+          <code>Parent #1</code> 与 PRD 关联。
+        </li>
+        <li><code>PLAN.md</code>: Phase 17 与 Phase 18 backlog。</li>
+        <li><code>implementation-notes.html</code>: 仓库级当前偏差、风险和基线说明。</li>
+        <li><code>docs/technical/e2e-test-plan.md</code>: E2E 范围、fixture 策略和 CI 分层。</li>
+        <li><code>docs/agents/issue-tracker.md</code>: GitHub Issues 是当前正式 tracker。</li>
+        <li>
+          <code>~/.agents/docs/agents/workflows.md</code> 与
+          <code>~/.agents/docs/agents/handoff-policy.md</code>:
+          多 Agent 工作流和 Source Manifest 规则。
+        </li>
+      </ul>
+    </section>
+
+    <section class="entry">
+      <h2>Parent Agent Plan</h2>
+      <ul>
+        <li>
+          父集成分支：
+          <code>codex/prd-1-github-release-e2e-program</code>。
+        </li>
+        <li>
+          Slice 分支模式：
+          <code>codex/slice-1-&lt;issue&gt;-&lt;slug&gt;</code>。
+        </li>
+        <li>
+          Slice worktree 模式：
+          <code>.scratch/worktrees/prd-1/&lt;issue&gt;-&lt;slug&gt;</code>。
+        </li>
+        <li>
+          子 Agent 恢复模式为 resumable：父 Agent 记录 agent id，返工时优先
+          用同一逻辑 worker 在同一 worktree/branch 追加修复 commit。
+        </li>
+        <li>
+          每个 Slice 必须执行 TDD 或等价红绿重构实践，并在自己的分支提交；
+          子 Agent 不 push、不创建 PR、不运行 cross-review、不准备 HAT。
+        </li>
+      </ul>
+    </section>
+
+    <section class="entry">
+      <h2>Current Decisions</h2>
+      <ul>
+        <li>
+          远端仓库初始没有任何 branch；父 Agent 已将当前绿色基线
+          <code>master</code> 推送为 PR base。
+        </li>
+        <li>
+          <code>#3</code> branch protection 和 <code>#11</code> real XMind golden
+          fixture generation 带有人类/权限依赖。自动化部分可以交付，无法由
+          Agent 独立验证的权限或 GUI 步骤必须记录为 remaining risk。
+        </li>
+        <li>
+          Phase 17 命令行为闭环优先保持文档契约；若 <code>diff</code>
+          的输入形态与文档目标冲突，Slice Agent 必须停止并回报父 Agent，而不是
+          擅自收窄行为。
+        </li>
+      </ul>
+    </section>
+
+    <section class="entry">
+      <h2>Verification Baseline</h2>
+      <ul>
+        <li>
+          2026-05-23 父 Agent 在交付前运行：
+          <code>PATH=/opt/homebrew/opt/rustup/bin:$PATH ./scripts/quality-gate.sh</code>。
+        </li>
+        <li>
+          结果：通过。该命令覆盖 <code>cargo fmt</code>,
+          <code>cargo clippy</code> 和 <code>cargo test</code>。
+        </li>
+        <li>
+          本机应继续使用
+          <code>PATH=/opt/homebrew/opt/rustup/bin:$PATH</code>，避免 Homebrew Rust
+          工具链历史上的 <code>libunwind</code> / <code>libLLVM</code> 崩溃问题。
+        </li>
+      </ul>
+    </section>
+
+    <section class="entry">
+      <h2>Open Risks</h2>
+      <ul>
+        <li>
+          PRD 范围很大，多个 Slice 会触碰 CLI 行为、E2E 测试、发布配置和文档；
+          父 Agent 合并时必须优先保留各 Slice 的边界并运行集成验证。
+        </li>
+        <li>
+          <code>#3</code> 需要 GitHub branch protection 权限，可能只能交付脚本、
+          文档和验证命令，最终启用由 maintainer 完成。
+        </li>
+        <li>
+          <code>#11</code> 可能需要本机 XMind App/GUI 介入；若无法无损自动生成真实
+          fixture，应提交 manifest/governance 和明确 TODO，而不是伪造为真实 App
+          产物。
+        </li>
+      </ul>
+    </section>
+  </body>
+</html>
