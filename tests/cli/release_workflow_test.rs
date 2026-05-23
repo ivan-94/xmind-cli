@@ -60,6 +60,10 @@ fn cargo_dist_release_contract_is_checked_in() {
         "${{ matrix.binary }} --version",
         "${{ matrix.binary }} tree tests/fixtures/xmind/minimal.xmind --json",
         "${{ matrix.binary }} validate tests/fixtures/xmind/minimal.xmind --json",
+        "Generate aggregate SHA256SUMS",
+        "find . -maxdepth 1 -type f ! -name 'SHA256SUMS' ! -name '*.sha256' -exec basename",
+        "shasum -a 256",
+        "cat SHA256SUMS",
         "GitHub Release",
     ] {
         assert!(
@@ -67,6 +71,21 @@ fn cargo_dist_release_contract_is_checked_in() {
             "release workflow should include `{expected}`"
         );
     }
+
+    let checksum_step = release_workflow
+        .find("Generate aggregate SHA256SUMS")
+        .expect("release workflow should generate aggregate SHA256SUMS");
+    let release_step = release_workflow
+        .find("Publish GitHub Release")
+        .expect("release workflow should publish GitHub Release");
+    assert!(
+        checksum_step < release_step,
+        "SHA256SUMS must be generated before GitHub Release publication"
+    );
+    assert!(
+        release_workflow.contains("files: target/distrib/*"),
+        "GitHub Release should upload SHA256SUMS with target/distrib artifacts"
+    );
 
     assert!(
         !cargo_toml.contains(r#""homebrew""#) && !release_workflow.contains("publish-jobs"),
@@ -79,6 +98,7 @@ fn cargo_dist_release_contract_is_checked_in() {
         "CHANGELOG.md",
         "SHA256",
         "per-artifact `.sha256` checksum files",
+        "`github-release` job generates `SHA256SUMS`",
         "Supported Release Platforms",
         "macOS Apple Silicon",
         "macOS Intel",
@@ -104,6 +124,8 @@ fn cargo_dist_release_contract_is_checked_in() {
         "xmind tree tests/fixtures/xmind/minimal.xmind --json",
         "xmind validate tests/fixtures/xmind/minimal.xmind --json",
         "per-artifact `.sha256` checksum files",
+        "bash scripts/install.sh --dry-run --version v0.1.0",
+        "cargo install --locked --git https://github.com/ivan-94/xmind-cli",
         "Homebrew",
         "install script",
     ] {

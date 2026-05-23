@@ -96,7 +96,7 @@
         </li>
         <li>
           CI workflow、security job、release build smoke、completion、installation
-          docs 和 changelog 均已存在；本地质量门仍以
+          docs、install script 和 changelog 均已存在；本地质量门仍以
           <code>./scripts/quality-gate.sh</code> 为准。
         </li>
         <li>
@@ -125,8 +125,8 @@
           post-audit slice。
         </li>
         <li>
-          GitHub 发布、branch protection、Homebrew tap、README 用户入口和完整 E2E
-          覆盖仍只是计划，尚未实现。
+          GitHub 发布、branch protection、Homebrew tap 和完整 E2E
+          覆盖仍只是计划，尚未实现；README 用户入口和安装脚本已由 PRD #1 slice #8 更新。
         </li>
       </ul>
     </section>
@@ -315,6 +315,30 @@
           风险：当前 <code>set</code> 多字段单次调用只应用首个字段；本 slice 按当前稳定
           行为用多次 <code>set</code> 调用覆盖每个 editable field，未在覆盖 slice 中扩大
           应用语义。
+        </li>
+      </ul>
+    </section>
+    <section class="entry">
+      <h2>Slice #8: Install Script</h2>
+      <ul>
+        <li>
+          Source Manifest: GitHub issue <code>#8</code>, parent PRD <code>#1</code>,
+          <code>README.md</code>, <code>docs/installation.md</code>,
+          <code>docs/technical/release-policy.md</code>, <code>.github/workflows/release.yml</code>,
+          <code>Cargo.toml</code>, <code>scripts/install.sh</code>, and
+          <code>tests/cli/install_script_test.rs</code>, and parent review fix on 2026-05-23.
+        </li>
+        <li>
+          决策：release workflow 生成并上传聚合 <code>SHA256SUMS</code>，脚本只接受
+          支持矩阵映射出的精确 artifact 文件名，并要求 checksum 中有对应条目后才解压安装。
+        </li>
+        <li>
+          风险：artifact 命名仍需在首次真实 cargo-dist release 前复核；若实际文件名与
+          文档约定不一致，应改 release automation 或脚本，而不是放宽匹配。
+        </li>
+        <li>
+          父级 review 修复：release workflow 在发布前生成并上传聚合
+          <code>SHA256SUMS</code>；脚本继续严格校验精确 artifact 条目，不回退到模糊匹配。
         </li>
       </ul>
     </section>

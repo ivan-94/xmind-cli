@@ -159,6 +159,55 @@
     </section>
 
     <section class="entry">
+      <h2>Slice #8: Install Script And Installation Docs</h2>
+      <ul>
+        <li>
+          Source Manifest: GitHub issue <code>#8</code>, parent PRD
+          <code>#1</code>, <code>README.md</code>, <code>docs/installation.md</code>,
+          <code>docs/technical/release-policy.md</code>, <code>Cargo.toml</code>
+          <code>[workspace.metadata.dist]</code>, <code>.github/workflows/release.yml</code>,
+          <code>scripts/install.sh</code>, <code>tests/cli/install_script_test.rs</code>, parent review fix on 2026-05-23,
+          <code>~/.agents/docs/agents/workflows.md</code>, and
+          <code>~/.agents/docs/agents/handoff-policy.md</code>.
+        </li>
+        <li>
+          决策：安装脚本作为仓库维护的 <code>scripts/install.sh</code> 交付，
+          不启用 cargo-dist generated installers；因此
+          <code>[workspace.metadata.dist].installers</code> 继续保持空数组，Homebrew
+          仍归后续 slice。
+        </li>
+        <li>
+          决策：release workflow 在发布前基于 <code>target/distrib</code> 中实际发布的
+          archive 文件生成聚合 <code>SHA256SUMS</code>，并与 artifacts 一起上传到
+          GitHub Release；脚本只消费这个聚合 checksum source。
+        </li>
+        <li>
+          决策：脚本仅把当前支持矩阵映射到 artifact：macOS Apple Silicon、
+          macOS Intel、Linux x86_64 GNU 和 Windows x86_64 MSVC。未知平台会在下载前
+          失败，并提示使用 <code>cargo install --locked --git</code>。
+        </li>
+        <li>
+          决策：脚本要求 <code>SHA256SUMS</code> 中存在精确 artifact 文件名，校验失败、
+          checksum 文件缺失、checksum 条目缺失或 archive 内没有预期
+          <code>xmind</code>/<code>xmind.exe</code> 时都拒绝安装；<code>--dry-run</code>
+          只打印 release、target、URL 与 install path，不下载或写入用户文件。
+        </li>
+        <li>
+          风险：脚本按文档约定使用
+          <code>xmind-cli-vX.Y.Z-&lt;target&gt;.tar.gz</code> 和 Windows
+          <code>.zip</code> artifact 名称。若 cargo-dist 实际发布文件名不同，发布前必须
+          调整脚本或 release automation，不能让脚本猜测并安装相近 artifact。
+        </li>
+        <li>
+          父级 review 修复：<code>.github/workflows/release.yml</code> 的
+          <code>github-release</code> job 现在在 <code>softprops/action-gh-release</code>
+          上传前生成聚合 <code>SHA256SUMS</code>；<code>tests/cli/release_workflow_test.rs</code>
+          验证生成步骤先于发布步骤，避免脚本依赖不存在的 checksum source。
+        </li>
+      </ul>
+    </section>
+
+    <section class="entry">
       <h2>Slice #22: import --into Backup Safety</h2>
       <ul>
         <li>

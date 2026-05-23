@@ -7,6 +7,7 @@
 - GitHub PRD: <https://github.com/ivan-94/xmind-cli/issues/1>
 - GitHub issue: <https://github.com/ivan-94/xmind-cli/issues/2>
 - GitHub issue: <https://github.com/ivan-94/xmind-cli/issues/6>
+- GitHub issue: <https://github.com/ivan-94/xmind-cli/issues/8>
 - `PLAN.md`: Phase 18 GitHub bootstrap, repository positioning, install channels, and release/E2E scope.
 - `docs/prd/1/implementation-notes.html`: PRD #1 slice workflow, current decisions, and verification baseline.
 - `docs/README.md`: documentation map and product posture.
@@ -15,7 +16,7 @@
 - `docs/reference/cli-overview.md`: command groups and CLI contract.
 - `docs/reference/mutation-semantics.md`: dry-run, apply, backup, and safety rules.
 - `docs/reference/output-formats.md`: JSON envelope and human output contracts.
-- `docs/installation.md`: current local install and release build instructions.
+- `docs/installation.md`: source install, GitHub Release binary, install script, and release build instructions.
 - `docs/technical/e2e-test-plan.md`: user-perspective E2E plan and release smoke scope.
 - `Cargo.toml`: package name, executable name, version, description, and MIT license metadata.
 
@@ -27,7 +28,7 @@
 
 - Position the repository as the public GitHub entrypoint for `ivan-94/xmind-cli` while the executable remains `xmind`.
 - State that this is an unofficial XMind CLI and is not affiliated with XMind.
-- Describe planned release channels without presenting unreleased binaries, scripts, or Homebrew formulae as available.
+- Describe release install channels without presenting Homebrew formulae or unsupported platform artifacts as available.
 
 ### Verification evidence
 
@@ -36,7 +37,7 @@
 ### Open questions / risks
 
 - A standalone `LICENSE` file is not present in this slice; `Cargo.toml` currently declares `MIT`.
-- GitHub Release binaries, install script, and Homebrew tap are planned by PRD #1 but are not available yet.
+- GitHub Release binary downloads and the install script are documented by PRD #1 issue #8; Homebrew remains a separate follow-up.
 
 ## Overview
 
@@ -66,7 +67,7 @@ git@github.com:ivan-94/xmind-cli.git
 
 ## Status
 
-This repository is in pre-release hardening for PRD #1. Local source builds, CLI integration tests, and documentation contract checks exist today. Public release artifacts, install script automation, Homebrew publication, and expanded E2E fixtures are tracked as follow-up issues under PRD #1.
+This repository is in pre-release hardening for PRD #1. Local source builds, CLI integration tests, and documentation contract checks exist today. Public release artifacts, install script automation, Homebrew publication, and expanded E2E fixtures are tracked under PRD #1. The install script is checked in for tagged GitHub Release artifacts; Homebrew publication remains a follow-up.
 
 The project is unofficial and is not endorsed by or affiliated with XMind.
 
@@ -74,25 +75,25 @@ The project is unofficial and is not endorsed by or affiliated with XMind.
 
 | Channel | Status | Command or location |
 | --- | --- | --- |
-| Cargo source install | Available today | `cargo install --path .` |
+| Cargo source install from checkout | Available today | `cargo install --path .` |
+| Cargo source install from GitHub | Available today | `cargo install --locked --git https://github.com/ivan-94/xmind-cli` |
 | Local release build | Available today | `cargo build --workspace --release`, then run `target/release/xmind` |
-| GitHub release binaries | Planned | First matrix: macOS Apple Silicon, macOS Intel, Linux x86_64 GNU, and Windows x86_64 MSVC. |
-| Install script | Planned | Will be documented after the script is added and release artifacts are stable. |
+| GitHub Release binaries | Available after first tagged release | Download the artifact for macOS Apple Silicon, macOS Intel, Linux x86_64 GNU, or Windows x86_64 MSVC and verify `SHA256SUMS`. |
+| Install script | Available for tagged release artifacts | `bash scripts/install.sh --dry-run --version v0.1.0`, then rerun without `--dry-run`. |
 | Homebrew tap | Planned | Expected path is `ivan-94/homebrew-tap`; formula publication is a separate follow-up. |
 
-See [docs/installation.md](docs/installation.md) for current local install, release build, shell completion, and verification commands.
+See [docs/installation.md](docs/installation.md) for source install, GitHub Release binary download, install script, release build, shell completion, and verification commands.
 
 The first binary release matrix does not imply support for Linux arm64,
 Linux musl/static builds, macOS universal binaries, 32-bit Windows,
-Windows GNU, crates.io packages, container images, Homebrew, or install script
-artifacts.
+Windows GNU, container images, Homebrew, or crates.io packages.
 
 ## Quick Start
 
 Build or install the binary, then inspect a fixture:
 
 ```bash
-cargo install --path .
+cargo install --locked --git https://github.com/ivan-94/xmind-cli
 xmind tree tests/fixtures/xmind/minimal.xmind --depth 2 --json
 ```
 
