@@ -21,6 +21,11 @@ fn ci_workflow_defines_the_pr_merge_gate_contract() {
         "stable-pr-e2e:",
         "Stable PR E2E subset",
         "cargo test --test e2e_pr_subset --all-features",
+        "rustup toolchain install stable --profile minimal",
+        "cargo +stable install cargo-audit --version 0.22.1 --locked",
+        "cargo +stable audit",
+        "EmbarkStudios/cargo-deny-action@v2",
+        "cargo deny",
     ] {
         assert!(
             workflow.contains(expected),

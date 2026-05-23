@@ -20,6 +20,7 @@ fn cargo_dist_release_contract_is_checked_in() {
         r#"inherits = "release""#,
         "[workspace.metadata.dist]",
         r#"cargo-dist-version = "0.31.0""#,
+        r#"allow-dirty = ["ci"]"#,
         r#"ci = ["github"]"#,
         r#"hosting = ["github"]"#,
         r#"installers = []"#,

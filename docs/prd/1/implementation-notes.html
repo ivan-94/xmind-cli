@@ -447,6 +447,19 @@
           当作 action 使用；workflow 改为通过 release installer 安装，并把安装目录写入
           <code>GITHUB_PATH</code> 后再运行 <code>dist plan</code> / <code>dist build</code>。
         </li>
+        <li>
+          决策：<code>[workspace.metadata.dist].allow-dirty = ["ci"]</code>
+          是有意设置。release workflow 需要保留手写 release notes 抽取、
+          聚合 <code>SHA256SUMS</code>、artifact smoke 和仓库安装脚本策略，
+          因此不让 cargo-dist 在 <code>dist plan</code> 时要求完全替换成生成模板。
+        </li>
+        <li>
+          修复：Security job 不再使用 <code>rustsec/audit-check</code>
+          自动安装扫描器。仓库编译基线仍是 Rust <code>1.80.1</code>，
+          但安全扫描单独安装 stable toolchain 并运行 pinned
+          <code>cargo-audit 0.22.1</code>，以支持当前 RustSec advisory DB
+          中的 CVSS 4.0 metadata。
+        </li>
       </ul>
     </section>
 

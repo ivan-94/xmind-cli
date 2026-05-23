@@ -18,6 +18,7 @@ lto = "thin"
 # Source Manifest: GitHub issues #5 and #6, parent PRD #1, PLAN.md Phase 18, docs/technical/release-policy.md, docs/installation.md, CHANGELOG.md.
 # Keep release automation to GitHub Release archives/checksums plus platform smoke checks. Install script and Homebrew are separate slices.
 cargo-dist-version = "0.31.0"
+allow-dirty = ["ci"]
 ci = ["github"]
 hosting = ["github"]
 installers = []

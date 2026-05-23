@@ -140,6 +140,10 @@ The first checked-in cargo-dist configuration lives in `Cargo.toml` under `[work
 The issue #5 configuration starts the GitHub Release workflow. Issue #6 expands it to the first supported binary platform matrix:
 
 - `cargo-dist-version = "0.31.0"` pins the release automation generator.
+- `allow-dirty = ["ci"]` is intentional because this repository keeps a
+  hand-maintained release workflow with custom release notes extraction,
+  aggregate `SHA256SUMS`, artifact smoke tests, and the repository install
+  script policy instead of accepting cargo-dist's generated workflow verbatim.
 - `ci = ["github"]` and `hosting = ["github"]` make GitHub Actions and GitHub Releases the release path.
 - `create-release = true` keeps releases tag-driven from `v*` tags.
 - `checksum = "sha256"` publishes per-artifact `.sha256` checksum files.

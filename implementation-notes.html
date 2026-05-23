@@ -167,6 +167,18 @@
           并显式写入 <code>GITHUB_PATH</code>。
         </li>
         <li>
+          决策：<code>allow-dirty = ["ci"]</code> 只用于 cargo-dist
+          的 CI 生成检查。当前 release workflow 是受测试保护的手写契约，
+          包含 release notes 抽取、聚合校验清单和 smoke checks。
+        </li>
+        <li>
+          修复：Security job 不再让 <code>rustsec/audit-check</code>
+          自动安装最新版 <code>cargo-audit</code>；仓库 pinned Rust toolchain
+          仍是 <code>1.80.1</code>，但 Security job 单独安装 stable
+          toolchain 来运行 pinned <code>cargo-audit 0.22.1</code>，以支持
+          当前 RustSec advisory DB 的 CVSS 4.0 metadata。
+        </li>
+        <li>
           权衡：没有引入完整 release notes 生成系统；只新增一个可测试的 shell
           helper 来守住当前发布契约，保持 release workflow 范围窄。
         </li>
