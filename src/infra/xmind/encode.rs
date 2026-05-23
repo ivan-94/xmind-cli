@@ -52,6 +52,20 @@ pub fn write_new_workbook(
     Ok(())
 }
 
+pub fn write_workbook(workbook_path: &Path, workbook: &Workbook) -> Result<(), XMindWriteError> {
+    let content_json = encode_workbook_content(workbook)?;
+    let entries = workbook
+        .preservation
+        .package_entries()
+        .iter()
+        .map(|entry| (entry.name().to_owned(), entry.bytes().to_vec()))
+        .collect::<Vec<_>>();
+    let temp_path = temp_workbook_path(workbook_path);
+    write_package(&temp_path, content_json, entries)?;
+    replace_with_validated_candidate(workbook_path, &temp_path, validate_candidate_package)?;
+    Ok(())
+}
+
 pub fn append_child_topic(
     workbook_path: &Path,
     parent_topic_id: &str,
