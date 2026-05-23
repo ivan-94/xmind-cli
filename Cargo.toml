@@ -4,7 +4,27 @@ version = "0.1.0"
 edition = "2021"
 license = "MIT"
 description = "Agent-native CLI for inspecting and editing XMind workbooks"
+repository = "https://github.com/ivan-94/xmind-cli"
 publish = false
+
+[package.metadata.dist]
+dist = true
+
+[profile.dist]
+inherits = "release"
+lto = "thin"
+
+[workspace.metadata.dist]
+# Source Manifest: GitHub issue #5, parent PRD #1, PLAN.md Phase 18, docs/technical/release-policy.md, docs/installation.md, CHANGELOG.md.
+# Keep issue #5 minimal: GitHub Release archives/checksums only. Install script, Homebrew, and the final platform matrix are separate slices.
+cargo-dist-version = "0.31.0"
+ci = ["github"]
+hosting = ["github"]
+installers = []
+checksum = "sha256"
+create-release = true
+pr-run-mode = "plan"
+targets = ["x86_64-unknown-linux-gnu"]
 
 [package.metadata.xmind-cli]
 spec_sources = [
@@ -127,6 +147,10 @@ path = "tests/cli/definition_of_done_test.rs"
 [[test]]
 name = "ci_workflow_test"
 path = "tests/cli/ci_workflow_test.rs"
+
+[[test]]
+name = "release_workflow_test"
+path = "tests/cli/release_workflow_test.rs"
 
 [[test]]
 name = "completion_test"

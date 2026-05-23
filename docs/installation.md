@@ -5,7 +5,10 @@
 - Conversation: XMind CLI product and technical design discussion
 - Scope: Local and release installation instructions
 - GitHub issue #7: `https://github.com/ivan-94/xmind-cli/issues/7`
+- GitHub issue #5: `https://github.com/ivan-94/xmind-cli/issues/5`
 - Release policy: `technical/release-policy.md`
+- Cargo-dist config: `../Cargo.toml` `[workspace.metadata.dist]`
+- Cargo-dist workflow: `../.github/workflows/release.yml`
 - Last updated: 2026-05-23
 
 ## Prerequisites
@@ -65,8 +68,30 @@ Run the binary only after the downloaded artifact reports `OK`.
 
 The release policy in `technical/release-policy.md` defines version tags,
 changelog source of truth, release note updates, and checksum publication
-rules. The first release does not publish to crates.io, and install script or
-Homebrew instructions should appear here only after their release slices land.
+rules. The cargo-dist workflow currently publishes release archives with
+per-artifact `.sha256` checksum files from `v*` tags. The first release does
+not publish to crates.io, and install script or Homebrew instructions should
+appear here only after their release slices land.
+
+## Verify Release Automation Locally
+
+Install the pinned cargo-dist version if needed:
+
+```bash
+cargo install cargo-dist --version 0.31.0 --locked
+```
+
+Check the tag-driven GitHub Release plan without publishing:
+
+```bash
+cargo dist plan
+```
+
+Build local release artifacts without creating a GitHub Release:
+
+```bash
+cargo dist build --artifacts=local --target x86_64-unknown-linux-gnu
+```
 
 ## Shell Completion
 

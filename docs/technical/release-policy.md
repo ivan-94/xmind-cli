@@ -5,14 +5,18 @@
 ### Sources
 
 - GitHub issue #7: `https://github.com/ivan-94/xmind-cli/issues/7`
+- GitHub issue #5: `https://github.com/ivan-94/xmind-cli/issues/5`
 - Parent PRD #1: `https://github.com/ivan-94/xmind-cli/issues/1`
 - `PLAN.md` Phase 18 release automation and Homebrew sections.
+- `Cargo.toml` `[workspace.metadata.dist]`
+- `.github/workflows/release.yml`
 - `CHANGELOG.md`
 - `docs/installation.md`
 - `docs/technical/e2e-test-plan.md`
 - `docs/technical/quality-gates.md`
 - `docs/prd/1/implementation-notes.html`
 - User slice instruction on 2026-05-23: document policy only; do not implement cargo-dist, install script, Homebrew, or platform matrix.
+- User slice instruction on 2026-05-23 for issue #5: configure cargo-dist minimally for GitHub Releases from tags, generated checksums, changelog/release notes source, and no Homebrew requirement.
 
 ### Produced Artifacts
 
@@ -22,7 +26,10 @@
 - `docs/technical/README.md`
 - `CHANGELOG.md`
 - `docs/prd/1/implementation-notes.html`
+- `Cargo.toml`
+- `.github/workflows/release.yml`
 - `tests/cli/doc_examples_test.rs`
+- `tests/cli/release_workflow_test.rs`
 
 ### Key Decisions
 
@@ -31,10 +38,14 @@
 - The first release uses `v0.1.0`; later tags use `vMAJOR.MINOR.PATCH`.
 - Release artifacts publish one `SHA256SUMS` file containing SHA-256 digests for every downloadable binary archive and installer artifact.
 - crates.io publishing is out of scope for the first release.
+- issue #5 uses `cargo-dist` `0.31.0` with `ci = ["github"]`, `hosting = ["github"]`, `create-release = true`, and `installers = []`.
+- issue #5 intentionally configures only `x86_64-unknown-linux-gnu`; the final release platform matrix remains owned by the platform matrix slice.
+- cargo-dist emits per-artifact `.sha256` checksum files. The aggregate `SHA256SUMS` policy remains the user-facing checksum convention and may be assembled by a later release-polish slice if cargo-dist does not generate it directly.
 
 ### Verification Evidence
 
 - Documentation policy is guarded by `tests/cli/doc_examples_test.rs`.
+- Release workflow configuration is guarded by `tests/cli/release_workflow_test.rs`.
 - RED: `PATH=/opt/homebrew/opt/rustup/bin:$PATH cargo test --test doc_examples_test release_policy_documents_versioning_changelog_notes_and_checksums` failed before `docs/technical/release-policy.md` existed.
 - GREEN: `PATH=/opt/homebrew/opt/rustup/bin:$PATH cargo test --test doc_examples_test release_policy_documents_versioning_changelog_notes_and_checksums` passed after adding the policy and checksum docs.
 - Full targeted docs check: `PATH=/opt/homebrew/opt/rustup/bin:$PATH cargo test --test doc_examples_test`.
@@ -42,7 +53,8 @@
 
 ### Open Questions / Risks
 
-- Final artifact names depend on the cargo-dist slice and platform matrix slice.
+- Final multi-platform artifact names depend on the platform matrix slice.
+- cargo-dist local verification requires installing `cargo-dist` 0.31.0 locally when it is not already present.
 - Homebrew formula checksum updates depend on published release artifact names.
 
 ## Versioning
@@ -79,23 +91,23 @@ For each GitHub Release:
 
 1. Verify `Cargo.toml` matches the tag without `v`.
 2. Verify `CHANGELOG.md` has a `## vX.Y.Z - YYYY-MM-DD` section.
-3. Build and smoke-test release artifacts according to the release workflow.
+3. Build and smoke-test release artifacts according to the cargo-dist release workflow.
 4. Publish binary archives and the `SHA256SUMS` checksum file.
 5. Paste the matching changelog section into the GitHub Release description.
 6. Add a short install section that links to `docs/installation.md`.
 7. Add checksum verification commands using `SHA256SUMS`.
 
-Release notes must not claim crates.io, Homebrew, install script, or platform support before those channels are implemented and validated.
+Release notes must not claim crates.io, Homebrew, install script, or platform support before those channels are implemented and validated. The cargo-dist GitHub Release body should start from the matching `CHANGELOG.md` section; the checked-in workflow points at `CHANGELOG.md` as the release notes source until a later slice narrows it to the exact tag section.
 
 ## Checksums
 
-Every GitHub Release must publish a `SHA256SUMS` file next to the downloadable artifacts. The file contains one line per artifact:
+Every GitHub Release must publish checksums next to the downloadable artifacts. cargo-dist currently generates per-artifact `.sha256` checksum files, and the first-version user-facing policy also uses an aggregate `SHA256SUMS` file. The aggregate file contains one line per artifact:
 
 ```text
 <sha256>  <artifact-file-name>
 ```
 
-Generate or verify this file through the release automation once cargo-dist is configured. Until then, manual release candidates may use platform tools such as:
+Generate or verify this file through the release automation once the full release artifact slice is complete. Until then, manual release candidates may use platform tools such as:
 
 ```bash
 shasum -a 256 xmind-cli-*.tar.gz xmind-cli-*.zip > SHA256SUMS
@@ -110,6 +122,27 @@ shasum -a 256 -c SHA256SUMS
 The command should report `OK` for the downloaded artifact. If checksum verification fails, delete the artifact, download it again from the GitHub Release, and do not run the binary until verification passes.
 
 Homebrew formula checksums must come from the same published GitHub Release artifact checksums. Do not invent separate checksum values for the tap.
+
+## cargo-dist Workflow
+
+The first checked-in cargo-dist configuration lives in `Cargo.toml` under `[workspace.metadata.dist]`.
+
+The issue #5 configuration is intentionally minimal:
+
+- `cargo-dist-version = "0.31.0"` pins the release automation generator.
+- `ci = ["github"]` and `hosting = ["github"]` make GitHub Actions and GitHub Releases the release path.
+- `create-release = true` keeps releases tag-driven from `v*` tags.
+- `checksum = "sha256"` publishes per-artifact `.sha256` checksum files.
+- `installers = []` avoids install script and Homebrew publication in this slice.
+- `targets = ["x86_64-unknown-linux-gnu"]` keeps this slice to the smallest cargo-dist-valid platform target. The final platform matrix belongs to the platform matrix slice.
+
+Local verification commands:
+
+```bash
+cargo install cargo-dist --version 0.31.0 --locked
+cargo dist plan
+cargo dist build --artifacts=local --target x86_64-unknown-linux-gnu
+```
 
 ## First Release Non-Goals
 
