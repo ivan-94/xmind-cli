@@ -1,5 +1,7 @@
 const REPORT: &str = include_str!("../../docs/technical/e2e-coverage-report.md");
 const E2E_PLAN: &str = include_str!("../../docs/technical/e2e-test-plan.md");
+const PLAN: &str = include_str!("../../PLAN.md");
+const ROOT_NOTES: &str = include_str!("../../implementation-notes.html");
 
 const COMMANDS: &[&str] = &[
     "inspect",
@@ -45,7 +47,7 @@ fn e2e_coverage_report_links_from_plan_and_records_blocking_issues() {
         "E2E test plan should link to the living coverage report"
     );
 
-    for issue in ["#3", "#11", "#15", "#23"] {
+    for issue in ["#3", "#11"] {
         assert!(
             REPORT.contains(issue),
             "coverage report should preserve blocker/follow-up issue {issue}"
@@ -54,6 +56,39 @@ fn e2e_coverage_report_links_from_plan_and_records_blocking_issues() {
 
     assert!(REPORT.contains("## PR Subset vs Full Matrix Status"));
     assert!(REPORT.contains("## Known Blockers and Follow-ups"));
+}
+
+#[test]
+fn issue_23_docs_sync_removes_resolved_phase_17_and_issue_15_todos() {
+    for stale in [
+        "currently returns `invalid_usage`",
+        "currently emits no documented envelope",
+        "currently performs only parse/read validation",
+        "not exposed by clap",
+    ] {
+        assert!(
+            !PLAN.contains(stale),
+            "PLAN.md still describes resolved Phase 17 behavior as a gap: {stale}"
+        );
+    }
+
+    assert!(
+        !REPORT.contains("TODO #15"),
+        "coverage report should not keep issue #15 as a TODO after batch/exchange/recovery E2E landed"
+    );
+    assert!(
+        !REPORT.contains("Issue #23 should resync")
+            && !REPORT.contains("before issue #23 performs final documentation synchronization"),
+        "coverage report should not keep issue #23 as a future synchronization blocker"
+    );
+    assert!(
+        !E2E_PLAN.contains("No new test command was executed while writing this planning document"),
+        "E2E plan should carry current verification evidence, not the original planning-only note"
+    );
+    assert!(
+        !ROOT_NOTES.contains("无法给出新的本地质量门证据"),
+        "implementation notes should not keep the stale local quality-gate blocker after the rustup path is established"
+    );
 }
 
 #[test]

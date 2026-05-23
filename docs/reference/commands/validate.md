@@ -3,8 +3,10 @@
 ## Source Manifest
 
 - Conversation: XMind CLI product design discussion
+- GitHub issue #21: validate structural diagnostics
+- GitHub issue #23: final documentation synchronization
 - Scope: Command reference for workbook validation
-- Last updated: 2026-05-22
+- Last updated: 2026-05-23
 
 ## Purpose
 
@@ -25,11 +27,16 @@ xmind validate [options] <workbook.xmind>
 
 - workbook can be opened,
 - sheets are readable,
-- topic tree has no cycles,
-- topic ids are valid where required,
-- topic ordering is valid,
-- required fields are present,
+- `content.json` and supported modern package structure are present,
+- required sheet and root-topic fields are present,
+- duplicate topic ids are reported with stable structural paths,
+- relationship endpoints reference known topics,
+- image references point at existing package resources,
 - unknown fields can be preserved.
+
+`--strict` turns warnings into `validation_failed`. The current validator does
+not attempt full XMind App visual/layout validation or every private relationship
+variant.
 
 ## Output
 

@@ -3,8 +3,10 @@
 ## Source Manifest
 
 - Conversation: XMind CLI product design discussion
+- GitHub issue #18: add-tree apply writer
+- GitHub issue #23: final documentation synchronization
 - Scope: Command reference for adding a subtree
-- Last updated: 2026-05-22
+- Last updated: 2026-05-23
 
 ## Purpose
 
@@ -45,7 +47,8 @@ xmind add-tree [options] --parent <selector> --from-markdown <outline.md> (--dry
       "added": 6,
       "updated": 0,
       "deleted": 0
-    }
+    },
+    "backup_path": ".xmind-backups/roadmap-20260523T120000.xmind"
   }
 }
 ```
@@ -53,6 +56,9 @@ xmind add-tree [options] --parent <selector> --from-markdown <outline.md> (--dry
 ## Dry Run Behavior
 
 Dry run validates the whole tree and returns a tree diff. No file is written.
+Apply uses the same parse, parent resolution, validation, and planning path as
+dry-run, then writes through the transactional workbook writer. When `--backup`
+is present, `result.backup_path` points to the backup created before replacement.
 
 ## Errors
 

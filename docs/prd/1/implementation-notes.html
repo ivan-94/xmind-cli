@@ -103,9 +103,9 @@
           Agent 独立验证的权限或 GUI 步骤必须记录为 remaining risk。
         </li>
         <li>
-          Phase 17 命令行为闭环优先保持文档契约；若 <code>diff</code>
-          的输入形态与文档目标冲突，Slice Agent 必须停止并回报父 Agent，而不是
-          擅自收窄行为。
+          Phase 17 命令行为闭环已按文档契约收敛：<code>diff</code> 当前公开输入形态
+          明确为单 workbook surface；workbook-vs-workbook 或 planned-operation compare
+          需要未来新增输入模式，不能复用当前语义偷偷改变输出含义。
         </li>
         <li>
           Slice <code>#4</code> CI merge gate uses a named
@@ -260,9 +260,9 @@
         </li>
         <li>
           决策：当前报告允许引用 <code>tests/cli/*_test.rs</code> 作为现有用户可见分支覆盖证据；
-          尚未迁移到 Rust E2E full matrix 的分支继续用 <code>#15</code>,
-          <code>#11</code> 或 <code>#23</code> 标为 TODO，避免把 CLI integration
-          coverage 伪装成完整 E2E。
+          issue <code>#15</code> 落地后，batch/exchange/recovery/shell integration
+          行已改为引用 <code>tests/e2e/batch_exchange_recovery_test.rs</code>；剩余 TODO
+          主要保留给 <code>#3</code> branch protection 和 <code>#11</code> real-app fixtures。
         </li>
         <li>
           验证：新增 <code>tests/cli/e2e_coverage_report_test.rs</code>，防止报告漏列
@@ -295,6 +295,10 @@
           非 JSON stdout。
         </li>
         <li>
+          后续同步：issue <code>#23</code> 已把 E2E 覆盖报告中 issue <code>#15</code>
+          的待办状态更新为已落地状态；#15 不再是 coverage report blocker。
+        </li>
+        <li>
           风险：本 slice 只补覆盖，不扩展命令行为；真实 XMind App fixture 仍沿用
           #11 的 human-gated 后续路径，当前 E2E 继续使用已登记的
           <code>synthetic-generated</code> workbook fixtures。
@@ -317,6 +321,40 @@
           <code>#11</code> 可能需要本机 XMind App/GUI 介入；若无法无损自动生成真实
           fixture，应提交 manifest/governance 和明确 TODO，而不是伪造为真实 App
           产物。
+        </li>
+      </ul>
+    </section>
+
+    <section class="entry">
+      <h2>Slice #23: Final Documentation Synchronization</h2>
+      <ul>
+        <li>
+          Source Manifest: GitHub issue <code>#23</code>, parent PRD
+          <code>#1</code>, <code>PLAN.md</code>, repository
+          <code>implementation-notes.html</code>,
+          <code>docs/technical/e2e-test-plan.md</code>,
+          <code>docs/technical/e2e-coverage-report.md</code>,
+          <code>docs/reference/commands/*.md</code>,
+          <code>tests/cli/doc_examples_test.rs</code>,
+          <code>tests/cli/e2e_coverage_report_test.rs</code>,
+          <code>tests/cli/definition_of_done_test.rs</code>,
+          <code>tests/e2e/red_contract_gaps_test.rs</code>, and
+          <code>tests/e2e/batch_exchange_recovery_test.rs</code>.
+        </li>
+        <li>
+          决策：将 Phase 17 closure、install/Homebrew 当前状态、issue #15 E2E
+          coverage、以及真实剩余项同步到长期文档；保留 <code>#3</code>
+          branch protection 与 <code>#11</code> real XMind App fixtures 作为真实风险。
+        </li>
+        <li>
+          验证：
+          <code>PATH=/opt/homebrew/opt/rustup/bin:$PATH cargo test --test e2e_coverage_report_test --all-features</code>,
+          <code>cargo test --test doc_examples_test --all-features</code>,
+          <code>cargo test --test definition_of_done_test --all-features</code>,
+          <code>cargo test --test e2e_red_contract_gaps --all-features</code>,
+          <code>cargo test --test e2e_batch_exchange_recovery --all-features</code>,
+          and <code>PATH=/opt/homebrew/opt/rustup/bin:$PATH ./scripts/quality-gate.sh</code>
+          all passed in the issue #23 worktree.
         </li>
       </ul>
     </section>
@@ -482,15 +520,8 @@
           用于证明 committed fixture 没有被写路径污染。
         </li>
         <li>
-          偏差：当前 <code>diff --json</code> 会以 0 退出但不输出 JSON envelope。
-          Slice #12 只把它作为成功路径纳入默认子集，不在本 slice 中修复
-          <code>diff</code> 合约；该行为仍归后续 <code>#20</code> 收敛。
-        </li>
-        <li>
-          偏差：当前 <code>patch --apply</code> 明确返回
-          <code>invalid_usage</code>，因为事务写入由后续 <code>#19</code> 负责。
-          默认 PR 子集覆盖 <code>patch --dry-run</code> 成功路径和
-          <code>patch --apply</code> 的稳定错误路径，而不是提前实现 apply。
+          历史偏差已关闭：本 slice 当时记录的 <code>diff --json</code> envelope 缺口已由
+          #20 收敛；<code>patch --apply</code> 事务写入缺口已由 #19 收敛，并进入默认测试路径。
         </li>
       </ul>
     </section>
@@ -620,24 +651,22 @@
       <ul>
         <li>
           决策：Phase 17 已知命令契约缺口的红灯测试集中放在独立测试目标
-          <code>e2e_red_contract_gaps</code>；目标会参与编译，但每个测试均使用
-          <code>#[ignore]</code> 标记，默认 <code>cargo test</code> 与
-          <code>e2e_pr_subset</code> 不会运行这些已知失败。
+          <code>e2e_red_contract_gaps</code>；#18-#22 完成后这些测试已逐项移出
+          <code>#[ignore]</code> 并进入默认运行路径。
         </li>
         <li>
-          运行红灯证据的命令是
-          <code>PATH=/opt/homebrew/opt/rustup/bin:$PATH cargo test --test e2e_red_contract_gaps --all-features -- --ignored --nocapture</code>。
-          当前预期失败覆盖：<code>add-tree --apply</code> 写入、<code>patch --apply</code>
+          当前运行命令是
+          <code>PATH=/opt/homebrew/opt/rustup/bin:$PATH cargo test --test e2e_red_contract_gaps --all-features</code>。
+          默认覆盖：<code>add-tree --apply</code> 写入、<code>patch --apply</code>
           写入与错误回滚、<code>diff --json</code> envelope、<code>validate --strict</code>
           结构诊断，以及 <code>import --into --backup</code> 安全语义。
         </li>
         <li>
-          后续 Slice 启用方式：#18 移除或局部过滤
+          历史启用顺序：#18 启用
           <code>add_tree_apply_mutates_copied_workbook</code>；#19 启用两个
           <code>patch_apply_*</code> 测试；#20 启用 <code>diff_json_*</code>；
           #21 启用 <code>validate_strict_*</code>；#22 启用
-          <code>import_into_apply_backup_*</code>。每个实现 slice 应先用对应过滤器看到红灯，
-          实现后再让该测试进入默认或稳定 E2E 矩阵。
+          <code>import_into_apply_backup_*</code>。后续新增 contract gap 仍应沿用同样的红绿路径。
         </li>
         <li>
           Source Manifest 与运行命令记录在
@@ -685,9 +714,9 @@
           backup bytes 和未知 package entry 保留。
         </li>
         <li>
-          风险：本 slice 没有扩大到 <code>patch --apply</code> 或
-          <code>import --into --backup</code>；它们仍由 #19/#22 处理。当前写入校验仍是
-          “能被本 CLI decode”级别，不等同于真实 XMind App golden fixture 验证。
+          已关闭范围：<code>patch --apply</code> 和
+          <code>import --into --backup</code> 已分别由 #19/#22 处理。当前剩余限制是
+          “能被本 CLI decode”级别的写入校验仍不等同于真实 XMind App golden fixture 验证。
         </li>
       </ul>
     </section>

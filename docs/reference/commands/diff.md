@@ -4,7 +4,8 @@
 
 - Conversation: XMind CLI product design discussion
 - GitHub issue #20: Finalize diff command contract and implementation
-- Scope: Command reference for comparing workbooks or planned operations
+- GitHub issue #23: final documentation synchronization
+- Scope: Command reference for the current single-workbook diff surface
 - Last updated: 2026-05-23
 
 ## Purpose
@@ -62,6 +63,6 @@ roadmap.xmind: no changes
 ## Notes for Agents
 
 Use `patch --dry-run --json` when reviewing generated patch files before applying them.
-Use `patch --dry-run --json` or future compare-specific commands for planned-operation
-or workbook-vs-workbook review; `diff` itself intentionally remains the single-workbook
-surface documented above.
+Workbook-vs-workbook or planned-operation review requires a future compare-specific
+input mode; `diff` itself intentionally remains the single-workbook surface
+documented above.
