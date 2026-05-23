@@ -217,6 +217,32 @@
     </section>
 
     <section class="entry">
+      <h2>Slice #15: Batch / Exchange / Recovery E2E Coverage</h2>
+      <ul>
+        <li>
+          Source Manifest: GitHub issue <code>#15</code>, parent PRD
+          <code>#1</code>, <code>docs/prd/1/implementation-notes.html</code>,
+          <code>docs/technical/e2e-test-plan.md</code>,
+          <code>tests/e2e/pr_subset_test.rs</code>, <code>tests/e2e/support.rs</code>,
+          and command references for <code>add-tree</code>, <code>patch</code>,
+          <code>import</code>, <code>export</code>, <code>backup</code>,
+          <code>restore</code>, and <code>completion</code>.
+        </li>
+        <li>
+          决策：新增 <code>tests/e2e/batch_exchange_recovery_test.rs</code> 和
+          <code>e2e_batch_exchange_recovery</code> test target，专门承载 issue #15
+          的批处理、交换、恢复和 shell integration 用户维度覆盖，避免把
+          <code>pr_subset_test.rs</code> 变成不可维护的超大文件。
+        </li>
+        <li>
+          约束：所有会写 workbook 或输出文件的测试都使用临时路径；修改真实 workbook
+          的命令从 <code>tests/fixtures/xmind/*.xmind</code> 复制后再执行，并断言源 fixture
+          未变化。
+        </li>
+      </ul>
+    </section>
+
+    <section class="entry">
       <h2>Current Risks</h2>
       <ul>
         <li>

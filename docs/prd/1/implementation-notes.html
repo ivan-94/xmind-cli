@@ -272,6 +272,37 @@
     </section>
 
     <section class="entry">
+      <h2>Slice #15: Batch / Exchange / Recovery E2E Coverage</h2>
+      <ul>
+        <li>
+          Source Manifest: GitHub issue <code>#15</code>, parent PRD
+          <code>#1</code>, <code>docs/technical/e2e-test-plan.md</code>,
+          <code>tests/e2e/pr_subset_test.rs</code>,
+          <code>tests/e2e/support.rs</code>, and command references for
+          <code>add-tree</code>, <code>patch</code>, <code>import</code>,
+          <code>export</code>, <code>backup</code>, <code>restore</code>, and
+          <code>completion</code>.
+        </li>
+        <li>
+          决策：为避免继续膨胀 PR subset 单文件，本 slice 新增独立
+          <code>e2e_batch_exchange_recovery</code> Rust integration target；它仍复用
+          现有 E2E support，并在所有写路径上先复制真实 fixture 到临时目录。
+        </li>
+        <li>
+          覆盖范围：新增用户维度 E2E 覆盖 <code>add-tree</code> 输入格式与
+          dry-run/apply parity、<code>patch</code> 全操作和 alias、import/export
+          round trip 分支、backup/restore 恢复语义，以及 completion 的多 shell
+          非 JSON stdout。
+        </li>
+        <li>
+          风险：本 slice 只补覆盖，不扩展命令行为；真实 XMind App fixture 仍沿用
+          #11 的 human-gated 后续路径，当前 E2E 继续使用已登记的
+          <code>synthetic-generated</code> workbook fixtures。
+        </li>
+      </ul>
+    </section>
+
+    <section class="entry">
       <h2>Open Risks</h2>
       <ul>
         <li>
