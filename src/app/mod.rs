@@ -136,9 +136,10 @@ pub fn run(cli: Cli) -> i32 {
             ref input,
             markdown_mode,
             overwrite,
+            backup,
         } => {
             let input = input.clone();
-            render_import_output(invocation, json, &input, markdown_mode, overwrite)
+            render_import_output(invocation, json, &input, markdown_mode, overwrite, backup)
         }
         Action::ImportInto {
             ref input,
@@ -483,6 +484,7 @@ enum Action {
         input: PathBuf,
         markdown_mode: Option<MarkdownMode>,
         overwrite: bool,
+        backup: bool,
     },
     ImportInto {
         input: PathBuf,
@@ -809,13 +811,14 @@ impl Invocation {
                         input: command.input,
                         markdown_mode: command.markdown_mode,
                         overwrite: command.overwrite,
+                        backup: command.backup,
                     })
                 } else {
                     Self::mutation(
                         "import",
                         command.into.expect("clap requires one import target"),
                         command.mode.dry_run,
-                        false,
+                        command.backup,
                         sheet_selection,
                         quiet,
                     )
@@ -1508,7 +1511,18 @@ fn render_import_output(
     input: &Path,
     markdown_mode: Option<MarkdownMode>,
     overwrite: bool,
+    backup: bool,
 ) -> i32 {
+    if backup {
+        let error = CliErrorBody::new(
+            ErrorCode::InvalidUsage,
+            "import --backup is only supported with --into.",
+            true,
+            "Use --backup when importing into an existing workbook, or omit it for --output.",
+        );
+        return render_error(invocation, json, error);
+    }
+
     if !invocation.dry_run && invocation.workbook.exists() && !overwrite {
         let error = CliErrorBody::new(
             ErrorCode::WriteFailed,
@@ -1740,9 +1754,15 @@ fn render_import_into(
                 path,
             })
             .collect(),
+        backup_path: None,
     };
+    let mut result = result;
 
     if !invocation.dry_run {
+        result.backup_path = match create_mutation_backup(&invocation) {
+            Ok(backup_path) => backup_path,
+            Err(error) => return render_backup_error(invocation, json, error),
+        };
         let topic = topic_tree_input_to_topic(tree);
         if let Err(error) = crate::infra::xmind::encode::append_topic_tree(
             &invocation.workbook,
@@ -2661,6 +2681,7 @@ fn render_add_tree(
                 path,
             })
             .collect(),
+        backup_path: None,
     };
 
     if json {
@@ -3631,6 +3652,8 @@ struct AddTreeDryRunResultDto {
     created_root: AddTreeCreatedTopicDto,
     summary: SummaryDto,
     diff: Vec<DiffEventDto>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    backup_path: Option<String>,
 }
 
 #[derive(Debug, Serialize)]

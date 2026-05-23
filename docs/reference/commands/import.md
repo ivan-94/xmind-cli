@@ -24,6 +24,7 @@ xmind import [options] --input tree.yaml --into roadmap.xmind --parent "path:/Q2
 - `--into <workbook.xmind>`: import into existing workbook.
 - `--parent <selector>`: parent when importing into existing workbook.
 - `--overwrite`: replace existing `--output` workbook.
+- `--backup`: create a timestamped backup before applying `--into` mutations; not supported with `--output`.
 - `--markdown-mode heading|list|hybrid|auto`: Markdown parsing mode.
 - `--dry-run` or `--apply`: exactly one is required.
 - Global output and sheet options are documented in `../global-options.md`.
@@ -55,7 +56,7 @@ xmind import [options] --input tree.yaml --into roadmap.xmind --parent "path:/Q2
 
 ## Output and Overwrite Behavior
 
-`--output` creates a new workbook and fails if the target exists unless `--overwrite` is present. `--into` mutates an existing workbook and follows the normal `--dry-run | --apply` and `--backup` rules.
+`--output` creates a new workbook and fails if the target exists unless `--overwrite` is present. `--backup` with `--output` is rejected because there is no existing workbook to protect. `--into` mutates an existing workbook and follows the normal `--dry-run | --apply` and `--backup` rules.
 
 ## Dry Run Behavior
 

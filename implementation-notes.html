@@ -133,11 +133,6 @@
           topic id、排序、required fields、unknown preservation 等完整检查。
         </li>
         <li>
-          <code>import --into</code> 文档称应遵循 normal mutation backup 规则，但
-          clap surface 没有 <code>--backup</code>，应用层也以
-          <code>backup: false</code> 运行。
-        </li>
-        <li>
           <code>PLAN.md</code> 的部分 checkbox 和 Definition of Done 已按历史进度
           标记完成，但从文档全量实现角度看过度乐观；真实剩余范围已整理到新的
           post-audit slice。
@@ -145,6 +140,33 @@
         <li>
           GitHub 发布、branch protection、Homebrew tap、README 用户入口和完整 E2E
           覆盖仍只是计划，尚未实现。
+        </li>
+      </ul>
+    </section>
+
+    <section class="entry">
+      <h2>Slice #22: import --into Backup Safety</h2>
+      <ul>
+        <li>
+          Source Manifest: GitHub issue <code>#22</code>, parent PRD
+          <code>#1</code>, <code>docs/prd/1/implementation-notes.html</code>,
+          <code>docs/notes/prd-1-issue-17-red-contract-e2e.md</code>,
+          <code>tests/e2e/red_contract_gaps_test.rs</code>,
+          <code>docs/reference/commands/import.md</code>,
+          <code>docs/reference/mutation-semantics.md</code>, and current import CLI/source/tests.
+        </li>
+        <li>
+          决策：<code>import --into --apply --backup</code> 在替换 workbook 前创建
+          sibling <code>.xmind-backups</code> 备份；候选 workbook 仍通过既有
+          write-then-validate-then-replace helper 写入，因此写入失败时原文件保持安全。
+        </li>
+        <li>
+          决策：<code>--dry-run --backup</code> 只展示计划，不创建备份目录、不改变
+          workbook；输入或 selector preflight 失败也不会创建备份。
+        </li>
+        <li>
+          验证范围：补充 CLI integration tests 覆盖 backup、dry-run、invalid input
+          和 <code>--output --backup</code> 拒绝路径；issue #22 red E2E 已改为默认绿测。
         </li>
       </ul>
     </section>
@@ -211,11 +233,6 @@
     <section class="entry">
       <h2>Open Questions</h2>
       <ul>
-        <li>
-          <code>import --into</code> 的 backup 语义应补实现还是收窄文档？当前更符合
-          全局 mutation 规则的方向是给 <code>import --into</code> 增加
-          <code>--backup</code>，同时保持 <code>import --output</code> 无 backup。
-        </li>
         <li>
           <code>diff</code> 的最终用户输入形态仍需在实现前确认：当前文档只有单 workbook
           参数，后续应明确是 self-diff、workbook-vs-workbook，还是 patch preview 辅助命令。
