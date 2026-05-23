@@ -270,3 +270,49 @@ fn changelog_tracks_current_release_hardening_work() {
         );
     }
 }
+
+#[test]
+fn root_readme_publishes_repository_baseline_without_overclaiming_release_channels() {
+    let readme = std::fs::read_to_string("README.md").expect("root README is readable");
+
+    for expected in [
+        "# xmind-cli",
+        "unofficial",
+        "AI",
+        "Source Manifest",
+        "docs/reference/cli-overview.md",
+        "docs/technical/e2e-test-plan.md",
+        "PLAN.md",
+        "docs/installation.md",
+        "Cargo source install",
+        "GitHub release binaries",
+        "Install script",
+        "Homebrew tap",
+        "Available today",
+        "Planned",
+        "git@github.com:ivan-94/xmind-cli.git",
+        "xmind tree tests/fixtures/xmind/minimal.xmind --depth 2 --json",
+        "MIT",
+    ] {
+        assert!(
+            readme.contains(expected),
+            "root README should include `{expected}`"
+        );
+    }
+
+    for overclaim in ["brew install ivan-94/tap/xmind-cli", "curl -fsSL https://"] {
+        assert!(
+            !readme.contains(overclaim),
+            "root README should not claim unreleased install channel `{overclaim}` is available"
+        );
+    }
+
+    assert!(
+        !readme.contains("xmind add-tree roadmap.xmind \\\n  --parent \"path:/Q2\" \\\n  --input docs/examples/simple-tree.yaml \\\n  --apply"),
+        "root README should not present unresolved `add-tree --apply` behavior as a current workflow"
+    );
+    assert!(
+        readme.contains("`add-tree --apply` is planned as part of PRD #1 issue #18"),
+        "root README should mark unresolved `add-tree --apply` behavior as planned follow-up"
+    );
+}
