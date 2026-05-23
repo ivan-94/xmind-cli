@@ -107,6 +107,14 @@
           的输入形态与文档目标冲突，Slice Agent 必须停止并回报父 Agent，而不是
           擅自收窄行为。
         </li>
+        <li>
+          Slice <code>#4</code> CI merge gate uses a named
+          <code>Stable PR E2E subset placeholder</code> job rather than running
+          E2E commands immediately, because the stable PR E2E harness is tracked
+          separately by issue <code>#12</code>. The placeholder is intentionally
+          dependency-ordered after the Rust quality gate so branch protection can
+          later require the same check name when the real harness replaces it.
+        </li>
       </ul>
     </section>
 
