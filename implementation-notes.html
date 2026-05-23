@@ -154,6 +154,9 @@
           当前文档同步测试偏向 help/schema/stale-surface 检查，不能发现
           <code>diff</code> noop、<code>validate</code> shallow success、
           <code>patch --apply</code> 拒绝等行为级缺口；新 slice 需要先补红灯测试。
+          Slice #17 已将这些缺口记录为独立 ignored E2E 目标
+          <code>e2e_red_contract_gaps</code>，默认质量门保持绿色，后续 #18-#22
+          应逐个移除对应 <code>#[ignore]</code> 并实现到绿灯。
         </li>
         <li>
           <code>add-tree --apply</code> 和 <code>patch --apply</code> 很容易各自复制
