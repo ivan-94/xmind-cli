@@ -115,10 +115,6 @@
       <h2>Active Deviations</h2>
       <ul>
         <li>
-          <code>add-tree --apply</code> 尚未实现；当前 tree input 的完整行为主要
-          通过 dry-run diff 验证。
-        </li>
-        <li>
           <code>patch --apply</code> 尚未实现；Phase 11 当前仍以 dry-run patch
           engine 为主。
         </li>
@@ -157,8 +153,9 @@
           <code>diff</code> noop、<code>validate</code> shallow success、
           <code>patch --apply</code> 拒绝等行为级缺口；新 slice 需要先补红灯测试。
           Slice #17 已将这些缺口记录为独立 ignored E2E 目标
-          <code>e2e_red_contract_gaps</code>，默认质量门保持绿色，后续 #18-#22
-          应逐个移除对应 <code>#[ignore]</code> 并实现到绿灯。
+          <code>e2e_red_contract_gaps</code>。Slice #18 已解除并修复
+          <code>add_tree_apply_mutates_copied_workbook</code>；后续 #19-#22
+          应继续逐个移除对应 <code>#[ignore]</code> 并实现到绿灯。
         </li>
         <li>
           <code>bash e2e</code> 文档示例通过系统 <code>bash</code> 执行，并在临时
@@ -166,9 +163,9 @@
           runner 需要提供 bash；当前 GitHub Ubuntu runner 满足该要求。
         </li>
         <li>
-          <code>add-tree --apply</code> 和 <code>patch --apply</code> 很容易各自复制
-          写入逻辑。后续实现应复用 tree input、patch working copy、transactional
-          writer 和 backup 路径，避免 dry-run 与 apply 规划分叉。
+          <code>add-tree --apply</code> 已复用 dry-run 解析/规划并沿用现有候选文件写入、
+          decode 校验、replace 和 backup helper；但 <code>patch --apply</code>
+          后续仍需避免复制一套分叉的写入逻辑。
         </li>
         <li>
           <code>validate</code> 的范围需要谨慎收敛：先实现文档列出的结构完整性
@@ -251,6 +248,36 @@
           风险：当前 <code>set</code> 多字段单次调用只应用首个字段；本 slice 按当前稳定
           行为用多次 <code>set</code> 调用覆盖每个 editable field，未在覆盖 slice 中扩大
           应用语义。
+        </li>
+      </ul>
+    </section>
+
+    <section class="entry">
+      <h2>Slice #18: add-tree Apply Writer</h2>
+      <ul>
+        <li>
+          Source Manifest: GitHub issue <code>#18</code>, parent PRD
+          <code>#1</code>, <code>docs/prd/1/implementation-notes.html</code>,
+          <code>docs/notes/prd-1-issue-17-red-contract-e2e.md</code>,
+          <code>tests/e2e/red_contract_gaps_test.rs</code>,
+          <code>docs/reference/commands/add-tree.md</code>,
+          <code>docs/reference/mutation-semantics.md</code>, and
+          <code>AGENTS.md</code>.
+        </li>
+        <li>
+          决策：<code>add-tree --apply</code> 与 dry-run 共用解析、parent 解析、
+          tree input 校验和 diff/summary 规划；preflight 全部通过后才转换为 domain
+          topic 并写入。
+        </li>
+        <li>
+          偏差/边界：本 slice 未新增 position 参数；apply 按当前 add-tree 行为将 subtree
+          追加到 parent children 末尾。真实 XMind App golden fixture 验证仍不在本 slice
+          范围内。
+        </li>
+        <li>
+          验证：issue #18 的 red E2E 已进入默认
+          <code>e2e_red_contract_gaps</code> 目标；新增 CLI 测试覆盖 backup 字节和未知
+          package entry 保留。
         </li>
       </ul>
     </section>

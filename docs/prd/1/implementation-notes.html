@@ -470,5 +470,49 @@
         </li>
       </ul>
     </section>
+
+    <section class="entry">
+      <h2>Slice #18: add-tree Apply Writer</h2>
+      <ul>
+        <li>
+          Source Manifest: GitHub issue <code>#18</code>, parent PRD
+          <code>#1</code>, <code>docs/notes/prd-1-issue-17-red-contract-e2e.md</code>,
+          <code>tests/e2e/red_contract_gaps_test.rs</code>,
+          <code>docs/reference/commands/add-tree.md</code>,
+          <code>docs/reference/mutation-semantics.md</code>,
+          <code>docs/reference/output-formats.md</code>,
+          <code>docs/reference/errors.md</code>, <code>AGENTS.md</code>,
+          <code>~/.agents/docs/agents/workflows.md</code>, and
+          <code>~/.agents/docs/agents/handoff-policy.md</code>.
+        </li>
+        <li>
+          决策：<code>add-tree --apply</code> 复用 dry-run 的 workbook 读取、
+          sheet/parent selector 解析、tree input 解析、输入校验和 diff/summary
+          规划；只有在这些 preflight 均通过后，才把同一 parsed tree 转为 domain
+          topic 并调用既有 <code>append_topic_tree</code> 写入路径。
+        </li>
+        <li>
+          决策：本 slice 不新增 <code>add-tree --position</code> surface；apply
+          与现有 dry-run 规划保持一致，插入到 parent children 的末尾。
+        </li>
+        <li>
+          安全语义：<code>--backup</code> 通过现有 mutation backup helper 执行；
+          workbook 写入沿用候选文件写入、候选 workbook decode 校验和 replace 路径，
+          并保留未知 package entry。
+        </li>
+        <li>
+          测试策略：移除
+          <code>add_tree_apply_mutates_copied_workbook</code> 的
+          <code>#[ignore]</code>，让 issue #18 的红测进入默认
+          <code>e2e_red_contract_gaps</code> 目标；新增 CLI 集成测试覆盖 apply、
+          backup bytes 和未知 package entry 保留。
+        </li>
+        <li>
+          风险：本 slice 没有扩大到 <code>patch --apply</code> 或
+          <code>import --into --backup</code>；它们仍由 #19/#22 处理。当前写入校验仍是
+          “能被本 CLI decode”级别，不等同于真实 XMind App golden fixture 验证。
+        </li>
+      </ul>
+    </section>
   </body>
 </html>
