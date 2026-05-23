@@ -126,6 +126,9 @@ pub struct ImportCommand {
     #[arg(long)]
     pub overwrite: bool,
 
+    #[arg(long)]
+    pub backup: bool,
+
     #[arg(long, value_enum)]
     pub markdown_mode: Option<MarkdownMode>,
 

@@ -159,6 +159,39 @@
     </section>
 
     <section class="entry">
+      <h2>Slice #22: import --into Backup Safety</h2>
+      <ul>
+        <li>
+          Source Manifest: GitHub issue <code>#22</code>, parent PRD
+          <code>#1</code>, <code>docs/notes/prd-1-issue-17-red-contract-e2e.md</code>,
+          <code>tests/e2e/red_contract_gaps_test.rs</code>,
+          <code>docs/reference/commands/import.md</code>, and
+          <code>docs/reference/mutation-semantics.md</code>.
+        </li>
+        <li>
+          决策：<code>import --into</code> 现在接受 <code>--backup</code>，并复用普通
+          mutation 的 <code>.xmind-backups</code> 备份路径；备份只在
+          <code>--apply</code> 且所有输入/selector preflight 通过后创建。
+        </li>
+        <li>
+          决策：<code>import --output --backup</code> 返回
+          <code>invalid_usage</code>，因为 <code>--output</code> 创建或覆盖的是目标输出文件，
+          没有可保护的既有 workbook mutation 语义；<code>--overwrite</code> 仍是
+          <code>--output</code> 的显式替换开关。
+        </li>
+        <li>
+          验证：issue #22 对应的 red E2E 已从 ignored 集合移出，默认运行
+          <code>e2e_red_contract_gaps</code> 时该用例应保持绿色，其余 #18-#21
+          red tests 仍保持 ignored。
+        </li>
+        <li>
+          风险：真实 XMind App fixture 仍未补齐；本 slice 继续使用现有
+          <code>synthetic-generated</code> fixture 验证安全写入和备份语义。
+        </li>
+      </ul>
+    </section>
+
+    <section class="entry">
       <h2>Open Risks</h2>
       <ul>
         <li>
