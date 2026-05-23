@@ -121,6 +121,58 @@ fn add_tree_json_input_dry_run_reports_tree_diff_without_writing() {
 }
 
 #[test]
+fn add_tree_human_output_distinguishes_dry_run_from_apply() {
+    let dry_run = Command::cargo_bin("xmind")
+        .expect("xmind binary is built for CLI tests")
+        .args([
+            "add-tree",
+            "tests/fixtures/xmind/minimal.xmind",
+            "--parent",
+            "path:/Q2",
+            "--input",
+            "docs/examples/simple-tree.yaml",
+            "--dry-run",
+        ])
+        .output()
+        .expect("add-tree dry-run command runs");
+
+    assert_eq!(dry_run.status.code(), Some(0));
+    let dry_run_stdout = String::from_utf8_lossy(&dry_run.stdout);
+    assert!(
+        dry_run_stdout.contains("planned 9 added topics"),
+        "dry-run human output should describe the planned change: {dry_run_stdout}"
+    );
+
+    let temp_dir = tempfile::tempdir().expect("temp dir is created");
+    let workbook = copy_minimal_workbook(temp_dir.path(), "human-apply.xmind");
+    let workbook_arg = workbook.to_string_lossy().into_owned();
+    let apply = Command::cargo_bin("xmind")
+        .expect("xmind binary is built for CLI tests")
+        .args([
+            "add-tree",
+            &workbook_arg,
+            "--parent",
+            "path:/Q2",
+            "--input",
+            "docs/examples/simple-tree.yaml",
+            "--apply",
+        ])
+        .output()
+        .expect("add-tree apply command runs");
+
+    assert_eq!(apply.status.code(), Some(0));
+    let apply_stdout = String::from_utf8_lossy(&apply.stdout);
+    assert!(
+        apply_stdout.contains("applied 9 added topics"),
+        "apply human output should describe the applied change: {apply_stdout}"
+    );
+    assert!(
+        !apply_stdout.contains("planned"),
+        "apply human output must not describe a committed write as planned: {apply_stdout}"
+    );
+}
+
+#[test]
 fn add_tree_yaml_input_apply_writes_backup_and_preserves_unknown_package_entries() {
     let temp_dir = tempfile::tempdir().expect("temp dir is created");
     let workbook = temp_dir.path().join("with-unknown-entry.xmind");

@@ -2745,7 +2745,12 @@ fn render_add_tree(
         };
         crate::cli::render_json_envelope(&envelope);
     } else if !invocation.quiet {
-        println!("planned {summary_added} added topics");
+        let verb = if invocation.dry_run {
+            "planned"
+        } else {
+            "applied"
+        };
+        println!("{verb} {summary_added} added topics");
     }
 
     0
