@@ -197,5 +197,34 @@
         </li>
       </ul>
     </section>
+
+    <section class="entry">
+      <h2>Slice #12: Rust E2E Harness</h2>
+      <ul>
+        <li>
+          决策：默认 PR E2E 子集落在独立测试目标
+          <code>e2e_pr_subset</code>，完整矩阵入口落在可单独过滤的
+          <code>e2e_full_matrix</code>；CI 中保留同一个检查名
+          <code>Stable PR E2E subset</code>，但从占位说明改为执行
+          <code>cargo test --test e2e_pr_subset --all-features</code>。
+        </li>
+        <li>
+          决策：可写命令的默认 PR 子集只操作临时目录中的 fixture 副本，并在
+          apply 后运行 <code>validate --json</code>；测试同时比对源 fixture 字节，
+          用于证明 committed fixture 没有被写路径污染。
+        </li>
+        <li>
+          偏差：当前 <code>diff --json</code> 会以 0 退出但不输出 JSON envelope。
+          Slice #12 只把它作为成功路径纳入默认子集，不在本 slice 中修复
+          <code>diff</code> 合约；该行为仍归后续 <code>#20</code> 收敛。
+        </li>
+        <li>
+          偏差：当前 <code>patch --apply</code> 明确返回
+          <code>invalid_usage</code>，因为事务写入由后续 <code>#19</code> 负责。
+          默认 PR 子集覆盖 <code>patch --dry-run</code> 成功路径和
+          <code>patch --apply</code> 的稳定错误路径，而不是提前实现 apply。
+        </li>
+      </ul>
+    </section>
   </body>
 </html>

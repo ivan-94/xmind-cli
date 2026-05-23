@@ -132,6 +132,14 @@ path = "tests/cli/ci_workflow_test.rs"
 name = "completion_test"
 path = "tests/cli/completion_test.rs"
 
+[[test]]
+name = "e2e_pr_subset"
+path = "tests/e2e/pr_subset_test.rs"
+
+[[test]]
+name = "e2e_full_matrix"
+path = "tests/e2e/full_matrix_test.rs"
+
 [dependencies]
 clap = { version = "=4.5.4", features = ["derive"] }
 clap_complete = "=4.5.2"

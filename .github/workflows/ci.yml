@@ -42,14 +42,23 @@ jobs:
         run: cargo build --workspace --release
 
   stable-pr-e2e:
-    name: Stable PR E2E subset placeholder
+    name: Stable PR E2E subset
     runs-on: ubuntu-latest
     needs: rust
     steps:
-      - name: Explain pending E2E harness
-        run: |
-          echo "Blocked on GitHub issue #12: wire the stable PR E2E subset after the harness lands."
-          echo "This named job is intentionally present now so branch protection can require the future merge gate check."
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install pinned Rust toolchain from rust-toolchain.toml
+        run: rustup show
+
+      - name: Cache Rust dependencies
+        uses: Swatinem/rust-cache@v2
+        with:
+          save-if: ${{ github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master' }}
+
+      - name: Run stable PR E2E subset
+        run: cargo test --test e2e_pr_subset --all-features
 
   security:
     name: Security
