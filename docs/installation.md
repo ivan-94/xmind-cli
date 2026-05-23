@@ -180,7 +180,7 @@ download when one is available.
 Install the pinned cargo-dist version if needed:
 
 ```bash
-cargo install cargo-dist --version 0.31.0 --locked
+curl --proto '=https' --tlsv1.2 -LsSf https://github.com/axodotdev/cargo-dist/releases/download/v0.31.0/cargo-dist-installer.sh | sh
 ```
 
 Check the tag-driven GitHub Release plan without publishing:

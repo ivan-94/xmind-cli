@@ -438,8 +438,14 @@
         <li>
           偏差：cargo-dist 0.31.0 本地安装在仓库 pinned Cargo 1.80.1 下失败，
           因 transitive crate manifest 需要 <code>edition2024</code>。本 slice
-          已用契约测试覆盖 checked-in release 配置，真实 <code>cargo dist plan</code>
-          仍需在可运行 cargo-dist 的工具链或预装二进制环境中复验。
+          已改用 cargo-dist 官方 <code>v0.31.0</code> 预编译
+          <code>cargo-dist-installer.sh</code> 安装 release workflow 所需二进制，
+          避免 CI 在旧 Rust toolchain 下现场编译 cargo-dist。
+        </li>
+        <li>
+          修复：GitHub Actions 不能把 <code>axodotdev/cargo-dist@v0.31.0</code>
+          当作 action 使用；workflow 改为通过 release installer 安装，并把安装目录写入
+          <code>GITHUB_PATH</code> 后再运行 <code>dist plan</code> / <code>dist build</code>。
         </li>
       </ul>
     </section>

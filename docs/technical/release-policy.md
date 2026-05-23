@@ -143,6 +143,10 @@ The issue #5 configuration starts the GitHub Release workflow. Issue #6 expands 
 - `ci = ["github"]` and `hosting = ["github"]` make GitHub Actions and GitHub Releases the release path.
 - `create-release = true` keeps releases tag-driven from `v*` tags.
 - `checksum = "sha256"` publishes per-artifact `.sha256` checksum files.
+- CI installs the pinned cargo-dist binary with the official `v0.31.0`
+  `cargo-dist-installer.sh` release installer and adds the install directory to
+  `GITHUB_PATH`; the `axodotdev/cargo-dist` repository tag is not used as a
+  GitHub Action.
 - The `github-release` job additionally generates aggregate `SHA256SUMS` from `target/distrib` archives before publishing `target/distrib/*`.
 - `installers = []` avoids cargo-dist generated installers and Homebrew publication; the standalone `scripts/install.sh` remains repository-maintained.
 - `targets` contains `aarch64-apple-darwin`, `aarch64-unknown-linux-gnu`, `x86_64-apple-darwin`, `x86_64-unknown-linux-gnu`, and `x86_64-pc-windows-msvc`.
@@ -170,7 +174,7 @@ Users on unsupported platforms may build from source with Rust when their target
 Local verification commands:
 
 ```bash
-cargo install cargo-dist --version 0.31.0 --locked
+curl --proto '=https' --tlsv1.2 -LsSf https://github.com/axodotdev/cargo-dist/releases/download/v0.31.0/cargo-dist-installer.sh | sh
 cargo dist plan
 cargo dist build --artifacts=local --target aarch64-apple-darwin
 cargo dist build --artifacts=local --target aarch64-unknown-linux-gnu

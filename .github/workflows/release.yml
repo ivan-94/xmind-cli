@@ -32,7 +32,20 @@ jobs:
           fetch-depth: 0
 
       - name: Install cargo-dist
-        uses: axodotdev/cargo-dist@v0.31.0
+        shell: bash
+        run: |
+          set -euo pipefail
+          export CARGO_DIST_NO_MODIFY_PATH=1
+          export CARGO_DIST_PRINT_QUIET=1
+          curl --proto '=https' --tlsv1.2 -LsSf \
+            https://github.com/axodotdev/cargo-dist/releases/download/v0.31.0/cargo-dist-installer.sh | sh
+          dist_bin="${CARGO_HOME:-$HOME/.cargo}/bin"
+          path_entry="$dist_bin"
+          if command -v cygpath >/dev/null 2>&1; then
+            path_entry="$(cygpath -w "$dist_bin")"
+          fi
+          echo "$path_entry" >> "$GITHUB_PATH"
+          "$dist_bin/dist" --version
 
       - name: Plan release
         id: plan
@@ -71,7 +84,20 @@ jobs:
         run: rustup show
 
       - name: Install cargo-dist
-        uses: axodotdev/cargo-dist@v0.31.0
+        shell: bash
+        run: |
+          set -euo pipefail
+          export CARGO_DIST_NO_MODIFY_PATH=1
+          export CARGO_DIST_PRINT_QUIET=1
+          curl --proto '=https' --tlsv1.2 -LsSf \
+            https://github.com/axodotdev/cargo-dist/releases/download/v0.31.0/cargo-dist-installer.sh | sh
+          dist_bin="${CARGO_HOME:-$HOME/.cargo}/bin"
+          path_entry="$dist_bin"
+          if command -v cygpath >/dev/null 2>&1; then
+            path_entry="$(cygpath -w "$dist_bin")"
+          fi
+          echo "$path_entry" >> "$GITHUB_PATH"
+          "$dist_bin/dist" --version
 
       - name: Build release artifacts
         run: dist build --target=${{ matrix.target }} --artifacts=local

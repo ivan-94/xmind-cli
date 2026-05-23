@@ -161,6 +161,12 @@
           小节到 <code>target/release-notes.md</code>，找不到匹配小节则发布失败。
         </li>
         <li>
+          修复：CI 不再把 <code>axodotdev/cargo-dist@v0.31.0</code> 当成
+          GitHub Action 使用；release workflow 通过 cargo-dist 官方
+          <code>v0.31.0</code> 预编译 installer 安装 <code>dist</code>，
+          并显式写入 <code>GITHUB_PATH</code>。
+        </li>
+        <li>
           权衡：没有引入完整 release notes 生成系统；只新增一个可测试的 shell
           helper 来守住当前发布契约，保持 release workflow 范围窄。
         </li>
