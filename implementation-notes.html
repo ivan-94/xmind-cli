@@ -84,9 +84,9 @@
           metadata 仍是明确拒绝，而不是部分支持。
         </li>
         <li>
-          Patch engine 已覆盖 dry-run working copy 规划、operation-indexed
+          Patch engine 已覆盖 dry-run working copy 规划、apply 写回、operation-indexed
           diagnostics、alias normalization、conflict detection，以及文档化 patch
-          ops；但写回仍未开放。
+          ops。<code>patch --apply</code> 现在会在所有操作规划成功后一次性写回 workbook。
         </li>
         <li>
           文档同步测试覆盖 help surface、schema docs、可运行示例、错误码和若干
@@ -117,10 +117,6 @@
         <li>
           <code>add-tree --apply</code> 尚未实现；当前 tree input 的完整行为主要
           通过 dry-run diff 验证。
-        </li>
-        <li>
-          <code>patch --apply</code> 尚未实现；Phase 11 当前仍以 dry-run patch
-          engine 为主。
         </li>
         <li>
           <code>diff</code> 目前只注册在 clap subcommand 和命令参考中，dispatch
@@ -166,9 +162,9 @@
           runner 需要提供 bash；当前 GitHub Ubuntu runner 满足该要求。
         </li>
         <li>
-          <code>add-tree --apply</code> 和 <code>patch --apply</code> 很容易各自复制
-          写入逻辑。后续实现应复用 tree input、patch working copy、transactional
-          writer 和 backup 路径，避免 dry-run 与 apply 规划分叉。
+          <code>add-tree --apply</code> 和其他后续写入 slice 仍可能复制写入逻辑。
+          <code>patch --apply</code> 已复用 patch working copy、candidate 校验替换
+          和 backup 路径；后续应继续收敛到共享 writer，避免 dry-run 与 apply 规划分叉。
         </li>
         <li>
           <code>validate</code> 的范围需要谨慎收敛：先实现文档列出的结构完整性
@@ -251,6 +247,34 @@
           风险：当前 <code>set</code> 多字段单次调用只应用首个字段；本 slice 按当前稳定
           行为用多次 <code>set</code> 调用覆盖每个 editable field，未在覆盖 slice 中扩大
           应用语义。
+        </li>
+      </ul>
+    </section>
+
+    <section class="entry">
+      <h2>Slice #19: Patch Apply Transactional Writer</h2>
+      <ul>
+        <li>
+          Source Manifest: GitHub issue <code>#19</code>, parent PRD
+          <code>#1</code>, <code>docs/prd/1/implementation-notes.html</code>,
+          <code>docs/notes/prd-1-issue-17-red-contract-e2e.md</code>,
+          <code>tests/e2e/red_contract_gaps_test.rs</code>,
+          <code>tests/cli/patch_test.rs</code>,
+          <code>src/app/patch.rs</code>, and
+          <code>src/infra/xmind/encode.rs</code>.
+        </li>
+        <li>
+          决策：<code>patch --apply</code> 不逐操作写文件；它先在内存 working sheet
+          上执行完整 patch 规划，只有全部成功后才创建可选 backup 并写入候选 workbook。
+          因此后续操作错误会保留原 workbook，不留下部分变更。
+        </li>
+        <li>
+          决策：写回 helper 使用现有 preservation bag 重新写入 unknown JSON fields
+          和 unknown package entries，并在替换原文件前读取校验 candidate workbook。
+        </li>
+        <li>
+          偏差：未新增独立 <code>--validate-after</code> surface；当前契约通过
+          candidate validation 满足 validate-before-replace 安全门。
         </li>
       </ul>
     </section>

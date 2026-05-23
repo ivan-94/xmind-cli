@@ -127,7 +127,6 @@ fn add_tree_apply_mutates_copied_workbook() {
 }
 
 #[test]
-#[ignore = "red contract test for PRD #1 issue #17; enable while implementing issue #19"]
 fn patch_apply_mutates_copied_workbook() {
     let temp_dir = tempfile::tempdir().expect("temp dir is created for patch input");
     let ops = temp_file(
@@ -153,7 +152,6 @@ fn patch_apply_mutates_copied_workbook() {
 }
 
 #[test]
-#[ignore = "red contract test for PRD #1 issue #17; enable while implementing issue #19"]
 fn patch_apply_rolls_back_when_later_operation_errors() {
     let temp_dir = tempfile::tempdir().expect("temp dir is created for patch input");
     let ops = temp_file(

@@ -12,9 +12,10 @@ use crate::domain::topic::{AssetId, Topic, TopicId, TopicImageRef};
 
 use super::{
     collect_added_paths, collect_copied_paths, collect_deleted_paths, collect_descendant_paths,
-    find_topic_by_path, insert_position_from_spec, parse_insert_position,
-    read_workbook_or_render_error, renamed_path, render_error, resolve_topic,
-    select_sheet_or_render_error, Invocation, ResolveOne, TopicTreeInputDto,
+    create_mutation_backup, find_topic_by_path, insert_position_from_spec, parse_insert_position,
+    read_workbook_or_render_error, renamed_path, render_backup_error, render_error,
+    render_workbook_write_error, resolve_topic, select_sheet_or_render_error, Invocation,
+    ResolveOne, TopicTreeInputDto,
 };
 
 #[derive(Debug, Deserialize)]
@@ -74,20 +75,10 @@ pub(super) fn read_patch_file(path: &Path) -> Result<PatchFileDto, String> {
 }
 
 pub(super) fn render_patch(invocation: Invocation, json: bool, ops_path: &Path) -> i32 {
-    let workbook = match read_workbook_or_render_error(&invocation, json) {
+    let mut workbook = match read_workbook_or_render_error(&invocation, json) {
         Ok(workbook) => workbook,
         Err(exit_code) => return exit_code,
     };
-
-    if !invocation.dry_run {
-        let error = CliErrorBody::new(
-            ErrorCode::InvalidUsage,
-            "Only patch --dry-run is implemented in this slice.",
-            true,
-            "Retry with --dry-run, or wait for the transactional writer slice before using --apply.",
-        );
-        return render_error(invocation, json, error);
-    }
 
     let patch = match read_patch_file(ops_path) {
         Ok(patch) => patch,
@@ -107,6 +98,7 @@ pub(super) fn render_patch(invocation: Invocation, json: bool, ops_path: &Path) 
         Ok(sheet) => sheet,
         Err(exit_code) => return exit_code,
     };
+    let selected_sheet_id = sheet.id.0.clone();
     let mut working_sheet = clone_sheet_for_patch(sheet);
 
     let mut operations = Vec::new();
@@ -153,7 +145,7 @@ pub(super) fn render_patch(invocation: Invocation, json: bool, ops_path: &Path) 
                     operations.push(PatchOperationDto {
                         index,
                         op: op_name.to_owned(),
-                        status: "planned",
+                        status: operation_status(&invocation),
                     });
                     continue;
                 }
@@ -169,7 +161,7 @@ pub(super) fn render_patch(invocation: Invocation, json: bool, ops_path: &Path) 
                     operations.push(PatchOperationDto {
                         index,
                         op: op_name.to_owned(),
-                        status: "planned",
+                        status: operation_status(&invocation),
                     });
                     continue;
                 }
@@ -199,7 +191,7 @@ pub(super) fn render_patch(invocation: Invocation, json: bool, ops_path: &Path) 
                     operations.push(PatchOperationDto {
                         index,
                         op: op_name.to_owned(),
-                        status: "planned",
+                        status: operation_status(&invocation),
                     });
                     continue;
                 }
@@ -235,7 +227,7 @@ pub(super) fn render_patch(invocation: Invocation, json: bool, ops_path: &Path) 
                     operations.push(PatchOperationDto {
                         index,
                         op: op_name.to_owned(),
-                        status: "planned",
+                        status: operation_status(&invocation),
                     });
                     continue;
                 }
@@ -259,7 +251,7 @@ pub(super) fn render_patch(invocation: Invocation, json: bool, ops_path: &Path) 
                     operations.push(PatchOperationDto {
                         index,
                         op: op_name.to_owned(),
-                        status: "planned",
+                        status: operation_status(&invocation),
                     });
                     continue;
                 }
@@ -273,7 +265,7 @@ pub(super) fn render_patch(invocation: Invocation, json: bool, ops_path: &Path) 
                     operations.push(PatchOperationDto {
                         index,
                         op: op_name.to_owned(),
-                        status: "planned",
+                        status: operation_status(&invocation),
                     });
                     continue;
                 }
@@ -291,7 +283,7 @@ pub(super) fn render_patch(invocation: Invocation, json: bool, ops_path: &Path) 
                     operations.push(PatchOperationDto {
                         index,
                         op: op_name.to_owned(),
-                        status: "planned",
+                        status: operation_status(&invocation),
                     });
                     continue;
                 }
@@ -316,7 +308,7 @@ pub(super) fn render_patch(invocation: Invocation, json: bool, ops_path: &Path) 
                     operations.push(PatchOperationDto {
                         index,
                         op: op_name.to_owned(),
-                        status: "planned",
+                        status: operation_status(&invocation),
                     });
                     continue;
                 }
@@ -339,7 +331,7 @@ pub(super) fn render_patch(invocation: Invocation, json: bool, ops_path: &Path) 
                     operations.push(PatchOperationDto {
                         index,
                         op: op_name.to_owned(),
-                        status: "planned",
+                        status: operation_status(&invocation),
                     });
                     continue;
                 }
@@ -364,7 +356,7 @@ pub(super) fn render_patch(invocation: Invocation, json: bool, ops_path: &Path) 
                     operations.push(PatchOperationDto {
                         index,
                         op: op_name.to_owned(),
-                        status: "planned",
+                        status: operation_status(&invocation),
                     });
                     continue;
                 }
@@ -450,43 +442,69 @@ pub(super) fn render_patch(invocation: Invocation, json: bool, ops_path: &Path) 
         operations.push(PatchOperationDto {
             index,
             op: "add_tree".to_owned(),
-            status: "planned",
+            status: operation_status(&invocation),
         });
     }
 
     let summary = summarize_patch_diff(&diff);
-    let result = PatchDryRunResultDto {
+    let mut result = PatchResultDto {
         will_change: summary.added + summary.updated + summary.deleted + summary.moved > 0,
         summary,
         operations,
         diff,
+        backup_path: None,
     };
+
+    if !invocation.dry_run {
+        result.backup_path = match create_mutation_backup(&invocation) {
+            Ok(backup_path) => backup_path,
+            Err(error) => return render_backup_error(invocation, json, error),
+        };
+        if let Some(sheet) = workbook
+            .sheets
+            .iter_mut()
+            .find(|sheet| sheet.id.0 == selected_sheet_id)
+        {
+            *sheet = working_sheet;
+        }
+        if let Err(error) =
+            crate::infra::xmind::encode::write_workbook(&invocation.workbook, &workbook)
+        {
+            return render_workbook_write_error(invocation, json, error);
+        }
+    }
 
     if json {
         let envelope = CommandEnvelope {
             ok: true,
             command: Some(invocation.command),
             workbook: Some(invocation.workbook.display().to_string()),
-            dry_run: true,
-            applied: false,
+            dry_run: invocation.dry_run,
+            applied: !invocation.dry_run,
             result: Some(result),
             error: None,
             warnings: Vec::new(),
         };
         crate::cli::render_json_envelope(&envelope);
     } else if !invocation.quiet {
-        println!("planned {} added topics", result.summary.added);
+        if invocation.dry_run {
+            println!("planned {} added topics", result.summary.added);
+        } else {
+            println!("applied {} patch operations", result.operations.len());
+        }
     }
 
     0
 }
 
 #[derive(Debug, serde::Serialize)]
-struct PatchDryRunResultDto {
+struct PatchResultDto {
     will_change: bool,
     summary: PatchSummaryDto,
     operations: Vec<PatchOperationDto>,
     diff: Vec<PatchDiffEventDto>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    backup_path: Option<String>,
 }
 
 #[derive(Debug, serde::Serialize)]
@@ -502,6 +520,14 @@ struct PatchOperationDto {
     index: usize,
     op: String,
     status: &'static str,
+}
+
+fn operation_status(invocation: &Invocation) -> &'static str {
+    if invocation.dry_run {
+        "planned"
+    } else {
+        "applied"
+    }
 }
 
 #[derive(Debug, serde::Serialize)]

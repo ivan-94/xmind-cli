@@ -470,5 +470,44 @@
         </li>
       </ul>
     </section>
+
+    <section class="entry">
+      <h2>Slice #19: Patch Apply Transactional Writer</h2>
+      <ul>
+        <li>
+          Source Manifest:
+          <code>https://github.com/ivan-94/xmind-cli/issues/19</code>,
+          <code>https://github.com/ivan-94/xmind-cli/issues/1</code>,
+          <code>docs/notes/prd-1-issue-17-red-contract-e2e.md</code>,
+          <code>tests/e2e/red_contract_gaps_test.rs</code>,
+          <code>tests/cli/patch_test.rs</code>,
+          <code>src/app/patch.rs</code>,
+          <code>src/infra/xmind/encode.rs</code>,
+          <code>implementation-notes.html</code>,
+          <code>~/.agents/docs/agents/workflows.md</code> 与
+          <code>~/.agents/docs/agents/handoff-policy.md</code>。
+        </li>
+        <li>
+          决策：<code>patch --dry-run</code> 与 <code>patch --apply</code> 共享同一
+          in-memory working sheet 规划路径；所有操作都成功后才创建 mutation backup
+          并写回 workbook。因此后续操作失败时，原 workbook 不会被部分修改，也不会产生
+          成功写入的 <code>applied</code> envelope。
+        </li>
+        <li>
+          决策：成功 apply 复用现有 candidate workbook 校验后替换路径，并通过新的
+          <code>write_workbook</code> helper 写入完整 workbook 内容，同时保留 unknown
+          JSON fields 与 unknown package entries。
+        </li>
+        <li>
+          偏差：本 slice 没有新增 <code>--validate-after</code> CLI 参数；当前项目的
+          mutation 写入路径已经在替换前读取校验 candidate workbook，继续沿用该安全门。
+        </li>
+        <li>
+          验证：#19 的两个 <code>patch_apply_*</code> E2E 已移除
+          <code>#[ignore]</code>，并补充 CLI 回归覆盖 apply 写入和 unknown package
+          entry preservation。
+        </li>
+      </ul>
+    </section>
   </body>
 </html>

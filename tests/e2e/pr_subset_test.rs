@@ -1072,12 +1072,24 @@ fn default_pr_subset_covers_batch_exchange_backup_restore_paths() {
     assert_success_envelope(&patch_dry_run, "patch", Some(MINIMAL_FIXTURE));
     assert_eq!(patch_dry_run["result"]["operations"][0]["op"], "add");
 
-    let patch_apply = run_json_error(
-        &["patch", MINIMAL_FIXTURE, "--ops", &ops, "--apply", "--json"],
-        2,
-    );
-    assert_eq!(patch_apply["command"], "patch");
-    assert_eq!(patch_apply["error"]["code"], "invalid_usage");
+    let patch_fixture = copy_fixture(MINIMAL_FIXTURE, "patch-apply-pr-subset.xmind");
+    let patch_workbook = patch_fixture.path_arg();
+    let patch_apply = run_json(&[
+        "patch",
+        &patch_workbook,
+        "--ops",
+        &ops,
+        "--apply",
+        "--backup",
+        "--json",
+    ]);
+    assert_success_envelope(&patch_apply, "patch", Some(&patch_workbook));
+    assert_eq!(patch_apply["dry_run"], false);
+    assert_eq!(patch_apply["applied"], true);
+    assert_eq!(patch_apply["result"]["operations"][0]["status"], "applied");
+    patch_fixture.assert_backup_matches_original(&patch_apply);
+    validate_workbook(&patch_workbook);
+    patch_fixture.assert_source_unchanged();
 
     let imported = temp_dir.path().join("imported.xmind");
     let imported_arg = imported.to_string_lossy().into_owned();
