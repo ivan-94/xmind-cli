@@ -5,8 +5,8 @@ fn cargo_dist_release_contract_is_checked_in() {
     let cargo_toml = fs::read_to_string("Cargo.toml").expect("Cargo.toml is readable");
     let release_workflow = fs::read_to_string(".github/workflows/release.yml")
         .expect("cargo-dist release workflow should be checked in");
-    let release_policy = fs::read_to_string("docs/technical/release-policy.md")
-        .expect("release policy is readable");
+    let release_policy =
+        fs::read_to_string("docs/technical/release-policy.md").expect("release policy is readable");
     let installation =
         fs::read_to_string("docs/installation.md").expect("installation doc is readable");
     let changelog = fs::read_to_string("CHANGELOG.md").expect("changelog is readable");
