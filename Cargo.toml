@@ -125,6 +125,10 @@ name = "definition_of_done_test"
 path = "tests/cli/definition_of_done_test.rs"
 
 [[test]]
+name = "ci_workflow_test"
+path = "tests/cli/ci_workflow_test.rs"
+
+[[test]]
 name = "completion_test"
 path = "tests/cli/completion_test.rs"
 
