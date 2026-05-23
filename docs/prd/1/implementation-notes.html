@@ -437,5 +437,38 @@
         </li>
       </ul>
     </section>
+
+    <section class="entry">
+      <h2>Slice #17: Red Contract E2E Gates</h2>
+      <ul>
+        <li>
+          决策：Phase 17 已知命令契约缺口的红灯测试集中放在独立测试目标
+          <code>e2e_red_contract_gaps</code>；目标会参与编译，但每个测试均使用
+          <code>#[ignore]</code> 标记，默认 <code>cargo test</code> 与
+          <code>e2e_pr_subset</code> 不会运行这些已知失败。
+        </li>
+        <li>
+          运行红灯证据的命令是
+          <code>PATH=/opt/homebrew/opt/rustup/bin:$PATH cargo test --test e2e_red_contract_gaps --all-features -- --ignored --nocapture</code>。
+          当前预期失败覆盖：<code>add-tree --apply</code> 写入、<code>patch --apply</code>
+          写入与错误回滚、<code>diff --json</code> envelope、<code>validate --strict</code>
+          结构诊断，以及 <code>import --into --backup</code> 安全语义。
+        </li>
+        <li>
+          后续 Slice 启用方式：#18 移除或局部过滤
+          <code>add_tree_apply_mutates_copied_workbook</code>；#19 启用两个
+          <code>patch_apply_*</code> 测试；#20 启用 <code>diff_json_*</code>；
+          #21 启用 <code>validate_strict_*</code>；#22 启用
+          <code>import_into_apply_backup_*</code>。每个实现 slice 应先用对应过滤器看到红灯，
+          实现后再让该测试进入默认或稳定 E2E 矩阵。
+        </li>
+        <li>
+          Source Manifest 与运行命令记录在
+          <code>docs/notes/prd-1-issue-17-red-contract-e2e.md</code>。其中
+          <code>validate</code> 用例在测试内生成 duplicate topic id 的 synthetic
+          workbook，因为该结构错误不应伪装成真实 XMind App fixture。
+        </li>
+      </ul>
+    </section>
   </body>
 </html>
