@@ -4,7 +4,9 @@
 
 - Conversation: XMind CLI product and technical design discussion
 - Scope: Local and release installation instructions
-- Last updated: 2026-05-22
+- GitHub issue #7: `https://github.com/ivan-94/xmind-cli/issues/7`
+- Release policy: `technical/release-policy.md`
+- Last updated: 2026-05-23
 
 ## Prerequisites
 
@@ -47,6 +49,24 @@ Verify that artifact directly:
 ```bash
 target/release/xmind --version
 ```
+
+## Verify GitHub Release Downloads
+
+When GitHub Release artifacts are available, download both the artifact and
+the `SHA256SUMS` file from the same release page.
+
+From the download directory:
+
+```bash
+shasum -a 256 -c SHA256SUMS
+```
+
+Run the binary only after the downloaded artifact reports `OK`.
+
+The release policy in `technical/release-policy.md` defines version tags,
+changelog source of truth, release note updates, and checksum publication
+rules. The first release does not publish to crates.io, and install script or
+Homebrew instructions should appear here only after their release slices land.
 
 ## Shell Completion
 

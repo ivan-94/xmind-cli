@@ -25,7 +25,8 @@ The implementation should optimize for correctness, deterministic machine output
 9. `quality-gates.md`
 10. `testing-strategy.md`
 11. `e2e-test-plan.md`
-12. `implementation-roadmap.md`
+12. `release-policy.md`
+13. `implementation-roadmap.md`
 
 ## Engineering Posture
 

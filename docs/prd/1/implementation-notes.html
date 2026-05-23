@@ -155,5 +155,26 @@
         </li>
       </ul>
     </section>
+
+    <section class="entry">
+      <h2>Slice #7: Release Policy Documentation</h2>
+      <ul>
+        <li>
+          决策：issue #7 的 release policy 入口先落在
+          <code>docs/README.md</code> 与 <code>docs/technical/README.md</code>；
+          父集成分支合入 #2 后，根 <code>README.md</code> 也会作为发布与安装状态的
+          用户入口继续由后续安装、release 和 Homebrew slices 更新。
+        </li>
+        <li>
+          决策：<code>docs/technical/release-policy.md</code> 只定义版本、changelog、
+          GitHub Release notes 和 <code>SHA256SUMS</code> 规则，不初始化
+          <code>cargo-dist</code>、安装脚本、Homebrew tap 或平台矩阵。
+        </li>
+        <li>
+          风险：最终 artifact 文件名仍依赖 #5/#6/#8/#9；本 slice 使用
+          <code>SHA256SUMS</code> 作为稳定校验清单名称，后续发布自动化需要与之保持一致。
+        </li>
+      </ul>
+    </section>
   </body>
 </html>
