@@ -1,5 +1,9 @@
 # XMind Fixtures
 
+See `tests/fixtures/xmind/manifest.md` for the fixture inventory, real-vs-synthetic
+labels, PR-gate/full-matrix scope, mutation-safe copy rules, privacy/license
+notes, regeneration status, and size policy.
+
 `minimal.xmind` is generated from `minimal-content.json` and contains one sheet:
 
 - Roadmap

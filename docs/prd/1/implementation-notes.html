@@ -138,6 +138,27 @@
     </section>
 
     <section class="entry">
+      <h2>Slice #10 Fixture Manifest Decision</h2>
+      <ul>
+        <li>
+          当前已提交的有效 <code>tests/fixtures/xmind/*.xmind</code> 文件由仓库内
+          JSON fixture 内容生成，并非 XMind App 保存的 golden fixture；因此
+          <code>tests/fixtures/xmind/manifest.md</code> 将它们标记为
+          <code>synthetic-generated</code>。
+        </li>
+        <li>
+          <code>real-xmind-app</code> 保留给后续 <code>#11</code> 从真实 XMind App
+          生成或保存的代表性用户 fixture。本 Slice 不伪造真实 App 来源，也不新增
+          golden fixture。
+        </li>
+        <li>
+          <code>malformed.xmind</code> 是故意损坏的错误路径 fixture，标记为
+          <code>synthetic-corrupt</code>，避免后续 Agent 将其当成代表性用户文件。
+        </li>
+      </ul>
+    </section>
+
+    <section class="entry">
       <h2>Open Risks</h2>
       <ul>
         <li>

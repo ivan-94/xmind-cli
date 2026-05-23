@@ -235,6 +235,72 @@ fn technical_docs_track_implemented_modules() {
 }
 
 #[test]
+fn xmind_fixture_manifest_covers_committed_workbooks_and_governance() {
+    let manifest_path = "tests/fixtures/xmind/manifest.md";
+    let manifest = std::fs::read_to_string(manifest_path).expect("fixture manifest is readable");
+
+    for required in [
+        "## Source Manifest",
+        "## Governance Rules",
+        "Fixture path",
+        "Source",
+        "Creation method",
+        "Covered behavior",
+        "PR gate",
+        "Full matrix",
+        "Mutation-safe copy strategy",
+        "Privacy/license notes",
+        "Regeneration status",
+        "real-xmind-app",
+        "synthetic",
+        "each fixture under 1 MB",
+        "total E2E fixture set under 10 MB",
+    ] {
+        assert!(
+            manifest.contains(required),
+            "{manifest_path} should document `{required}`"
+        );
+    }
+
+    let fixture_dir =
+        std::fs::read_dir("tests/fixtures/xmind").expect("fixture directory is readable");
+    for entry in fixture_dir {
+        let path = entry.expect("fixture entry is readable").path();
+        if path.extension().and_then(|extension| extension.to_str()) != Some("xmind") {
+            continue;
+        }
+        let path = path.to_string_lossy();
+        assert!(
+            manifest.contains(path.as_ref()),
+            "{manifest_path} should inventory committed fixture `{path}`"
+        );
+    }
+
+    let malformed_row = manifest
+        .lines()
+        .find(|line| line.contains("tests/fixtures/xmind/malformed.xmind"))
+        .expect("malformed fixture is inventoried");
+    assert!(
+        malformed_row.contains("synthetic"),
+        "malformed fixture should be labeled synthetic so it is not mistaken for a representative user file"
+    );
+
+    let e2e_plan =
+        std::fs::read_to_string("docs/technical/e2e-test-plan.md").expect("E2E plan is readable");
+    assert!(
+        e2e_plan.contains(manifest_path),
+        "E2E plan should link to the fixture manifest"
+    );
+
+    let fixture_readme = std::fs::read_to_string("tests/fixtures/xmind/README.md")
+        .expect("fixture README is readable");
+    assert!(
+        fixture_readme.contains(manifest_path),
+        "fixture README should link to the fixture manifest"
+    );
+}
+
+#[test]
 fn installation_docs_cover_supported_install_paths() {
     let install_doc =
         std::fs::read_to_string("docs/installation.md").expect("installation doc is readable");
