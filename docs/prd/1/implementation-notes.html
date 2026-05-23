@@ -460,6 +460,11 @@
           <code>cargo-audit 0.22.1</code>，以支持当前 RustSec advisory DB
           中的 CVSS 4.0 metadata。
         </li>
+        <li>
+          修复：release build smoke 使用 cargo-dist 的 <code>profile.dist</code>
+          产物路径 <code>target/&lt;target&gt;/dist/xmind</code>，
+          而不是 Cargo 默认 release profile 的 <code>target/&lt;target&gt;/release/xmind</code>。
+        </li>
       </ul>
     </section>
 

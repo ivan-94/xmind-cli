@@ -179,6 +179,12 @@
           当前 RustSec advisory DB 的 CVSS 4.0 metadata。
         </li>
         <li>
+          修复：release build smoke 读取 cargo-dist 的
+          <code>profile.dist</code> 输出路径
+          <code>target/&lt;target&gt;/dist/xmind</code>；不要用普通
+          <code>release</code> profile 路径。
+        </li>
+        <li>
           权衡：没有引入完整 release notes 生成系统；只新增一个可测试的 shell
           helper 来守住当前发布契约，保持 release workflow 范围窄。
         </li>
