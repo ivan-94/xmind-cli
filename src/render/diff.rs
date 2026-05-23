@@ -43,7 +43,7 @@ pub fn render_json_diff(diff: &Diff) -> Value {
             "deleted": summary.deleted,
             "moved": summary.moved,
         },
-        "diff": diff.events().iter().map(render_json_event).collect::<Vec<_>>(),
+        "changes": diff.events().iter().map(render_json_event).collect::<Vec<_>>(),
     })
 }
 
@@ -132,7 +132,7 @@ mod tests {
                     "deleted": 1,
                     "moved": 1
                 },
-                "diff": [
+                "changes": [
                     { "event": "added", "path": "/Q2/New" },
                     { "event": "deleted", "path": "/Q2/Old" },
                     { "event": "updated", "path": "/Q2/Payment", "fields": ["title"] },

@@ -123,11 +123,6 @@
           engine 为主。
         </li>
         <li>
-          <code>diff</code> 目前只注册在 clap subcommand 和命令参考中，dispatch
-          仍走 noop action；因此 <code>xmind diff --json</code> 不会输出文档中的
-          summary/changes envelope。
-        </li>
-        <li>
           <code>validate --strict</code> 当前只验证 workbook 能被读取，并固定返回
           <code>valid: true</code>、空 warnings/errors；尚未实现命令参考列出的
           topic id、排序、required fields、unknown preservation 等完整检查。
@@ -154,7 +149,7 @@
       <ul>
         <li>
           当前文档同步测试偏向 help/schema/stale-surface 检查，不能发现
-          <code>diff</code> noop、<code>validate</code> shallow success、
+          <code>validate</code> shallow success、
           <code>patch --apply</code> 拒绝等行为级缺口；新 slice 需要先补红灯测试。
           Slice #17 已将这些缺口记录为独立 ignored E2E 目标
           <code>e2e_red_contract_gaps</code>，默认质量门保持绿色，后续 #18-#22
@@ -216,9 +211,37 @@
           全局 mutation 规则的方向是给 <code>import --into</code> 增加
           <code>--backup</code>，同时保持 <code>import --output</code> 无 backup。
         </li>
+      </ul>
+    </section>
+
+    <section class="entry">
+      <h2>Slice #20: Diff Contract</h2>
+      <ul>
         <li>
-          <code>diff</code> 的最终用户输入形态仍需在实现前确认：当前文档只有单 workbook
-          参数，后续应明确是 self-diff、workbook-vs-workbook，还是 patch preview 辅助命令。
+          Source Manifest: GitHub issue <code>#20</code>, Parent PRD
+          <code>#1</code>, <code>docs/prd/1/implementation-notes.html</code>,
+          <code>docs/notes/prd-1-issue-17-red-contract-e2e.md</code>,
+          <code>tests/e2e/red_contract_gaps_test.rs</code>,
+          <code>tests/e2e/pr_subset_test.rs</code>,
+          <code>docs/reference/commands/diff.md</code>,
+          <code>src/app/mod.rs</code>, <code>src/render/diff.rs</code>,
+          <code>~/.agents/docs/agents/workflows.md</code>, and
+          <code>~/.agents/docs/agents/handoff-policy.md</code>.
+        </li>
+        <li>
+          决策：<code>xmind diff &lt;workbook&gt;</code> 的当前公开输入形态收敛为单
+          workbook surface；它读取并校验 workbook、尊重全局 sheet selector，并输出
+          documented <code>summary</code> + <code>changes</code> envelope。它不在本 slice
+          中新增 workbook-vs-workbook compare 或 patch preview 语义。
+        </li>
+        <li>
+          偏差/权衡：单 workbook 无外部比较基线，因此当前成功结果是
+          <code>summary</code> 全 0 且 <code>changes: []</code>；planned-operation review
+          继续使用 <code>patch --dry-run --json</code>。
+        </li>
+        <li>
+          风险：如果后续需要真正的 workbook-vs-workbook diff，应作为新输入模式和新
+          E2E 用例扩展，不能复用当前单 workbook 语义偷偷改变输出含义。
         </li>
       </ul>
     </section>

@@ -158,6 +158,7 @@ pub fn run(cli: Cli) -> i32 {
             let ops = ops.clone();
             render_patch(invocation, json, &ops)
         }
+        Action::Diff => render_diff(invocation, json),
         Action::Add {
             ref parent,
             ref title,
@@ -392,6 +393,7 @@ enum Action {
     Patch {
         ops: std::path::PathBuf,
     },
+    Diff,
     Add {
         parent: String,
         title: String,
@@ -600,7 +602,9 @@ impl Invocation {
                 sheet_selection,
                 quiet,
             )),
-            Command::Diff(command) => Some(Self::read("diff", command.workbook, sheet_selection)),
+            Command::Diff(command) => Some(
+                Self::read("diff", command.workbook, sheet_selection).with_action(Action::Diff),
+            ),
             Command::Validate(command) => Some(Self::validate(
                 command.workbook,
                 command.strict,
@@ -2009,6 +2013,42 @@ fn render_validate(invocation: Invocation, json: bool, strict: bool) -> i32 {
         crate::cli::render_json_envelope(&envelope);
     } else if !invocation.quiet {
         println!("{}: valid", invocation.workbook.display());
+    }
+
+    0
+}
+
+fn render_diff(invocation: Invocation, json: bool) -> i32 {
+    let workbook = match read_workbook_or_render_error(&invocation, json) {
+        Ok(workbook) => workbook,
+        Err(exit_code) => return exit_code,
+    };
+
+    if let Err(exit_code) = select_sheet_or_render_error(&workbook, &invocation, json) {
+        return exit_code;
+    }
+
+    let diff = Diff::new();
+    let result = crate::render::diff::render_json_diff(&diff);
+
+    if json {
+        let envelope = CommandEnvelope {
+            ok: true,
+            command: Some(invocation.command),
+            workbook: Some(invocation.workbook.display().to_string()),
+            dry_run: false,
+            applied: false,
+            result: Some(result),
+            error: None,
+            warnings: Vec::new(),
+        };
+        crate::cli::render_json_envelope(&envelope);
+    } else if !invocation.quiet {
+        if diff.is_empty() {
+            println!("{}: no changes", invocation.workbook.display());
+        } else {
+            println!("{}", render_human_outline(&diff));
+        }
     }
 
     0

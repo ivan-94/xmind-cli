@@ -470,5 +470,42 @@
         </li>
       </ul>
     </section>
+
+    <section class="entry">
+      <h2>Slice #20: Diff Contract</h2>
+      <ul>
+        <li>
+          Source Manifest: GitHub issue <code>#20</code>, Parent PRD
+          <code>#1</code>, <code>docs/reference/commands/diff.md</code>,
+          <code>docs/notes/prd-1-issue-17-red-contract-e2e.md</code>,
+          <code>tests/e2e/red_contract_gaps_test.rs</code>,
+          <code>tests/e2e/pr_subset_test.rs</code>,
+          <code>src/app/mod.rs</code>, <code>src/render/diff.rs</code>,
+          root <code>implementation-notes.html</code>,
+          <code>~/.agents/docs/agents/workflows.md</code>, and
+          <code>~/.agents/docs/agents/handoff-policy.md</code>.
+        </li>
+        <li>
+          决策：#20 没有新增第二个 workbook 参数；当前 <code>diff</code> 合约收敛为
+          文档已有的单 workbook 入口，负责读取 workbook、应用 sheet selector，并返回
+          <code>summary</code> 与 <code>changes</code> envelope。真实 planned-operation
+          review 仍由 <code>patch --dry-run --json</code> 承担。
+        </li>
+        <li>
+          偏差/权衡：由于单 workbook surface 没有外部比较基线，成功输出表示当前
+          surface 没有检测到结构变更，即 <code>summary</code> 全 0 与
+          <code>changes: []</code>；human 输出为 <code>workbook: no changes</code>。
+        </li>
+        <li>
+          测试策略：#20 将
+          <code>diff_json_emits_documented_summary_and_changes_envelope</code> 从 ignored
+          红测变为默认绿测，并在 <code>e2e_pr_subset</code> 中补充 human 输出断言。
+        </li>
+        <li>
+          风险：后续若要支持 workbook-vs-workbook compare，需要新增明确输入模式、
+          文档和 E2E，不应改变当前单 workbook 合约。
+        </li>
+      </ul>
+    </section>
   </body>
 </html>
