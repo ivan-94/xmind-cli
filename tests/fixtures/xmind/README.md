@@ -25,3 +25,14 @@ plain-text note, labels, markers, a hyperlink, and an image reference on the
 
 `topic-image.xmind` is generated from `topic-image-content.json` and contains a
 topic image reference plus a `resources/payment.png` package entry.
+
+## Real XMind App Fixtures
+
+No `real-xmind-app` fixtures are committed yet. Issue #11 discovery found
+`/Applications/Xmind.app` version `26.02.04171`, but the app rejected the current
+synthetic `minimal.xmind` package and the available GUI automation did not
+complete a reliable Save As into this worktree.
+
+Use `tests/fixtures/xmind/manifest.md` as the source of truth for the manual
+creation checklist, required acceptance matrix, and verification commands before
+adding any fixture under `tests/fixtures/xmind/real-app/`.

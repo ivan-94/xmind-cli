@@ -187,6 +187,14 @@
           Homebrew tap 涉及第二个仓库 <code>ivan-94/homebrew-tap</code>，应独立于首个
           GitHub Release artifact 交付，避免一次性调试两个发布面。
         </li>
+        <li>
+          Real XMind App golden fixtures 仍是人工门控。2026-05-23 已确认
+          <code>/Applications/Xmind.app</code> 存在且版本为 <code>26.02.04171</code>，
+          但没有 AppleScript scripting definition；GUI Save As 路径未能可靠地在
+          worktree 创建文件。不得把 synthetic fixture 标记为
+          <code>real-xmind-app</code>，具体人工创建步骤和验证命令见
+          <code>tests/fixtures/xmind/manifest.md</code>。
+        </li>
       </ul>
     </section>
 

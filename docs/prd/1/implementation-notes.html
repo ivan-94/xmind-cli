@@ -178,6 +178,41 @@
     </section>
 
     <section class="entry">
+      <h2>Slice #11: Real XMind Fixture Handoff</h2>
+      <ul>
+        <li>
+          2026-05-23 本机发现 <code>/Applications/Xmind.app</code>，
+          <code>CFBundleIdentifier</code> 为 <code>net.xmind.vana.app</code>，
+          <code>CFBundleShortVersionString</code> 为 <code>26.02.04171</code>，
+          且 <code>codesign --verify --deep --strict</code> 通过。
+        </li>
+        <li>
+          XMind 没有可用的 AppleScript scripting definition：
+          <code>sdef /Applications/Xmind.app</code> 返回
+          <code>error -192</code>，因此自动保存只能走 GUI。
+        </li>
+        <li>
+          GUI 探索中，XMind 拒绝打开由
+          <code>tests/fixtures/xmind/minimal.xmind</code> 复制出来的文件，提示
+          “无法打开文件/文件可能已损坏”；不能通过重存 synthetic fixture 伪装成
+          real app fixture。
+        </li>
+        <li>
+          新建 workbook 的 <code>Command+Shift+S</code> 流程能到达“当前设备”
+          macOS Save panel，但本次 Computer Use 路径选择未能在 worktree 中实际创建
+          文件。因此本 slice 未新增任何 <code>real-xmind-app</code> fixture。
+        </li>
+        <li>
+          后续人工步骤、每个 fixture 必跑的
+          <code>xmind inspect</code> / <code>xmind tree</code> /
+          <code>xmind validate</code> 命令，以及 remaining acceptance gaps 已记录在
+          <code>tests/fixtures/xmind/manifest.md</code> 的
+          <code>Issue #11 Real XMind App Handoff</code> 小节。
+        </li>
+      </ul>
+    </section>
+
+    <section class="entry">
       <h2>Slice #7: Release Policy Documentation</h2>
       <ul>
         <li>

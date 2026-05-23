@@ -301,6 +301,31 @@ fn xmind_fixture_manifest_covers_committed_workbooks_and_governance() {
 }
 
 #[test]
+fn fixture_manifest_records_real_app_handoff_when_no_real_fixtures_exist() {
+    let manifest_path = "tests/fixtures/xmind/manifest.md";
+    let manifest = std::fs::read_to_string(manifest_path).expect("fixture manifest is readable");
+
+    for required in [
+        "## Issue #11 Real XMind App Handoff",
+        "/Applications/Xmind.app",
+        "CFBundleShortVersionString",
+        "26.02.04171",
+        "net.xmind.vana.app",
+        "sdef: couldn't get sdef",
+        "XMind refused `tests/fixtures/xmind/minimal.xmind`",
+        "Do not label any fixture `real-xmind-app` unless",
+        "xmind inspect",
+        "xmind tree",
+        "xmind validate",
+    ] {
+        assert!(
+            manifest.contains(required),
+            "{manifest_path} should preserve real-app handoff evidence `{required}`"
+        );
+    }
+}
+
+#[test]
 fn installation_docs_cover_supported_install_paths() {
     let install_doc =
         std::fs::read_to_string("docs/installation.md").expect("installation doc is readable");
