@@ -13,7 +13,9 @@ Canonical repository:
 - Keep `PLAN.md` as the repository-level backlog and source-of-truth checklist for the current implementation program.
 - Link issues back to the relevant `PLAN.md` phase or documentation section.
 - Use `.scratch/` only for temporary agent workspaces, drafts, generated prompts, or local handoff notes that are not the formal tracker.
-- When a task comes from a PRD or plan, preserve the original sources in the issue body under `Source Manifest`.
+- Preserve original sources in GitHub Issue bodies under `Source Manifest`; issues are downstream-agent artifacts.
+- Do not add Source Manifest sections to plan-derived or ordinary documentation artifacts unless they are PRDs, issues, HAT artifacts, or explicit handoff documents.
+- Human-facing README files, overview pages, product docs, command references, and implementation notes should not receive Source Manifest sections unless intentionally serving as a PRD, issue, HAT artifact, or explicit handoff document.
 - Close issues through pull requests where possible, using `Closes #<issue-number>` or `Fixes #<issue-number>`.
 
 ## When a skill says "publish to the issue tracker"
