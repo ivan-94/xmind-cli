@@ -22,7 +22,8 @@ The CLI treats an XMind file as a structured workbook, not as a zip archive or s
 - `examples/`: copyable inputs and representative outputs.
 - `design/`: command taxonomy, naming rules, compatibility policy, and future ideas.
 - `technical/`: Rust implementation architecture, stack choices, quality gates, E2E strategy, testing strategy, and roadmap.
-- `installation.md`: local install, release build, and shell completion setup.
+- `technical/release-policy.md`: versioning, changelog, GitHub Release notes, and checksum rules.
+- `installation.md`: Cargo source install, GitHub Release binary install, install script, release build, release checksum verification, and shell completion setup.
 
 ## Reading Order
 
@@ -76,6 +77,11 @@ For local installation:
 
 1. `installation.md`
 2. `reference/commands/completion.md`
+
+For release policy:
+
+1. `technical/release-policy.md`
+2. `installation.md`
 
 ## Product Posture
 

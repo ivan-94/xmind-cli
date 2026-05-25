@@ -1,0 +1,878 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <title>PRD #1 Implementation Notes</title>
+    <style>
+      body {
+        font-family:
+          -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        line-height: 1.5;
+        max-width: 960px;
+        margin: 32px auto;
+        padding: 0 20px;
+        color: #202124;
+      }
+
+      h1,
+      h2 {
+        line-height: 1.2;
+      }
+
+      code {
+        background: #f1f3f4;
+        border-radius: 4px;
+        padding: 1px 4px;
+      }
+
+      .entry {
+        border-top: 1px solid #dadce0;
+        margin-top: 20px;
+        padding-top: 16px;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>PRD #1 Implementation Notes</h1>
+    <p>
+      本文件用于记录 PRD #1 交付期间，父 Agent 和各 Slice Agent 对规格的解释、
+      设计决策、故意偏离、权衡与未决风险。它是 live artifact；每个 Slice
+      开始前必须先读取，产生新的实现解释或风险时必须更新。
+    </p>
+
+    <section class="entry">
+      <h2>Source Manifest</h2>
+      <ul>
+        <li>
+          GitHub PRD:
+          <code>https://github.com/ivan-94/xmind-cli/issues/1</code>
+        </li>
+        <li>
+          Slice issues:
+          <code>#2</code> 到 <code>#24</code>，每个 issue 通过正文中的
+          <code>Parent #1</code> 与 PRD 关联。
+        </li>
+        <li><code>PLAN.md</code>: Phase 17 与 Phase 18 backlog。</li>
+        <li><code>implementation-notes.html</code>: 仓库级当前偏差、风险和基线说明。</li>
+        <li><code>docs/technical/e2e-test-plan.md</code>: E2E 范围、fixture 策略和 CI 分层。</li>
+        <li><code>docs/agents/issue-tracker.md</code>: GitHub Issues 是当前正式 tracker。</li>
+        <li>
+          <code>~/.agents/docs/agents/workflows.md</code> 与
+          <code>~/.agents/docs/agents/handoff-policy.md</code>:
+          多 Agent 工作流和 Source Manifest 规则。
+        </li>
+      </ul>
+    </section>
+
+    <section class="entry">
+      <h2>Parent Agent Plan</h2>
+      <ul>
+        <li>
+          父集成分支：
+          <code>codex/prd-1-github-release-e2e-program</code>。
+        </li>
+        <li>
+          Slice 分支模式：
+          <code>codex/slice-1-&lt;issue&gt;-&lt;slug&gt;</code>。
+        </li>
+        <li>
+          Slice worktree 模式：
+          <code>.scratch/worktrees/prd-1/&lt;issue&gt;-&lt;slug&gt;</code>。
+        </li>
+        <li>
+          子 Agent 恢复模式为 resumable：父 Agent 记录 agent id，返工时优先
+          用同一逻辑 worker 在同一 worktree/branch 追加修复 commit。
+        </li>
+        <li>
+          每个 Slice 必须执行 TDD 或等价红绿重构实践，并在自己的分支提交；
+          子 Agent 不 push、不创建 PR、不运行 cross-review、不准备 HAT。
+        </li>
+      </ul>
+    </section>
+
+    <section class="entry">
+      <h2>Current Decisions</h2>
+      <ul>
+        <li>
+          远端仓库初始没有任何 branch；父 Agent 已将当前绿色基线
+          <code>master</code> 推送为 PR base。
+        </li>
+        <li>
+          <code>#3</code> branch protection 已通过
+          <code>scripts/configure-branch-protection.sh apply</code> 写入 GitHub；
+          <code>#11</code> real XMind golden fixture 已通过 Computer Use 在本机 XMind App 中创建并提交。
+        </li>
+        <li>
+          Phase 17 命令行为闭环已按文档契约收敛：<code>diff</code> 当前公开输入形态
+          明确为单 workbook surface；workbook-vs-workbook 或 planned-operation compare
+          需要未来新增输入模式，不能复用当前语义偷偷改变输出含义。
+        </li>
+        <li>
+          Slice <code>#4</code> CI merge gate uses a named
+          <code>Stable PR E2E subset placeholder</code> job rather than running
+          E2E commands immediately, because the stable PR E2E harness is tracked
+          separately by issue <code>#12</code>. The placeholder is intentionally
+          dependency-ordered after the Rust quality gate so branch protection can
+          later require the same check name when the real harness replaces it.
+        </li>
+      </ul>
+    </section>
+
+    <section class="entry">
+      <h2>Verification Baseline</h2>
+      <ul>
+        <li>
+          2026-05-23 父 Agent 在交付前运行：
+          <code>PATH=/opt/homebrew/opt/rustup/bin:$PATH ./scripts/quality-gate.sh</code>。
+        </li>
+        <li>
+          结果：通过。该命令覆盖 <code>cargo fmt</code>,
+          <code>cargo clippy</code> 和 <code>cargo test</code>。
+        </li>
+        <li>
+          本机应继续使用
+          <code>PATH=/opt/homebrew/opt/rustup/bin:$PATH</code>，避免 Homebrew Rust
+          工具链历史上的 <code>libunwind</code> / <code>libLLVM</code> 崩溃问题。
+        </li>
+      </ul>
+    </section>
+
+    <section class="entry">
+      <h2>Slice #10 Fixture Manifest Decision</h2>
+      <ul>
+        <li>
+          当前已提交的有效 <code>tests/fixtures/xmind/*.xmind</code> 文件由仓库内
+          JSON fixture 内容生成，并非 XMind App 保存的 golden fixture；因此
+          <code>tests/fixtures/xmind/manifest.md</code> 将它们标记为
+          <code>synthetic-generated</code>。
+        </li>
+        <li>
+          <code>real-xmind-app</code> 仅用于真实 XMind App 或经验证 GUI 自动化保存的 fixture；
+          当前已新增 <code>tests/fixtures/xmind/real-app/real-app-fixture.xmind</code>。
+        </li>
+        <li>
+          <code>malformed.xmind</code> 是故意损坏的错误路径 fixture，标记为
+          <code>synthetic-corrupt</code>，避免后续 Agent 将其当成代表性用户文件。
+        </li>
+      </ul>
+    </section>
+
+    <section class="entry">
+      <h2>Slice #8: Install Script And Installation Docs</h2>
+      <ul>
+        <li>
+          Source Manifest: GitHub issue <code>#8</code>, parent PRD
+          <code>#1</code>, <code>README.md</code>, <code>docs/installation.md</code>,
+          <code>docs/technical/release-policy.md</code>, <code>Cargo.toml</code>
+          <code>[workspace.metadata.dist]</code>, <code>.github/workflows/release.yml</code>,
+          <code>scripts/install.sh</code>, <code>tests/cli/install_script_test.rs</code>, parent review fix on 2026-05-23,
+          <code>~/.agents/docs/agents/workflows.md</code>, and
+          <code>~/.agents/docs/agents/handoff-policy.md</code>.
+        </li>
+        <li>
+          决策：安装脚本作为仓库维护的 <code>scripts/install.sh</code> 交付，
+          不启用 cargo-dist generated installers；因此
+          <code>[workspace.metadata.dist].installers</code> 继续保持空数组，Homebrew
+          仍归后续 slice。
+        </li>
+        <li>
+          决策：release workflow 在发布前基于 <code>target/distrib</code> 中实际发布的
+          archive 文件生成聚合 <code>SHA256SUMS</code>，并与 artifacts 一起上传到
+          GitHub Release；脚本只消费这个聚合 checksum source。
+        </li>
+        <li>
+          决策：脚本仅把当前支持矩阵映射到 artifact：macOS Apple Silicon、
+          macOS Intel、Linux x86_64 GNU 和 Windows x86_64 MSVC。未知平台会在下载前
+          失败，并提示使用 <code>cargo install --locked --git</code>。
+        </li>
+        <li>
+          决策：脚本要求 <code>SHA256SUMS</code> 中存在精确 artifact 文件名，校验失败、
+          checksum 文件缺失、checksum 条目缺失或 archive 内没有预期
+          <code>xmind</code>/<code>xmind.exe</code> 时都拒绝安装；<code>--dry-run</code>
+          只打印 release、target、URL 与 install path，不下载或写入用户文件。
+        </li>
+        <li>
+          风险：脚本按文档约定使用
+          <code>xmind-cli-vX.Y.Z-&lt;target&gt;.tar.gz</code> 和 Windows
+          <code>.zip</code> artifact 名称。若 cargo-dist 实际发布文件名不同，发布前必须
+          调整脚本或 release automation，不能让脚本猜测并安装相近 artifact。
+        </li>
+        <li>
+          父级 review 修复：<code>.github/workflows/release.yml</code> 的
+          <code>github-release</code> job 现在在 <code>softprops/action-gh-release</code>
+          上传前生成聚合 <code>SHA256SUMS</code>；<code>tests/cli/release_workflow_test.rs</code>
+          验证生成步骤先于发布步骤，避免脚本依赖不存在的 checksum source。
+        </li>
+        <li>
+          Cross-review 修复：<code>Cargo.toml</code> 现在显式配置
+          <code>unix-archive = ".tar.gz"</code>，避免 cargo-dist 默认 Unix
+          archive 格式与 <code>scripts/install.sh</code>、安装文档和测试约定分叉。
+        </li>
+        <li>
+          Cross-review 修复：GitHub Release 发布前调用
+          <code>.github/scripts/extract-release-notes.sh</code>，只把当前 tag
+          对应的 <code>CHANGELOG.md</code> 版本小节写入
+          <code>target/release-notes.md</code>；若缺少匹配
+          <code>## vX.Y.Z - YYYY-MM-DD</code> 小节则失败，避免发布
+          <code>Unreleased</code> 或完整 changelog。
+        </li>
+      </ul>
+    </section>
+
+    <section class="entry">
+      <h2>Slice #22: import --into Backup Safety</h2>
+      <ul>
+        <li>
+          Source Manifest: GitHub issue <code>#22</code>, parent PRD
+          <code>#1</code>, <code>docs/notes/prd-1-issue-17-red-contract-e2e.md</code>,
+          <code>tests/e2e/red_contract_gaps_test.rs</code>,
+          <code>docs/reference/commands/import.md</code>, and
+          <code>docs/reference/mutation-semantics.md</code>.
+        </li>
+        <li>
+          决策：<code>import --into</code> 现在接受 <code>--backup</code>，并复用普通
+          mutation 的 <code>.xmind-backups</code> 备份路径；备份只在
+          <code>--apply</code> 且所有输入/selector preflight 通过后创建。
+        </li>
+        <li>
+          决策：<code>import --output --backup</code> 返回
+          <code>invalid_usage</code>，因为 <code>--output</code> 创建或覆盖的是目标输出文件，
+          没有可保护的既有 workbook mutation 语义；<code>--overwrite</code> 仍是
+          <code>--output</code> 的显式替换开关。
+        </li>
+        <li>
+          验证：issue #22 对应的 red E2E 已从 ignored 集合移出，默认运行
+          <code>e2e_red_contract_gaps</code> 时该用例应保持绿色，其余 #18-#21
+          red tests 仍保持 ignored。
+        </li>
+        <li>
+          风险：真实 XMind App fixture 仍未补齐；本 slice 继续使用现有
+          <code>synthetic-generated</code> fixture 验证安全写入和备份语义。
+        </li>
+      </ul>
+    </section>
+
+    <section class="entry">
+      <h2>Slice #24: E2E Coverage Report</h2>
+      <ul>
+        <li>
+          Source Manifest: GitHub issue <code>#24</code>, parent PRD
+          <code>#1</code>, <code>docs/technical/e2e-test-plan.md</code>,
+          <code>docs/reference/commands/*.md</code>,
+          <code>tests/e2e/*.rs</code>, <code>tests/cli/*_test.rs</code>,
+          repository <code>implementation-notes.html</code>,
+          <code>~/.agents/docs/agents/workflows.md</code>, and
+          <code>~/.agents/docs/agents/handoff-policy.md</code>.
+        </li>
+        <li>
+          决策：新增
+          <code>docs/technical/e2e-coverage-report.md</code> 作为 living
+          checklist，按命令列出用户可见分支、当前测试文件/测试名、PR subset
+          与 full matrix 状态，以及显式 TODO issue。
+        </li>
+        <li>
+          决策：当前报告允许引用 <code>tests/cli/*_test.rs</code> 作为现有用户可见分支覆盖证据；
+          issue <code>#15</code> 落地后，batch/exchange/recovery/shell integration
+          行已改为引用 <code>tests/e2e/batch_exchange_recovery_test.rs</code>；剩余 TODO
+          主要保留给 <code>#3</code> branch protection 和 <code>#11</code> real-app fixtures。
+        </li>
+        <li>
+          验证：新增 <code>tests/cli/e2e_coverage_report_test.rs</code>，防止报告漏列
+          19 个命令、漏掉关键 blocker issue，或使用不可维护的测试引用格式。
+        </li>
+      </ul>
+    </section>
+
+    <section class="entry">
+      <h2>Slice #15: Batch / Exchange / Recovery E2E Coverage</h2>
+      <ul>
+        <li>
+          Source Manifest: GitHub issue <code>#15</code>, parent PRD
+          <code>#1</code>, <code>docs/technical/e2e-test-plan.md</code>,
+          <code>tests/e2e/pr_subset_test.rs</code>,
+          <code>tests/e2e/support.rs</code>, and command references for
+          <code>add-tree</code>, <code>patch</code>, <code>import</code>,
+          <code>export</code>, <code>backup</code>, <code>restore</code>, and
+          <code>completion</code>.
+        </li>
+        <li>
+          决策：为避免继续膨胀 PR subset 单文件，本 slice 新增独立
+          <code>e2e_batch_exchange_recovery</code> Rust integration target；它仍复用
+          现有 E2E support，并在所有写路径上先复制真实 fixture 到临时目录。
+        </li>
+        <li>
+          覆盖范围：新增用户维度 E2E 覆盖 <code>add-tree</code> 输入格式与
+          dry-run/apply parity、<code>patch</code> 全操作和 alias、import/export
+          round trip 分支、backup/restore 恢复语义，以及 completion 的多 shell
+          非 JSON stdout。
+        </li>
+        <li>
+          后续同步：issue <code>#23</code> 已把 E2E 覆盖报告中 issue <code>#15</code>
+          的待办状态更新为已落地状态；#15 不再是 coverage report blocker。
+        </li>
+        <li>
+          风险：本 slice 只补覆盖，不扩展命令行为；父级收尾已新增基础
+          <code>real-xmind-app</code> fixture，更多 app-saved variants 可等程序稳定后扩展。
+        </li>
+      </ul>
+    </section>
+
+    <section class="entry">
+      <h2>Open Risks</h2>
+      <ul>
+        <li>
+          PRD 范围很大，多个 Slice 会触碰 CLI 行为、E2E 测试、发布配置和文档；
+          父 Agent 合并时必须优先保留各 Slice 的边界并运行集成验证。
+        </li>
+        <li>
+          <code>#11</code> 可能需要本机 XMind App/GUI 介入；若无法无损自动生成真实
+          fixture，应提交 manifest/governance 和明确 TODO，而不是伪造为真实 App
+          产物。
+        </li>
+      </ul>
+    </section>
+
+    <section class="entry">
+      <h2>Slice #23: Final Documentation Synchronization</h2>
+      <ul>
+        <li>
+          Source Manifest: GitHub issue <code>#23</code>, parent PRD
+          <code>#1</code>, <code>PLAN.md</code>, repository
+          <code>implementation-notes.html</code>,
+          <code>docs/technical/e2e-test-plan.md</code>,
+          <code>docs/technical/e2e-coverage-report.md</code>,
+          <code>docs/reference/commands/*.md</code>,
+          <code>tests/cli/doc_examples_test.rs</code>,
+          <code>tests/cli/e2e_coverage_report_test.rs</code>,
+          <code>tests/cli/definition_of_done_test.rs</code>,
+          <code>tests/e2e/red_contract_gaps_test.rs</code>, and
+          <code>tests/e2e/batch_exchange_recovery_test.rs</code>.
+        </li>
+        <li>
+          决策：将 Phase 17 closure、install/Homebrew 当前状态、issue #15 E2E
+          coverage、以及真实剩余项同步到长期文档；后续父级收尾已启用
+          <code>#3</code> branch protection，继续保留 <code>#11</code>
+          real XMind App fixtures 作为真实风险。
+        </li>
+        <li>
+          验证：
+          <code>PATH=/opt/homebrew/opt/rustup/bin:$PATH cargo test --test e2e_coverage_report_test --all-features</code>,
+          <code>cargo test --test doc_examples_test --all-features</code>,
+          <code>cargo test --test definition_of_done_test --all-features</code>,
+          <code>cargo test --test e2e_red_contract_gaps --all-features</code>,
+          <code>cargo test --test e2e_batch_exchange_recovery --all-features</code>,
+          and <code>PATH=/opt/homebrew/opt/rustup/bin:$PATH ./scripts/quality-gate.sh</code>
+          all passed in the issue #23 worktree.
+        </li>
+      </ul>
+    </section>
+
+    <section class="entry">
+      <h2>Slice #11: Real XMind Fixture Evidence</h2>
+      <ul>
+        <li>
+          2026-05-23 本机发现 <code>/Applications/Xmind.app</code>，
+          <code>CFBundleIdentifier</code> 为 <code>net.xmind.vana.app</code>，
+          <code>CFBundleShortVersionString</code> 为 <code>26.02.04171</code>，
+          且 <code>codesign --verify --deep --strict</code> 通过。
+        </li>
+        <li>
+          XMind 没有可用的 AppleScript scripting definition：
+          <code>sdef /Applications/Xmind.app</code> 返回
+          <code>error -192</code>，因此自动保存只能走 GUI。
+        </li>
+        <li>
+          GUI 探索中，XMind 拒绝打开由
+          <code>tests/fixtures/xmind/minimal.xmind</code> 复制出来的文件，提示
+          “无法打开文件/文件可能已损坏”；不能通过重存 synthetic fixture 伪装成
+          real app fixture。
+        </li>
+        <li>
+          2026-05-23 父级收尾使用 Computer Use 在新建 workbook 中设置根主题
+          <code>Real App Fixture</code>，保留 XMind App 默认分支结构，并通过 macOS Save panel
+          保存到 <code>tests/fixtures/xmind/real-app/real-app-fixture.xmind</code>。
+        </li>
+        <li>
+          该 fixture 已通过 <code>xmind tree</code> / <code>xmind validate</code> 校验；
+          后续更多 app-saved variants 与命令记录见
+          <code>tests/fixtures/xmind/manifest.md</code> 的
+          <code>Issue #11 Real XMind App Fixture Evidence and Follow-ups</code> 小节。
+        </li>
+      </ul>
+    </section>
+
+    <section class="entry">
+      <h2>Slice #7: Release Policy Documentation</h2>
+      <ul>
+        <li>
+          决策：issue #7 的 release policy 入口先落在
+          <code>docs/README.md</code> 与 <code>docs/technical/README.md</code>；
+          父集成分支合入 #2 后，根 <code>README.md</code> 也会作为发布与安装状态的
+          用户入口继续由后续安装、release 和 Homebrew slices 更新。
+        </li>
+        <li>
+          决策：<code>docs/technical/release-policy.md</code> 只定义版本、changelog、
+          GitHub Release notes 和 <code>SHA256SUMS</code> 规则，不初始化
+          <code>cargo-dist</code>、安装脚本、Homebrew tap 或平台矩阵。
+        </li>
+        <li>
+          风险：最终 artifact 文件名仍依赖 #5/#6/#8/#9；本 slice 使用
+          <code>SHA256SUMS</code> 作为稳定校验清单名称，后续发布自动化需要与之保持一致。
+        </li>
+      </ul>
+    </section>
+
+    <section class="entry">
+      <h2>Slice #5: cargo-dist Release Workflow</h2>
+      <ul>
+        <li>
+          决策：本 slice 在 <code>Cargo.toml</code> 中加入最小
+          <code>[workspace.metadata.dist]</code> 配置，并新增
+          <code>.github/workflows/release.yml</code>，从 <code>v*</code> tag
+          触发 GitHub Release artifact 构建。
+        </li>
+        <li>
+          决策：为避免越界到 #6 平台矩阵，本 slice 只配置
+          <code>x86_64-unknown-linux-gnu</code> 作为 cargo-dist 最小目标。
+        </li>
+        <li>
+          偏差：cargo-dist 0.31.0 本地安装在仓库 pinned Cargo 1.80.1 下失败，
+          因 transitive crate manifest 需要 <code>edition2024</code>。本 slice
+          已改用 cargo-dist 官方 <code>v0.31.0</code> 预编译
+          <code>cargo-dist-installer.sh</code> 安装 release workflow 所需二进制，
+          避免 CI 在旧 Rust toolchain 下现场编译 cargo-dist。
+        </li>
+        <li>
+          修复：GitHub Actions 不能把 <code>axodotdev/cargo-dist@v0.31.0</code>
+          当作 action 使用；workflow 改为通过 release installer 安装，并把安装目录写入
+          <code>GITHUB_PATH</code> 后再运行 <code>dist plan</code> / <code>dist build</code>。
+        </li>
+        <li>
+          决策：<code>[workspace.metadata.dist].allow-dirty = ["ci"]</code>
+          是有意设置。release workflow 需要保留手写 release notes 抽取、
+          聚合 <code>SHA256SUMS</code>、artifact smoke 和仓库安装脚本策略，
+          因此不让 cargo-dist 在 <code>dist plan</code> 时要求完全替换成生成模板。
+        </li>
+        <li>
+          修复：Security job 不再使用 <code>rustsec/audit-check</code>
+          自动安装扫描器。仓库编译基线仍是 Rust <code>1.80.1</code>，
+          但安全扫描单独安装 stable toolchain 并运行 pinned
+          <code>cargo-audit 0.22.1</code>，以支持当前 RustSec advisory DB
+          中的 CVSS 4.0 metadata。
+        </li>
+        <li>
+          修复：release build smoke 使用 cargo-dist 的 <code>profile.dist</code>
+          产物路径 <code>target/&lt;target&gt;/dist/xmind</code>，
+          而不是 Cargo 默认 release profile 的 <code>target/&lt;target&gt;/release/xmind</code>。
+        </li>
+      </ul>
+    </section>
+
+    <section class="entry">
+      <h2>Slice #6: Release Platform Matrix And Binary Smoke</h2>
+      <ul>
+        <li>
+          决策：首个 GitHub Release 二进制矩阵明确为
+          <code>aarch64-apple-darwin</code>（macOS Apple Silicon）、
+          <code>aarch64-unknown-linux-gnu</code>（Linux arm64 GNU）、
+          <code>x86_64-apple-darwin</code>（macOS Intel）、
+          <code>x86_64-unknown-linux-gnu</code>（Linux x86_64 GNU）和
+          <code>x86_64-pc-windows-msvc</code>（Windows x86_64 MSVC）。
+        </li>
+        <li>
+          决策：release workflow 在每个 native runner 上执行
+          <code>dist build --target=${{ matrix.target }} --artifacts=local</code>
+          后，只运行薄冒烟检查：
+          <code>xmind --version</code>、
+          <code>xmind tree tests/fixtures/xmind/minimal.xmind --json</code> 和
+          <code>xmind validate tests/fixtures/xmind/minimal.xmind --json</code>。
+          完整命令矩阵仍归 Rust E2E PR/full matrix 测试，不在 release artifact
+          job 中重复。
+        </li>
+        <li>
+          偏差/风险：macOS runner 选择按 GitHub-hosted runner 当前能力使用
+          <code>macos-14</code> 覆盖 Apple Silicon、<code>macos-15-intel</code> 覆盖
+          Intel；若 GitHub 之后调整 runner 标签或弃用镜像，release workflow
+          需要同步更新。
+        </li>
+        <li>
+          非目标：本 slice 不实现 install script、Homebrew、crates.io、容器镜像、
+          Linux arm64、Linux musl/static、macOS universal binary、Windows GNU 或
+          32-bit Windows 支持；README/install/release policy 已避免暗示这些平台可下载。
+        </li>
+      </ul>
+    </section>
+
+    <section class="entry">
+      <h2>Slice #9: Homebrew Tap Publication Path</h2>
+      <ul>
+        <li>
+          Source Manifest: GitHub issue <code>#9</code>, Parent PRD
+          <code>#1</code>, <code>README.md</code>,
+          <code>docs/installation.md</code>,
+          <code>docs/technical/release-policy.md</code>,
+          <code>tests/cli/release_workflow_test.rs</code>,
+          <code>implementation-notes.html</code>,
+          <code>~/.agents/docs/agents/workflows.md</code>, and
+          <code>~/.agents/docs/agents/handoff-policy.md</code>.
+        </li>
+        <li>
+          决策：Homebrew tap ownership 预留为
+          <code>ivan-94/homebrew-tap</code>，与主仓库
+          <code>ivan-94/xmind-cli</code> 保持同一 GitHub owner。
+        </li>
+        <li>
+          保守路径：当前没有可在本 slice 中验证的真实 GitHub Release artifact
+          和 formula 路径；用户在 2026-05-23 明确选择等程序稳定后再做，因此不新增 Homebrew formula、cargo-dist
+          <code>"homebrew"</code> installer 或 tap publish job。
+        </li>
+        <li>
+          启用条件：后续只有在存在 versioned release artifact、公式 URL 与
+          checksum 可从同一 release 校验、formula 安装 <code>xmind</code> binary
+          并通过 <code>brew audit --strict --online</code> 与
+          <code>brew test</code> 后，才能把 Homebrew 从 planned 改为 active
+          install channel。
+        </li>
+      </ul>
+    </section>
+
+    <section class="entry">
+      <h2>Slice #12: Rust E2E Harness</h2>
+      <ul>
+        <li>
+          决策：默认 PR E2E 子集落在独立测试目标
+          <code>e2e_pr_subset</code>，完整矩阵入口落在可单独过滤的
+          <code>e2e_full_matrix</code>；CI 中保留同一个检查名
+          <code>Stable PR E2E subset</code>，但从占位说明改为执行
+          <code>cargo test --test e2e_pr_subset --all-features</code>。
+        </li>
+        <li>
+          决策：可写命令的默认 PR 子集只操作临时目录中的 fixture 副本，并在
+          apply 后运行 <code>validate --json</code>；测试同时比对源 fixture 字节，
+          用于证明 committed fixture 没有被写路径污染。
+        </li>
+        <li>
+          历史偏差已关闭：本 slice 当时记录的 <code>diff --json</code> envelope 缺口已由
+          #20 收敛；<code>patch --apply</code> 事务写入缺口已由 #19 收敛，并进入默认测试路径。
+        </li>
+      </ul>
+    </section>
+
+    <section class="entry">
+      <h2>Slice #13: Read Command E2E Coverage</h2>
+      <ul>
+        <li>
+          决策：issue <code>#13</code> 的用户视角 read/validate 覆盖落在
+          <code>tests/e2e/pr_subset_test.rs</code>，复用 issue <code>#12</code>
+          建立的 Rust E2E harness。覆盖范围包括 <code>inspect</code>,
+          <code>sheets</code>, <code>tree</code>, <code>get</code>,
+          <code>find</code> 和 <code>validate</code> 的 JSON 成功路径、关键 human
+          输出、代表性错误、字段裁剪、sheet/topic 选择、assets、分页和 invalid
+          usage。
+        </li>
+        <li>
+          决策：本 slice 只补 E2E 覆盖与测试支持，不改变 CLI 行为。新增的
+          <code>run_human_error</code> 与 unsupported workbook fixture writer 仅用于从
+          用户接口验证现有错误输出和 unsupported format 分支。
+        </li>
+        <li>
+          偏差：<code>validate</code> 的 warnings、<code>--strict</code> warning failure
+          和 structural validation failure 仍依赖后续 issue <code>#21</code> 的真实
+          validation 实现。本 slice 在 E2E 中保留 <code>#[ignore]</code> pending tests
+          作为覆盖占位，而不是提前制造 warning fixture 或修改 validate 行为。
+        </li>
+        <li>
+          验证：2026-05-23 运行
+          <code>PATH=/opt/homebrew/opt/rustup/bin:$PATH cargo test --test e2e_pr_subset read_e2e_</code>
+          通过，结果为 7 passed、2 ignored；随后运行
+          <code>PATH=/opt/homebrew/opt/rustup/bin:$PATH cargo test --test e2e_pr_subset</code>
+          通过，结果为 12 passed、2 ignored；最后运行
+          <code>PATH=/opt/homebrew/opt/rustup/bin:$PATH cargo test --workspace --all-features</code>
+          通过；<code>PATH=/opt/homebrew/opt/rustup/bin:$PATH ./scripts/quality-gate.sh</code>
+          通过。
+        </li>
+        <li>
+          Source Manifest evidence：本 slice 读取了 GitHub issue <code>#13</code>、
+          Parent PRD <code>#1</code>、本文件、<code>docs/technical/e2e-test-plan.md</code>、
+          <code>tests/fixtures/xmind/manifest.md</code>、read command docs
+          <code>docs/reference/commands/{inspect,sheets,tree,get,find,validate}.md</code>、
+          <code>tests/e2e/{support.rs,pr_subset_test.rs}</code> 与相关 CLI read tests。
+        </li>
+      </ul>
+    </section>
+
+    <section class="entry">
+      <h2>Slice #14: Mutation E2E Coverage</h2>
+      <ul>
+        <li>
+          Source Manifest: GitHub issue <code>#14</code>, parent PRD
+          <code>#1</code>, <code>docs/technical/e2e-test-plan.md</code>,
+          <code>tests/fixtures/xmind/manifest.md</code>,
+          <code>docs/reference/commands/add.md</code>,
+          <code>docs/reference/commands/set.md</code>,
+          <code>docs/reference/commands/delete.md</code>,
+          <code>docs/reference/commands/move.md</code>,
+          <code>docs/reference/commands/copy.md</code>, and
+          <code>docs/reference/mutation-semantics.md</code>.
+        </li>
+        <li>
+          决策：issue #14 只补 E2E 覆盖，不改变 CLI 行为。新增测试继续使用
+          <code>e2e_pr_subset</code>，每个 apply 分支都复制 fixture 到临时目录、
+          写后运行 <code>validate --json</code>，并断言原始 committed fixture
+          字节未变化。
+        </li>
+        <li>
+          决策：backup 覆盖通过 JSON <code>result.backup_path</code> 定位备份文件，
+          并比对备份内容等于变更前的临时 workbook 字节，而不是只检查路径存在。
+        </li>
+        <li>
+          偏差/风险：当前 <code>set</code> 在同一次调用中传入多个字段时只应用首个
+          变更字段；本 slice 发现该行为但未修改应用逻辑。E2E 覆盖按当前稳定用户路径
+          将 title、note、labels、markers、hyperlink、image 和 clear 分成独立
+          <code>set</code> 调用。
+        </li>
+        <li>
+          夹具决策：image 覆盖继续使用现有 synthetic
+          <code>tests/fixtures/xmind/topic-image.xmind</code> 和测试内临时图片文件；
+          父级收尾另补了基础 real XMind App fixture。
+        </li>
+      </ul>
+    </section>
+
+    <section class="entry">
+      <h2>Slice #16: bash e2e Documentation Examples</h2>
+      <ul>
+        <li>
+          Source Manifest:
+          <code>https://github.com/ivan-94/xmind-cli/issues/16</code>,
+          <code>docs/technical/e2e-test-plan.md</code>,
+          <code>docs/examples/README.md</code>,
+          <code>tests/cli/doc_examples_test.rs</code>,
+          <code>.github/workflows/ci.yml</code>,
+          <code>~/.agents/docs/agents/workflows.md</code> 与
+          <code>~/.agents/docs/agents/handoff-policy.md</code>。
+        </li>
+        <li>
+          决策：文档示例执行器保留在 Rust integration test
+          <code>doc_examples_test</code> 中，从 Markdown fence 提取
+          <code>bash e2e</code> 块并通过 <code>bash</code> 执行；普通
+          <code>bash</code> 块继续只作为说明性示例，不自动运行。
+        </li>
+        <li>
+          决策：测试运行时把当前构建的 <code>xmind</code> binary 放到临时
+          <code>PATH</code> shim 中，因此文档示例可以使用真实用户命令
+          <code>xmind ...</code>，而不需要写 target 路径或 cargo 包装命令。
+        </li>
+        <li>
+          风险控制：已新增一个只读 fixture 示例和一个 mutation 示例；mutation
+          示例先用 <code>mktemp -d</code> 与 <code>cp tests/fixtures/xmind/minimal.xmind</code>
+          创建临时副本，再执行 <code>--apply</code> 并运行
+          <code>xmind validate</code>。
+        </li>
+        <li>
+          CI：<code>Rust quality gate</code> 现在显式运行
+          <code>cargo test --test doc_examples_test --all-features documented_bash_e2e_examples_are_extracted_and_run</code>；
+          同一测试仍包含在全量 <code>cargo test --workspace --all-features</code>
+          中。
+        </li>
+      </ul>
+    </section>
+
+    <section class="entry">
+      <h2>Slice #17: Red Contract E2E Gates</h2>
+      <ul>
+        <li>
+          决策：Phase 17 已知命令契约缺口的红灯测试集中放在独立测试目标
+          <code>e2e_red_contract_gaps</code>；#18-#22 完成后这些测试已逐项移出
+          <code>#[ignore]</code> 并进入默认运行路径。
+        </li>
+        <li>
+          当前运行命令是
+          <code>PATH=/opt/homebrew/opt/rustup/bin:$PATH cargo test --test e2e_red_contract_gaps --all-features</code>。
+          默认覆盖：<code>add-tree --apply</code> 写入、<code>patch --apply</code>
+          写入与错误回滚、<code>diff --json</code> envelope、<code>validate --strict</code>
+          结构诊断，以及 <code>import --into --backup</code> 安全语义。
+        </li>
+        <li>
+          历史启用顺序：#18 启用
+          <code>add_tree_apply_mutates_copied_workbook</code>；#19 启用两个
+          <code>patch_apply_*</code> 测试；#20 启用 <code>diff_json_*</code>；
+          #21 启用 <code>validate_strict_*</code>；#22 启用
+          <code>import_into_apply_backup_*</code>。后续新增 contract gap 仍应沿用同样的红绿路径。
+        </li>
+        <li>
+          Source Manifest 与运行命令记录在
+          <code>docs/notes/prd-1-issue-17-red-contract-e2e.md</code>。其中
+          <code>validate</code> 用例在测试内生成 duplicate topic id 的 synthetic
+          workbook，因为该结构错误不应伪装成真实 XMind App fixture。
+        </li>
+      </ul>
+    </section>
+
+    <section class="entry">
+      <h2>Slice #18: add-tree Apply Writer</h2>
+      <ul>
+        <li>
+          Source Manifest: GitHub issue <code>#18</code>, parent PRD
+          <code>#1</code>, <code>docs/notes/prd-1-issue-17-red-contract-e2e.md</code>,
+          <code>tests/e2e/red_contract_gaps_test.rs</code>,
+          <code>docs/reference/commands/add-tree.md</code>,
+          <code>docs/reference/mutation-semantics.md</code>,
+          <code>docs/reference/output-formats.md</code>,
+          <code>docs/reference/errors.md</code>, <code>AGENTS.md</code>,
+          <code>~/.agents/docs/agents/workflows.md</code>, and
+          <code>~/.agents/docs/agents/handoff-policy.md</code>.
+        </li>
+        <li>
+          决策：<code>add-tree --apply</code> 复用 dry-run 的 workbook 读取、
+          sheet/parent selector 解析、tree input 解析、输入校验和 diff/summary
+          规划；只有在这些 preflight 均通过后，才把同一 parsed tree 转为 domain
+          topic 并调用既有 <code>append_topic_tree</code> 写入路径。
+        </li>
+        <li>
+          决策：本 slice 不新增 <code>add-tree --position</code> surface；apply
+          与现有 dry-run 规划保持一致，插入到 parent children 的末尾。
+        </li>
+        <li>
+          安全语义：<code>--backup</code> 通过现有 mutation backup helper 执行；
+          workbook 写入沿用候选文件写入、候选 workbook decode 校验和 replace 路径，
+          并保留未知 package entry。
+        </li>
+        <li>
+          测试策略：移除
+          <code>add_tree_apply_mutates_copied_workbook</code> 的
+          <code>#[ignore]</code>，让 issue #18 的红测进入默认
+          <code>e2e_red_contract_gaps</code> 目标；新增 CLI 集成测试覆盖 apply、
+          backup bytes 和未知 package entry 保留。
+        </li>
+        <li>
+          已关闭范围：<code>patch --apply</code> 和
+          <code>import --into --backup</code> 已分别由 #19/#22 处理。当前剩余限制是
+          “能被本 CLI decode”级别的写入校验仍不等同于真实 XMind App golden fixture 验证。
+        </li>
+      </ul>
+    </section>
+
+    <section class="entry">
+      <h2>Slice #20: Diff Contract</h2>
+      <ul>
+        <li>
+          Source Manifest: GitHub issue <code>#20</code>, Parent PRD
+          <code>#1</code>, <code>docs/reference/commands/diff.md</code>,
+          <code>docs/notes/prd-1-issue-17-red-contract-e2e.md</code>,
+          <code>tests/e2e/red_contract_gaps_test.rs</code>,
+          <code>tests/e2e/pr_subset_test.rs</code>,
+          <code>src/app/mod.rs</code>, <code>src/render/diff.rs</code>,
+          root <code>implementation-notes.html</code>,
+          <code>~/.agents/docs/agents/workflows.md</code>, and
+          <code>~/.agents/docs/agents/handoff-policy.md</code>.
+        </li>
+        <li>
+          决策：#20 没有新增第二个 workbook 参数；当前 <code>diff</code> 合约收敛为
+          文档已有的单 workbook 入口，负责读取 workbook、应用 sheet selector，并返回
+          <code>summary</code> 与 <code>changes</code> envelope。真实 planned-operation
+          review 仍由 <code>patch --dry-run --json</code> 承担。
+        </li>
+        <li>
+          偏差/权衡：由于单 workbook surface 没有外部比较基线，成功输出表示当前
+          surface 没有检测到结构变更，即 <code>summary</code> 全 0 与
+          <code>changes: []</code>；human 输出为 <code>workbook: no changes</code>。
+        </li>
+        <li>
+          测试策略：#20 将
+          <code>diff_json_emits_documented_summary_and_changes_envelope</code> 从 ignored
+          红测变为默认绿测，并在 <code>e2e_pr_subset</code> 中补充 human 输出断言。
+        </li>
+        <li>
+          风险：后续若要支持 workbook-vs-workbook compare，需要新增明确输入模式、
+          文档和 E2E，不应改变当前单 workbook 合约。
+        </li>
+      </ul>
+    </section>
+
+    <section class="entry">
+      <h2>Slice #21: Validate Structural Diagnostics</h2>
+      <ul>
+        <li>
+          Source Manifest: GitHub issue <code>#21</code>, parent PRD <code>#1</code>,
+          <code>AGENTS.md</code>, <code>~/.agents/docs/agents/workflows.md</code>,
+          <code>~/.agents/docs/agents/handoff-policy.md</code>,
+          <code>/Users/ivan/.agents/skills/tdd/SKILL.md</code>,
+          <code>docs/notes/prd-1-issue-17-red-contract-e2e.md</code>,
+          <code>docs/reference/commands/validate.md</code>,
+          <code>docs/technical/e2e-test-plan.md</code>,
+          <code>tests/e2e/red_contract_gaps_test.rs</code>,
+          <code>tests/e2e/pr_subset_test.rs</code>, and validate implementation files under
+          <code>src/app/</code>.
+        </li>
+        <li>
+          决策：<code>validate</code> 现在先读取 raw package 与 raw
+          <code>content.json</code>，再做结构诊断；这样缺失
+          <code>content.json</code>、缺失 sheet/root topic 必填字段、重复 topic id
+          和 broken relationship reference 不会在 domain decode 阶段被吞掉或提前失败。
+        </li>
+        <li>
+          决策：invalid zip/invalid JSON 继续使用既有 <code>parse_failed</code>，
+          <code>content.xml</code> 旧格式继续使用 <code>unsupported_format</code>；
+          能读取 package 但结构不完整的 workbook 使用 <code>validation_failed</code>
+          并在 <code>result.errors</code> / <code>result.warnings</code> 中给出诊断。
+        </li>
+        <li>
+          决策：缺失 image resource 先作为 warning；普通 validate 返回
+          <code>valid: true</code> 并携带 warning，<code>--strict</code> 将 warning
+          提升为 exit 9 的 <code>validation_failed</code>。本 slice 未扩展到视觉、
+          布局或 XMind App 私有语义验证。
+        </li>
+        <li>
+          配套修复：公开 validate 开始检测 duplicate topic id 后，既有
+          <code>import --output</code> E2E 暴露出 tree input 未显式提供 id 时会重复生成
+          <code>topic-new</code>。本 slice 将 tree input 转 topic 的自动 id 生成改为
+          workbook 内唯一后缀，保持写出候选与 validate 结构规则一致。
+        </li>
+        <li>
+          验证：先运行指定红测确认 duplicate topic id 仍错误返回成功；实现后该测试和
+          <code>e2e_pr_subset</code> 中 validate warning/structural 用例均已转为默认绿测。
+        </li>
+      </ul>
+    </section>
+
+    <section class="entry">
+      <h2>Slice #19: Patch Apply Transactional Writer</h2>
+      <ul>
+        <li>
+          Source Manifest:
+          <code>https://github.com/ivan-94/xmind-cli/issues/19</code>,
+          <code>https://github.com/ivan-94/xmind-cli/issues/1</code>,
+          <code>docs/notes/prd-1-issue-17-red-contract-e2e.md</code>,
+          <code>tests/e2e/red_contract_gaps_test.rs</code>,
+          <code>tests/cli/patch_test.rs</code>,
+          <code>src/app/patch.rs</code>,
+          <code>src/infra/xmind/encode.rs</code>,
+          <code>implementation-notes.html</code>,
+          <code>~/.agents/docs/agents/workflows.md</code> 与
+          <code>~/.agents/docs/agents/handoff-policy.md</code>。
+        </li>
+        <li>
+          决策：<code>patch --dry-run</code> 与 <code>patch --apply</code> 共享同一
+          in-memory working sheet 规划路径；所有操作都成功后才创建 mutation backup
+          并写回 workbook。因此后续操作失败时，原 workbook 不会被部分修改，也不会产生
+          成功写入的 <code>applied</code> envelope。
+        </li>
+        <li>
+          决策：成功 apply 复用现有 candidate workbook 校验后替换路径，并通过新的
+          <code>write_workbook</code> helper 写入完整 workbook 内容，同时保留 unknown
+          JSON fields 与 unknown package entries。
+        </li>
+        <li>
+          偏差：本 slice 没有新增 <code>--validate-after</code> CLI 参数；当前项目的
+          mutation 写入路径已经在替换前读取校验 candidate workbook，继续沿用该安全门。
+        </li>
+        <li>
+          验证：#19 的两个 <code>patch_apply_*</code> E2E 已移除
+          <code>#[ignore]</code>，并补充 CLI 回归覆盖 apply 写入和 unknown package
+          entry preservation。
+        </li>
+      </ul>
+    </section>
+  </body>
+</html>

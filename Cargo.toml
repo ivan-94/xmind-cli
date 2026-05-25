@@ -4,7 +4,35 @@ version = "0.1.0"
 edition = "2021"
 license = "MIT"
 description = "Agent-native CLI for inspecting and editing XMind workbooks"
+repository = "https://github.com/ivan-94/xmind-cli"
 publish = false
+
+[package.metadata.dist]
+dist = true
+
+[profile.dist]
+inherits = "release"
+lto = "thin"
+
+[workspace.metadata.dist]
+# Source Manifest: GitHub issues #5 and #6, parent PRD #1, PLAN.md Phase 18, docs/technical/release-policy.md, docs/installation.md, CHANGELOG.md.
+# Keep release automation to GitHub Release archives/checksums plus platform smoke checks. Install script and Homebrew are separate slices.
+cargo-dist-version = "0.31.0"
+allow-dirty = ["ci"]
+ci = ["github"]
+hosting = ["github"]
+installers = []
+checksum = "sha256"
+create-release = true
+pr-run-mode = "plan"
+unix-archive = ".tar.gz"
+targets = [
+  "aarch64-apple-darwin",
+  "aarch64-unknown-linux-gnu",
+  "x86_64-apple-darwin",
+  "x86_64-unknown-linux-gnu",
+  "x86_64-pc-windows-msvc",
+]
 
 [package.metadata.xmind-cli]
 spec_sources = [
@@ -121,12 +149,44 @@ name = "doc_examples_test"
 path = "tests/cli/doc_examples_test.rs"
 
 [[test]]
+name = "e2e_coverage_report_test"
+path = "tests/cli/e2e_coverage_report_test.rs"
+
+[[test]]
 name = "definition_of_done_test"
 path = "tests/cli/definition_of_done_test.rs"
 
 [[test]]
+name = "ci_workflow_test"
+path = "tests/cli/ci_workflow_test.rs"
+
+[[test]]
+name = "release_workflow_test"
+path = "tests/cli/release_workflow_test.rs"
+
+[[test]]
+name = "install_script_test"
+path = "tests/cli/install_script_test.rs"
+
+[[test]]
 name = "completion_test"
 path = "tests/cli/completion_test.rs"
+
+[[test]]
+name = "e2e_pr_subset"
+path = "tests/e2e/pr_subset_test.rs"
+
+[[test]]
+name = "e2e_batch_exchange_recovery"
+path = "tests/e2e/batch_exchange_recovery_test.rs"
+
+[[test]]
+name = "e2e_full_matrix"
+path = "tests/e2e/full_matrix_test.rs"
+
+[[test]]
+name = "e2e_red_contract_gaps"
+path = "tests/e2e/red_contract_gaps_test.rs"
 
 [dependencies]
 clap = { version = "=4.5.4", features = ["derive"] }

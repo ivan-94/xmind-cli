@@ -9,8 +9,11 @@ All notable changes to this project are tracked here.
 - CI workflow for formatting, clippy, tests, docs, security checks, and release build smoke coverage.
 - Security CI job running `cargo audit` through RustSec audit-check and `cargo deny check` through cargo-deny.
 - Release build smoke test with `cargo build --workspace --release`.
+- Minimal cargo-dist release workflow for tag-driven GitHub Release archives and SHA256 checksum artifacts.
 - Shell completion generation through `xmind completion <shell>`.
 - Added installation documentation for source installs, release binary builds, shell completion setup, and local verification.
+- Added `scripts/install.sh` with dry-run preview, supported platform artifact selection, SHA256SUMS verification, and actionable failure messages.
+- Added release policy documentation for version tags, changelog ownership, GitHub Release notes, and SHA256 checksum verification.
 - Restore command support for dry-run and apply from the newest matching `.xmind-backups` entry.
 
 ### Changed

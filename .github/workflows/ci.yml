@@ -7,16 +7,24 @@ on:
       - main
       - master
 
+permissions:
+  contents: read
+
 jobs:
   rust:
-    name: Rust
+    name: Rust quality gate
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@stable
+      - name: Install pinned Rust toolchain from rust-toolchain.toml
+        run: rustup show
+
+      - name: Cache Rust dependencies
+        uses: Swatinem/rust-cache@v2
+        with:
+          save-if: ${{ github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master' }}
 
       - name: Check formatting
         run: cargo fmt --all -- --check
@@ -27,11 +35,33 @@ jobs:
       - name: Run tests
         run: cargo test --workspace --all-features
 
+      - name: Run documentation examples
+        run: cargo test --test doc_examples_test --all-features documented_bash_e2e_examples_are_extracted_and_run
+
       - name: Build docs
         run: cargo doc --workspace --no-deps
 
       - name: Build release binary
         run: cargo build --workspace --release
+
+  stable-pr-e2e:
+    name: Stable PR E2E subset
+    runs-on: ubuntu-latest
+    needs: rust
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install pinned Rust toolchain from rust-toolchain.toml
+        run: rustup show
+
+      - name: Cache Rust dependencies
+        uses: Swatinem/rust-cache@v2
+        with:
+          save-if: ${{ github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master' }}
+
+      - name: Run stable PR E2E subset
+        run: cargo test --test e2e_pr_subset --all-features
 
   security:
     name: Security
@@ -40,10 +70,17 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Install pinned Rust toolchain from rust-toolchain.toml
+        run: rustup show
+
+      - name: Install cargo-audit toolchain
+        run: rustup toolchain install stable --profile minimal
+
+      - name: Install cargo-audit
+        run: cargo +stable install cargo-audit --version 0.22.1 --locked
+
       - name: Run cargo audit
-        uses: rustsec/audit-check@v2.0.0
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
+        run: cargo +stable audit
 
       - name: Run cargo deny
         uses: EmbarkStudios/cargo-deny-action@v2

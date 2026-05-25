@@ -10,6 +10,7 @@ Options:
       --into <WORKBOOK>                
       --parent <PARENT>                
       --overwrite                      
+      --backup                         
       --markdown-mode <MARKDOWN_MODE>  [possible values: heading, list, hybrid, auto]
       --dry-run                        
       --apply                          

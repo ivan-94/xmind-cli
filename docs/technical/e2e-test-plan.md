@@ -12,16 +12,23 @@
   - Use one Rust E2E runner for the first version; release jobs run only a thin binary smoke test.
   - Generate golden fixtures from the real XMind App where possible, including via Computer Use.
 - `PLAN.md`: implementation backlog and post-audit contract closure plan.
+- GitHub issue #10: fixture manifest and governance rules slice.
+- GitHub issue #6: release platform matrix and binary smoke checks.
 - `docs/reference/commands/*.md`: command behavior and option contracts.
 - `docs/reference/mutation-semantics.md`: dry-run, apply, backup, and transactional write rules.
 - `docs/reference/output-formats.md`: JSON envelope and human output contracts.
 - `docs/reference/errors.md` and `docs/reference/agent-error-contract.md`: error-code and recovery contracts.
-- `tests/fixtures/xmind/*.xmind`: current committed workbook fixtures.
+- `tests/fixtures/xmind/**/*.xmind`: current committed workbook fixtures, including the first XMind App-saved fixture.
 - `tests/cli/*.rs`: current CLI integration tests.
+- `tests/e2e/red_contract_gaps_test.rs`: Phase 17 command contract closure coverage for issues #18 through #22.
+- `tests/e2e/batch_exchange_recovery_test.rs`: issue #15 batch, exchange, recovery, and shell-integration E2E coverage.
+- GitHub issue #23: final documentation synchronization after Phase 17 and issue #15 landed.
 
 ### Produced Artifacts
 
 - `docs/technical/e2e-test-plan.md`
+- `docs/technical/e2e-coverage-report.md`: living command/branch coverage checklist.
+- `tests/fixtures/xmind/manifest.md`
 - `PLAN.md`
 - `implementation-notes.html`
 
@@ -36,14 +43,20 @@
 
 ### Verification Evidence
 
-- Current repository already contains real `.xmind` fixtures under `tests/fixtures/xmind/`.
+- Current repository contains committed `.xmind` fixtures under
+  `tests/fixtures/xmind/`, including
+  `tests/fixtures/xmind/real-app/real-app-fixture.xmind`, which was saved by
+  `/Applications/Xmind.app` version `26.02.04171` through Computer Use and
+  validated by `xmind tree` and `xmind validate`.
 - Current repository already has CLI integration tests under `tests/cli/`.
-- No new test command was executed while writing this planning document; this document defines future work.
+- Phase 17 command closures are covered by `tests/e2e/red_contract_gaps_test.rs`.
+- Batch, exchange, recovery, and shell-integration coverage from issue #15 is covered by `tests/e2e/batch_exchange_recovery_test.rs`.
+- Final documentation synchronization is guarded by `tests/cli/e2e_coverage_report_test.rs`.
 
 ### Open Questions / Risks
 
-- The exact full matrix will evolve as Phase 17 closes currently missing command behavior (`add-tree --apply`, `patch --apply`, `diff`, and deeper `validate` checks).
-- Large real-world fixtures must stay small enough for ordinary Git usage. First version target: each fixture under 1 MB and total E2E fixture set under 10 MB.
+- The Phase 17 command-contract gaps are closed for `add-tree --apply`, `patch --apply`, `diff --json`, `validate --strict` structural diagnostics, and `import --into --backup`.
+- Larger real-world fixtures must stay small enough for ordinary Git usage. First version target: each fixture under 1 MB and total E2E fixture set under 10 MB.
 
 ## Goals
 
@@ -91,6 +104,12 @@ Larger but still Git-friendly workbooks for full matrix runs:
 - richer image/resource combinations,
 - non-ASCII titles and path escaping cases.
 
+The first committed release/nightly seed is
+`tests/fixtures/xmind/real-app/real-app-fixture.xmind`: a wider app-saved
+workbook with root title `Real App Fixture`, five app-generated branch topics,
+and XMind-generated metadata/thumbnail entries. Additional app-saved variants can
+be added after the CLI stabilizes.
+
 ### Synthetic Fixtures
 
 Synthetic fixtures are allowed only when a real XMind App file cannot express the scenario:
@@ -105,10 +124,14 @@ Synthetic fixtures must be stored separately or named clearly so future agents d
 
 ### Fixture Manifest
 
-Each fixture should have manifest metadata, either in a single manifest file or adjacent markdown:
+The committed fixture inventory and governance rules live in
+`tests/fixtures/xmind/manifest.md`.
+
+Each fixture should have manifest metadata, either in that single manifest file
+or adjacent markdown:
 
 - fixture path,
-- source: `xmind-app` or `synthetic`,
+- source: `real-xmind-app`, `synthetic-generated`, or `synthetic-corrupt`,
 - creation method,
 - covered behavior,
 - default PR gate: yes/no,
@@ -134,6 +157,8 @@ Release smoke is separate:
 - run `xmind --version`,
 - run `xmind tree tests/fixtures/xmind/minimal.xmind --json`,
 - run `xmind validate tests/fixtures/xmind/minimal.xmind --json`.
+- run those smoke checks for the supported release binary targets documented in
+  `docs/technical/release-policy.md`.
 
 ## Assertion Strategy
 
@@ -169,6 +194,9 @@ File output assertions:
 
 ## Command Matrix
 
+Current implementation progress is tracked in
+`docs/technical/e2e-coverage-report.md`.
+
 Every command needs at least:
 
 - success JSON,
@@ -186,7 +214,7 @@ Read commands:
 - `get`: id/path/title/query selectors, depth, assets, not found, ambiguous selector.
 - `find`: exact title, contains, query, limit/offset, no matches.
 - `validate`: valid, warnings, strict warning failure, structural errors.
-- `diff`: all documented input modes after Phase 17 settles the command contract.
+- `diff`: the current documented single-workbook summary/changes envelope, including no-change human output and sheet-selection errors.
 
 Mutation commands:
 
@@ -208,6 +236,8 @@ Recovery and shell integration:
 - `backup`: default dir, custom dir, JSON output, invalid path.
 - `restore`: dry-run/apply, backup-before-restore, latest backup selection, invalid backup.
 - `completion`: shell variants, no workbook access, non-JSON stdout.
+
+Issue #15 has E2E coverage for the batch/exchange/recovery/shell-integration bullets above in `tests/e2e/batch_exchange_recovery_test.rs`; remaining full-matrix limitations are fixture-governance and real-app coverage issues, not missing command branches from #15.
 
 ## CI Gate Strategy
 

@@ -1,93 +1,175 @@
-use assert_cmd::Command;
+use std::fs;
+use std::path::{Path, PathBuf};
 
-struct DocExample {
-    command: &'static str,
-    args: &'static [&'static str],
+#[derive(Debug)]
+struct MarkdownFence {
+    path: PathBuf,
+    line: usize,
+    info: String,
+    body: String,
 }
 
-const DOC_EXAMPLES: &[DocExample] = &[
-    DocExample {
-        command: "xmind inspect tests/fixtures/xmind/minimal.xmind --json",
-        args: &["inspect", "tests/fixtures/xmind/minimal.xmind", "--json"],
-    },
-    DocExample {
-        command: "xmind sheets tests/fixtures/xmind/minimal.xmind --json",
-        args: &["sheets", "tests/fixtures/xmind/minimal.xmind", "--json"],
-    },
-    DocExample {
-        command: "xmind tree tests/fixtures/xmind/minimal.xmind --depth 2 --json",
-        args: &[
-            "tree",
-            "tests/fixtures/xmind/minimal.xmind",
-            "--depth",
-            "2",
-            "--json",
-        ],
-    },
-    DocExample {
-        command: "xmind get tests/fixtures/xmind/minimal.xmind --node path:/Q2/Payment --json",
-        args: &[
-            "get",
-            "tests/fixtures/xmind/minimal.xmind",
-            "--node",
-            "path:/Q2/Payment",
-            "--json",
-        ],
-    },
-    DocExample {
-        command: "xmind find tests/fixtures/xmind/minimal.xmind --title Payment --json",
-        args: &[
-            "find",
-            "tests/fixtures/xmind/minimal.xmind",
-            "--title",
-            "Payment",
-            "--json",
-        ],
-    },
-    DocExample {
-        command: "xmind add-tree tests/fixtures/xmind/minimal.xmind --parent path:/Q2 --input docs/examples/simple-tree.yaml --dry-run --json",
-        args: &[
-            "add-tree",
-            "tests/fixtures/xmind/minimal.xmind",
-            "--parent",
-            "path:/Q2",
-            "--input",
-            "docs/examples/simple-tree.yaml",
-            "--dry-run",
-            "--json",
-        ],
-    },
-    DocExample {
-        command: "xmind patch tests/fixtures/xmind/minimal.xmind --ops docs/examples/patch-add-tree.yaml --dry-run --json",
-        args: &[
-            "patch",
-            "tests/fixtures/xmind/minimal.xmind",
-            "--ops",
-            "docs/examples/patch-add-tree.yaml",
-            "--dry-run",
-            "--json",
-        ],
-    },
-];
+#[test]
+fn documented_bash_e2e_examples_are_extracted_and_run() {
+    let examples = bash_e2e_examples(&[
+        "docs/examples",
+        "docs/guides",
+        "docs/reference",
+        "docs/technical/e2e-test-plan.md",
+    ]);
+
+    assert!(
+        examples.iter().any(
+            |example| example.path == Path::new("docs/examples/README.md")
+                && example
+                    .body
+                    .contains("xmind tree tests/fixtures/xmind/minimal.xmind --json")
+        ),
+        "docs/examples/README.md should include a read-only bash e2e example"
+    );
+    assert!(
+        examples.iter().any(
+            |example| example.path == Path::new("docs/examples/README.md")
+                && example
+                    .body
+                    .contains("cp tests/fixtures/xmind/minimal.xmind")
+                && example.body.contains("--apply")
+                && example.body.contains("xmind validate")
+        ),
+        "mutating bash e2e examples should copy a fixture into a temporary file before --apply"
+    );
+
+    for example in examples {
+        run_bash_e2e(&example);
+    }
+}
 
 #[test]
-fn documented_fixture_examples_are_present_and_run() {
+fn ordinary_bash_examples_remain_illustrative() {
     let readme = std::fs::read_to_string("docs/examples/README.md")
         .expect("docs examples README is readable");
 
-    for example in DOC_EXAMPLES {
-        assert!(
-            readme.contains(example.command),
-            "docs/examples/README.md must include runnable example: {}",
-            example.command
-        );
+    assert!(
+        extract_markdown_fences(Path::new("docs/examples/README.md"), &readme)
+            .iter()
+            .any(|fence| fence.info == "bash"
+                && fence
+                    .body
+                    .contains("xmind inspect tests/fixtures/xmind/minimal.xmind --json")),
+        "ordinary bash examples should stay available as illustrative documentation"
+    );
+    assert!(
+        bash_e2e_examples(&["docs/examples/README.md"])
+            .iter()
+            .all(|example| !example
+                .body
+                .contains("xmind inspect tests/fixtures/xmind/minimal.xmind --json")),
+        "ordinary bash blocks must not be selected by the docs-example runner"
+    );
+}
 
-        Command::cargo_bin("xmind")
-            .expect("xmind binary is built for CLI tests")
-            .args(example.args)
-            .assert()
-            .success();
+fn bash_e2e_examples(paths: &[&str]) -> Vec<MarkdownFence> {
+    let mut examples = Vec::new();
+    for path in markdown_files(paths) {
+        let content = fs::read_to_string(&path).expect("Markdown documentation is readable");
+        examples.extend(
+            extract_markdown_fences(&path, &content)
+                .into_iter()
+                .filter(|fence| fence.info == "bash e2e"),
+        );
     }
+    examples
+}
+
+fn markdown_files(paths: &[&str]) -> Vec<PathBuf> {
+    let mut files = Vec::new();
+    for path in paths {
+        let path = Path::new(path);
+        if path.is_dir() {
+            for entry in fs::read_dir(path).expect("documentation directory is readable") {
+                let entry = entry.expect("documentation entry is readable");
+                let entry_path = entry.path();
+                if entry_path.is_dir() {
+                    files.extend(markdown_files(&[entry_path
+                        .to_str()
+                        .expect("path is UTF-8")]));
+                } else if entry_path
+                    .extension()
+                    .and_then(|extension| extension.to_str())
+                    == Some("md")
+                {
+                    files.push(entry_path);
+                }
+            }
+        } else {
+            files.push(path.to_path_buf());
+        }
+    }
+    files.sort();
+    files
+}
+
+fn extract_markdown_fences(path: &Path, content: &str) -> Vec<MarkdownFence> {
+    let mut fences = Vec::new();
+    let mut active: Option<(usize, String, Vec<&str>)> = None;
+
+    for (index, line) in content.lines().enumerate() {
+        if let Some(rest) = line.strip_prefix("```") {
+            if let Some((line, info, body)) = active.take() {
+                fences.push(MarkdownFence {
+                    path: path.to_path_buf(),
+                    line,
+                    info,
+                    body: body.join("\n"),
+                });
+            } else {
+                active = Some((index + 1, rest.trim().to_owned(), Vec::new()));
+            }
+        } else if let Some((_, _, body)) = active.as_mut() {
+            body.push(line);
+        }
+    }
+
+    fences
+}
+
+fn run_bash_e2e(example: &MarkdownFence) {
+    let shim_dir = tempfile::tempdir().expect("PATH shim directory is created");
+    let xmind_bin = assert_cmd::cargo::cargo_bin("xmind");
+    let shim_path = shim_dir.path().join("xmind");
+    #[cfg(unix)]
+    std::os::unix::fs::symlink(&xmind_bin, &shim_path).expect("xmind binary is linked into PATH");
+    #[cfg(windows)]
+    std::fs::copy(&xmind_bin, shim_path.with_extension("exe"))
+        .expect("xmind binary is copied into PATH");
+
+    let mut path_entries = vec![shim_dir.path().to_path_buf()];
+    path_entries.extend(std::env::split_paths(
+        &std::env::var_os("PATH").unwrap_or_default(),
+    ));
+    let path = std::env::join_paths(path_entries).expect("PATH entries can be joined");
+
+    let output = std::process::Command::new("bash")
+        .args(["-e", "-u", "-o", "pipefail", "-c", &example.body])
+        .env("PATH", path)
+        .output()
+        .unwrap_or_else(|error| {
+            panic!(
+                "{}:{} failed to start bash e2e example: {error}",
+                example.path.display(),
+                example.line
+            )
+        });
+
+    assert!(
+        output.status.success(),
+        "{}:{} bash e2e example failed\nscript:\n{}\nstdout:\n{}\nstderr:\n{}",
+        example.path.display(),
+        example.line,
+        example.body,
+        String::from_utf8_lossy(&output.stdout),
+        String::from_utf8_lossy(&output.stderr)
+    );
 }
 
 #[test]
@@ -235,14 +317,122 @@ fn technical_docs_track_implemented_modules() {
 }
 
 #[test]
+fn xmind_fixture_manifest_covers_committed_workbooks_and_governance() {
+    let manifest_path = "tests/fixtures/xmind/manifest.md";
+    let manifest = std::fs::read_to_string(manifest_path).expect("fixture manifest is readable");
+
+    for required in [
+        "## Source Manifest",
+        "## Governance Rules",
+        "Fixture path",
+        "Source",
+        "Creation method",
+        "Covered behavior",
+        "PR gate",
+        "Full matrix",
+        "Mutation-safe copy strategy",
+        "Privacy/license notes",
+        "Regeneration status",
+        "real-xmind-app",
+        "synthetic",
+        "each fixture under 1 MB",
+        "total E2E fixture set under 10 MB",
+    ] {
+        assert!(
+            manifest.contains(required),
+            "{manifest_path} should document `{required}`"
+        );
+    }
+
+    let mut fixture_paths = Vec::new();
+    collect_xmind_fixtures(
+        std::path::Path::new("tests/fixtures/xmind"),
+        &mut fixture_paths,
+    );
+    for path in fixture_paths {
+        let path = path.to_string_lossy();
+        assert!(
+            manifest.contains(path.as_ref()),
+            "{manifest_path} should inventory committed fixture `{path}`"
+        );
+    }
+
+    let malformed_row = manifest
+        .lines()
+        .find(|line| line.contains("tests/fixtures/xmind/malformed.xmind"))
+        .expect("malformed fixture is inventoried");
+    assert!(
+        malformed_row.contains("synthetic"),
+        "malformed fixture should be labeled synthetic so it is not mistaken for a representative user file"
+    );
+
+    let e2e_plan =
+        std::fs::read_to_string("docs/technical/e2e-test-plan.md").expect("E2E plan is readable");
+    assert!(
+        e2e_plan.contains(manifest_path),
+        "E2E plan should link to the fixture manifest"
+    );
+
+    let fixture_readme = std::fs::read_to_string("tests/fixtures/xmind/README.md")
+        .expect("fixture README is readable");
+    assert!(
+        fixture_readme.contains(manifest_path),
+        "fixture README should link to the fixture manifest"
+    );
+}
+
+#[test]
+fn fixture_manifest_records_real_app_fixture_and_followups() {
+    let manifest_path = "tests/fixtures/xmind/manifest.md";
+    let manifest = std::fs::read_to_string(manifest_path).expect("fixture manifest is readable");
+
+    for required in [
+        "## Issue #11 Real XMind App Fixture Evidence and Follow-ups",
+        "tests/fixtures/xmind/real-app/real-app-fixture.xmind",
+        "real-xmind-app",
+        "Real App Fixture",
+        "/Applications/Xmind.app",
+        "CFBundleShortVersionString",
+        "26.02.04171",
+        "net.xmind.vana.app",
+        "sdef: couldn't get sdef",
+        "Computer Use",
+        "xmind inspect",
+        "xmind tree",
+        "xmind validate",
+    ] {
+        assert!(
+            manifest.contains(required),
+            "{manifest_path} should preserve real-app handoff evidence `{required}`"
+        );
+    }
+}
+
+fn collect_xmind_fixtures(dir: &std::path::Path, output: &mut Vec<std::path::PathBuf>) {
+    for entry in std::fs::read_dir(dir).expect("fixture directory is readable") {
+        let path = entry.expect("fixture entry is readable").path();
+        if path.is_dir() {
+            collect_xmind_fixtures(&path, output);
+            continue;
+        }
+        if path.extension().and_then(|extension| extension.to_str()) == Some("xmind") {
+            output.push(path);
+        }
+    }
+}
+
+#[test]
 fn installation_docs_cover_supported_install_paths() {
     let install_doc =
         std::fs::read_to_string("docs/installation.md").expect("installation doc is readable");
 
     for expected in [
+        "cargo install --locked --git https://github.com/ivan-94/xmind-cli",
         "cargo install --path .",
         "cargo build --workspace --release",
         "target/release/xmind",
+        "bash scripts/install.sh --dry-run --version v0.1.0",
+        "SHA256SUMS",
         "xmind completion bash",
         "xmind --version",
     ] {
@@ -269,4 +459,87 @@ fn changelog_tracks_current_release_hardening_work() {
             "changelog should mention `{expected}`"
         );
     }
+}
+
+#[test]
+fn root_readme_publishes_repository_baseline_without_overclaiming_release_channels() {
+    let readme = std::fs::read_to_string("README.md").expect("root README is readable");
+
+    for expected in [
+        "# xmind-cli",
+        "unofficial",
+        "AI",
+        "Source Manifest",
+        "docs/reference/cli-overview.md",
+        "docs/technical/e2e-test-plan.md",
+        "PLAN.md",
+        "docs/installation.md",
+        "Cargo source install from GitHub",
+        "cargo install --locked --git https://github.com/ivan-94/xmind-cli",
+        "GitHub Release binaries",
+        "Install script",
+        "bash scripts/install.sh --dry-run --version v0.1.0",
+        "Homebrew tap",
+        "Available today",
+        "Planned",
+        "git@github.com:ivan-94/xmind-cli.git",
+        "xmind tree tests/fixtures/xmind/minimal.xmind --depth 2 --json",
+        "MIT",
+    ] {
+        assert!(
+            readme.contains(expected),
+            "root README should include `{expected}`"
+        );
+    }
+
+    let homebrew_overclaim = "brew install ivan-94/tap/xmind-cli";
+    assert!(
+        !readme.contains(homebrew_overclaim),
+        "root README should not claim unreleased install channel `{homebrew_overclaim}` is available"
+    );
+
+    assert!(
+        readme.contains("xmind add-tree roadmap.xmind \\\n  --parent \"path:/Q2\" \\\n  --input docs/examples/simple-tree.yaml \\\n  --apply \\\n  --backup \\\n  --json"),
+        "root README should present implemented `add-tree --apply --backup` safe edit workflow"
+    );
+    assert!(
+        !readme.contains("`add-tree --apply` is planned as part of PRD #1 issue #18"),
+        "root README should not describe implemented `add-tree --apply` as a planned follow-up"
+    );
+}
+
+#[test]
+fn release_policy_documents_versioning_changelog_notes_and_checksums() {
+    let release_policy = std::fs::read_to_string("docs/technical/release-policy.md")
+        .expect("release policy is readable");
+    let installation_doc =
+        std::fs::read_to_string("docs/installation.md").expect("installation doc is readable");
+    let docs_readme = std::fs::read_to_string("docs/README.md").expect("docs readme is readable");
+
+    for expected in [
+        "v0.1.0",
+        "Cargo.toml",
+        "CHANGELOG.md",
+        "GitHub Release",
+        "SHA256SUMS",
+        "shasum -a 256 -c SHA256SUMS",
+        "crates.io",
+    ] {
+        assert!(
+            release_policy.contains(expected),
+            "release policy should mention `{expected}`"
+        );
+    }
+
+    for expected in ["SHA256SUMS", "shasum -a 256 -c SHA256SUMS"] {
+        assert!(
+            installation_doc.contains(expected),
+            "installation doc should mention checksum verification with `{expected}`"
+        );
+    }
+
+    assert!(
+        docs_readme.contains("technical/release-policy.md"),
+        "docs README should link to the release policy"
+    );
 }

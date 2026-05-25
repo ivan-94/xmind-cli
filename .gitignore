@@ -1,5 +1,6 @@
 /target/
 /.cargo/
+/.scratch/
 *.profraw
 *.profdata
 .DS_Store

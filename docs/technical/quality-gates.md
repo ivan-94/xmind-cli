@@ -70,6 +70,37 @@ cargo test --workspace --all-features
 cargo build --workspace --release
 ```
 
+## GitHub Branch Protection
+
+PRD #1 branch protection is configured with:
+
+```bash
+scripts/configure-branch-protection.sh apply
+```
+
+The script uses `gh api` to protect `master` in `ivan-94/xmind-cli` by default.
+It requires maintainer/admin repository permission and configures:
+
+- pull requests before merge,
+- strict required status checks so the branch must be up to date before merge,
+- required checks: `Rust quality gate`, `Stable PR E2E subset`, and `Security`,
+- stale review dismissal with one approving review,
+- force pushes disabled,
+- branch deletion disabled.
+
+To inspect the exact API payload without writing GitHub settings:
+
+```bash
+scripts/configure-branch-protection.sh print-json
+```
+
+If the API call fails because the token lacks administration permission, use
+GitHub UI fallback: repository Settings -> Branches -> Add branch protection
+rule -> branch name pattern `master`; enable "Require a pull request before merging",
+"Dismiss stale pull request approvals when new commits are pushed",
+"Require status checks to pass before merging", "Require branches to be up to date before merging",
+choose the same three required checks, and disable force pushes and deletions.
+
 Optional release-mode test gate:
 
 ```bash

@@ -1,5 +1,9 @@
 # XMind Fixtures
 
+See `tests/fixtures/xmind/manifest.md` for the fixture inventory, real-vs-synthetic
+labels, PR-gate/full-matrix scope, mutation-safe copy rules, privacy/license
+notes, regeneration status, and size policy.
+
 `minimal.xmind` is generated from `minimal-content.json` and contains one sheet:
 
 - Roadmap
@@ -21,3 +25,13 @@ plain-text note, labels, markers, a hyperlink, and an image reference on the
 
 `topic-image.xmind` is generated from `topic-image-content.json` and contains a
 topic image reference plus a `resources/payment.png` package entry.
+
+## Real XMind App Fixtures
+
+`real-app/real-app-fixture.xmind` is saved by `/Applications/Xmind.app` version
+`26.02.04171` through a verified Computer Use flow. It contains a repository-safe
+root topic `Real App Fixture` and five XMind-generated default branches.
+
+Use `tests/fixtures/xmind/manifest.md` as the source of truth for provenance,
+privacy review, the future full-matrix expansion checklist, and verification
+commands before adding any new fixture under `tests/fixtures/xmind/real-app/`.

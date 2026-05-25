@@ -1,5 +1,9 @@
 use assert_cmd::Command;
 use serde_json::Value;
+use std::fs;
+use std::io::{Read, Write};
+use std::path::Path;
+use zip::write::FileOptions;
 
 #[test]
 fn patch_dry_run_add_tree_reports_structured_diff_without_writing() {
@@ -162,6 +166,65 @@ ops:
     assert_eq!(body["result"]["operations"][1]["op"], "set");
     assert_eq!(body["result"]["diff"][0]["path"], "/Q2/Working Copy Topic");
     assert_eq!(body["result"]["diff"][1]["path"], "/Q2/Working Copy Topic");
+}
+
+#[test]
+fn patch_apply_writes_workbook_and_preserves_unknown_package_entries() {
+    let temp_dir = tempfile::tempdir().expect("temp dir is created");
+    let workbook = temp_dir.path().join("patch-apply-preserve.xmind");
+    write_xmind_with_package_entry(&workbook, "metadata.json", br#"{"vendor":true}"#);
+    let ops = temp_dir.path().join("apply.yaml");
+    fs::write(
+        &ops,
+        r#"
+ops:
+  - op: add
+    parent: path:/Q2
+    title: Preserved Apply
+"#,
+    )
+    .expect("patch fixture is written");
+    let workbook_arg = workbook.to_string_lossy().into_owned();
+    let ops_arg = ops.to_string_lossy().into_owned();
+
+    let output = Command::cargo_bin("xmind")
+        .expect("xmind binary is built for CLI tests")
+        .args([
+            "patch",
+            &workbook_arg,
+            "--ops",
+            &ops_arg,
+            "--apply",
+            "--json",
+        ])
+        .output()
+        .expect("patch command runs");
+
+    assert_eq!(
+        output.status.code(),
+        Some(0),
+        "patch apply should succeed\nstdout:\n{}\nstderr:\n{}",
+        String::from_utf8_lossy(&output.stdout),
+        String::from_utf8_lossy(&output.stderr)
+    );
+    let body: Value = serde_json::from_slice(&output.stdout).expect("stdout is JSON");
+    assert_eq!(body["dry_run"], false);
+    assert_eq!(body["applied"], true);
+    assert_eq!(body["result"]["operations"][0]["status"], "applied");
+    assert_eq!(body["result"]["summary"]["added"], 1);
+
+    let tree_output = Command::cargo_bin("xmind")
+        .expect("xmind binary is built for CLI tests")
+        .args(["tree", &workbook_arg, "--json", "--depth", "3"])
+        .output()
+        .expect("tree command runs after apply");
+    let tree: Value = serde_json::from_slice(&tree_output.stdout).expect("tree stdout is JSON");
+    let titles = serde_json::to_string(&tree["result"]["root"]).expect("tree serializes");
+    assert!(titles.contains("Preserved Apply"));
+    assert_eq!(
+        read_zip_entry(&workbook, "metadata.json"),
+        br#"{"vendor":true}"#
+    );
 }
 
 #[test]
@@ -1425,4 +1488,47 @@ ops:
     assert!(body["error"]["message"]
         .as_str()
         .is_some_and(|message| message.starts_with("Patch file JSON is invalid:")));
+}
+
+fn write_xmind_with_package_entry(path: &Path, entry_name: &str, entry_bytes: &[u8]) {
+    let file = fs::File::create(path).expect("workbook fixture is created");
+    let mut zip = zip::ZipWriter::new(file);
+    let options = FileOptions::default();
+    zip.start_file("content.json", options)
+        .expect("content.json is created");
+    zip.write_all(
+        br#"[
+  {
+    "id": "sheet-roadmap",
+    "title": "Roadmap",
+    "rootTopic": {
+      "id": "topic-root",
+      "title": "Roadmap",
+      "children": {
+        "attached": [
+          {
+            "id": "topic-q2",
+            "title": "Q2"
+          }
+        ]
+      }
+    }
+  }
+]"#,
+    )
+    .expect("content.json is written");
+    zip.start_file(entry_name, options)
+        .expect("package entry is created");
+    zip.write_all(entry_bytes)
+        .expect("package entry is written");
+    zip.finish().expect("workbook fixture is finalized");
+}
+
+fn read_zip_entry(path: &Path, entry_name: &str) -> Vec<u8> {
+    let file = fs::File::open(path).expect("workbook is readable");
+    let mut zip = zip::ZipArchive::new(file).expect("workbook zip opens");
+    let mut entry = zip.by_name(entry_name).expect("package entry exists");
+    let mut bytes = Vec::new();
+    entry.read_to_end(&mut bytes).expect("entry is readable");
+    bytes
 }
