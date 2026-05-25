@@ -2,20 +2,26 @@
 source: tests/cli/help_snapshots_test.rs
 expression: "help_output(&[subcommand, \"--help\"])"
 ---
+Print a workbook topic tree for quick reading or scripting.
+
 Usage: xmind tree [OPTIONS] <WORKBOOK>
 
 Arguments:
-  <WORKBOOK>  
+  <WORKBOOK>  Path to the .xmind workbook
 
 Options:
-      --depth <DEPTH>              
-      --include-assets             
-      --json                       
-      --format <FORMAT>            [default: text] [possible values: text, json, compact-json, markdown, outline, assets]
-      --fields <FIELDS>            
-      --quiet                      
-      --no-color                   
-      --sheet <SHEET>              
-      --sheet-id <SHEET_ID>        
-      --sheet-index <SHEET_INDEX>  
+      --depth <DEPTH>              Limit how many topic levels to print
+      --include-assets             Include image and attachment references when available
+      --json                       Emit a JSON command envelope
+      --format <FORMAT>            Select the human or machine-readable output format [default: text] [possible values: text, json, compact-json, markdown, outline, assets]
+      --fields <FIELDS>            Limit JSON output to comma-separated field paths
+      --quiet                      Suppress non-essential text output
+      --no-color                   Disable ANSI color in text output
+      --sheet <SHEET>              Select a sheet by title
+      --sheet-id <SHEET_ID>        Select a sheet by stable id
+      --sheet-index <SHEET_INDEX>  Select a sheet by zero-based index
   -h, --help                       Print help
+
+Examples:
+  xmind tree roadmap.xmind --depth 2
+  xmind tree roadmap.xmind --sheet "Roadmap" --include-assets

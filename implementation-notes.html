@@ -577,5 +577,25 @@
         </li>
       </ul>
     </section>
+
+    <section class="entry">
+      <h2>PRD #26-#30 Slice #29: CLI Help Examples</h2>
+      <ul>
+        <li>
+          决策：CLI help 继续保持英文-only，顶层 help 只提供 4 个代表性 examples
+          覆盖 read、search、dry-run write 和 export workflow；详细语义仍留在
+          <code>docs/reference/commands/</code>。
+        </li>
+        <li>
+          决策：所有子命令 help 都提供一句 purpose、关键参数短说明和可复制
+          examples；复杂命令 <code>set</code>、<code>patch</code>、<code>import</code>
+          使用 3 个 examples。
+        </li>
+        <li>
+          对齐：<code>diff</code> help 按当前单 workbook diff surface 描述，不把它表述为
+          restore backup diff。
+        </li>
+      </ul>
+    </section>
   </body>
 </html>

@@ -2,39 +2,45 @@
 source: tests/cli/help_snapshots_test.rs
 expression: "help_output(&[subcommand, \"--help\"])"
 ---
+Search workbook topics by title, text, or query selector.
+
 Usage: xmind find [OPTIONS] <WORKBOOK>
 
 Arguments:
-  <WORKBOOK>  
+  <WORKBOOK>  Path to the .xmind workbook
 
 Options:
       --title <TITLE>
-          
+          Match an exact topic title
       --title-contains <TITLE_CONTAINS>
-          
+          Match topics whose title contains this text
       --contains <CONTAINS>
-          
+          Match topics whose searchable content contains this text
       --query <QUERY>
-          
+          Run a query selector expression
       --limit <LIMIT>
-          
+          Maximum number of matches to return
       --offset <OFFSET>
-          
+          Skip this many matches before returning results
       --json
-          
+          Emit a JSON command envelope
       --format <FORMAT>
-          [default: text] [possible values: text, json, compact-json, markdown, outline, assets]
+          Select the human or machine-readable output format [default: text] [possible values: text, json, compact-json, markdown, outline, assets]
       --fields <FIELDS>
-          
+          Limit JSON output to comma-separated field paths
       --quiet
-          
+          Suppress non-essential text output
       --no-color
-          
+          Disable ANSI color in text output
       --sheet <SHEET>
-          
+          Select a sheet by title
       --sheet-id <SHEET_ID>
-          
+          Select a sheet by stable id
       --sheet-index <SHEET_INDEX>
-          
+          Select a sheet by zero-based index
   -h, --help
           Print help
+
+Examples:
+  xmind find roadmap.xmind --title "Launch"
+  xmind find roadmap.xmind --query 'title contains "Launch"' --limit 5

@@ -2,21 +2,27 @@
 source: tests/cli/help_snapshots_test.rs
 expression: "help_output(&[subcommand, \"--help\"])"
 ---
+Read one topic and optionally include its descendants.
+
 Usage: xmind get [OPTIONS] --node <NODE> <WORKBOOK>
 
 Arguments:
-  <WORKBOOK>  
+  <WORKBOOK>  Path to the .xmind workbook
 
 Options:
-      --node <NODE>                
-      --depth <DEPTH>              
-      --include-assets             
-      --json                       
-      --format <FORMAT>            [default: text] [possible values: text, json, compact-json, markdown, outline, assets]
-      --fields <FIELDS>            
-      --quiet                      
-      --no-color                   
-      --sheet <SHEET>              
-      --sheet-id <SHEET_ID>        
-      --sheet-index <SHEET_INDEX>  
+      --node <NODE>                Topic selector such as an id or path:/Title
+      --depth <DEPTH>              Limit descendant depth included in the result
+      --include-assets             Include image and attachment references when available
+      --json                       Emit a JSON command envelope
+      --format <FORMAT>            Select the human or machine-readable output format [default: text] [possible values: text, json, compact-json, markdown, outline, assets]
+      --fields <FIELDS>            Limit JSON output to comma-separated field paths
+      --quiet                      Suppress non-essential text output
+      --no-color                   Disable ANSI color in text output
+      --sheet <SHEET>              Select a sheet by title
+      --sheet-id <SHEET_ID>        Select a sheet by stable id
+      --sheet-index <SHEET_INDEX>  Select a sheet by zero-based index
   -h, --help                       Print help
+
+Examples:
+  xmind get roadmap.xmind --node path:/Launch
+  xmind get roadmap.xmind --node topic-1 --depth 2 --include-assets
