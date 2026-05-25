@@ -7,35 +7,41 @@ Inspect and edit XMind workbooks through an agent-native CLI
 Usage: xmind [OPTIONS] [COMMAND]
 
 Commands:
-  inspect     
-  sheets      
-  tree        
-  find        
-  get         
-  add         
-  add-tree    
-  set         
-  delete      
-  move        
-  copy        
-  patch       
-  diff        
-  validate    
-  export      
-  import      
-  backup      
-  restore     
-  completion  
+  inspect     Summarize workbook metadata, sheets, and compatibility details.
+  sheets      List sheets in a workbook with ids, titles, and ordering.
+  tree        Print a workbook topic tree for quick reading or scripting.
+  find        Search workbook topics by title, text, or query selector.
+  get         Read one topic and optionally include its descendants.
+  add         Add a single topic under an existing parent topic.
+  add-tree    Add a topic subtree from YAML, JSON, or Markdown input.
+  set         Update topic fields such as title, notes, labels, markers, links, or images.
+  delete      Delete a topic or selected descendants from a workbook.
+  move        Move a topic to a different parent or sibling position.
+  copy        Copy a topic subtree to another location in the workbook.
+  patch       Apply a batch of structured workbook edit operations.
+  diff        Show structural differences for the current workbook diff surface.
+  validate    Check whether a workbook can be read and safely processed.
+  export      Export workbook content to Markdown, outline, JSON, or assets.
+  import      Create or update a workbook from Markdown or structured input.
+  backup      Create an explicit backup copy of a workbook.
+  restore     Restore workbook content from the matching backup workflow.
+  completion  Generate shell completion scripts for the xmind command.
   help        Print this message or the help of the given subcommand(s)
 
 Options:
-      --json                       
-      --format <FORMAT>            [default: text] [possible values: text, json, compact-json, markdown, outline, assets]
-      --fields <FIELDS>            
-      --quiet                      
-      --no-color                   
-      --sheet <SHEET>              
-      --sheet-id <SHEET_ID>        
-      --sheet-index <SHEET_INDEX>  
+      --json                       Emit a JSON command envelope
+      --format <FORMAT>            Select the human or machine-readable output format [default: text] [possible values: text, json, compact-json, markdown, outline, assets]
+      --fields <FIELDS>            Limit JSON output to comma-separated field paths
+      --quiet                      Suppress non-essential text output
+      --no-color                   Disable ANSI color in text output
+      --sheet <SHEET>              Select a sheet by title
+      --sheet-id <SHEET_ID>        Select a sheet by stable id
+      --sheet-index <SHEET_INDEX>  Select a sheet by zero-based index
   -h, --help                       Print help
   -V, --version                    Print version
+
+Examples:
+  xmind tree roadmap.xmind --depth 2
+  xmind find roadmap.xmind --title "Launch"
+  xmind set roadmap.xmind --node path:/Launch --title "Launch plan" --dry-run
+  xmind export roadmap.xmind --format markdown --output roadmap.md

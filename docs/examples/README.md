@@ -1,16 +1,16 @@
 # Examples
 
-## Source Manifest
-
-- Conversation: XMind CLI product design discussion
-- Scope: Source manifest for machine-readable example inputs and outputs
-- Last updated: 2026-05-22
-
 ## Notes
 
-JSON example files in this directory intentionally do not include `Source Manifest` fields inside the JSON object. They are meant to represent real CLI input or output shapes that agents can parse directly.
+JSON example files in this directory intentionally avoid documentation-only metadata inside the JSON object. They are meant to represent real CLI input or output shapes that agents can parse directly.
 
-This README carries the documentation source manifest for the example set.
+Use these examples with the command reference and guide pages:
+
+- [simple-tree.yaml](simple-tree.yaml) and [simple-tree.json](simple-tree.json) show tree input payloads.
+- [patch-add-tree.yaml](patch-add-tree.yaml), [patch-merge-tree.yaml](patch-merge-tree.yaml), and [patch-refactor-roadmap.yaml](patch-refactor-roadmap.yaml) show patch operation payloads.
+- [outputs/](outputs/) contains representative JSON output envelopes.
+- [markdown-outline.md](markdown-outline.md) shows Markdown outline input.
+- [../reference/cli-overview.md](../reference/cli-overview.md), [../guides/agent-recipes.md](../guides/agent-recipes.md), and [../guides/safe-editing-workflow.md](../guides/safe-editing-workflow.md) explain the CLI workflows around these examples.
 
 ## Fixture Commands
 

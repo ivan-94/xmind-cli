@@ -1,0 +1,201 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <title>README and CLI Help Polish Implementation Notes</title>
+    <style>
+      body {
+        font-family:
+          -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        line-height: 1.5;
+        max-width: 920px;
+        margin: 32px auto;
+        padding: 0 20px;
+        color: #202124;
+      }
+
+      h1,
+      h2 {
+        line-height: 1.2;
+      }
+
+      code {
+        background: #f1f3f4;
+        border-radius: 4px;
+        padding: 1px 4px;
+      }
+
+      .entry {
+        border-top: 1px solid #dadce0;
+        padding-top: 16px;
+        margin-top: 20px;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>README and CLI Help Polish Implementation Notes</h1>
+    <p>
+      本文件记录 GitHub issues #26-#30 的交付决策、偏差、权衡和未决问题。
+      它是 deliver-prd 期间父 Agent 与 slice worker 共用的轻量实现笔记，
+      不是公开 README，也不扩展 Source Manifest 的适用范围。
+    </p>
+
+    <section class="entry">
+      <h2>Current Decisions</h2>
+      <ul>
+        <li>
+          本轮没有独立父 PRD issue；以用户请求作为临时父目标，
+          GitHub issues <code>#26</code>-<code>#30</code> 作为 confirmed slices。
+        </li>
+        <li>
+          README 层支持英文和中文：<code>README.md</code> 为英文主入口，
+          <code>README.zh-CN.md</code> 为中文入口，二者互链。
+        </li>
+        <li>
+          CLI help 只使用英文，避免终端输出过长；中文说明放在中文 README
+          和文档入口中。
+        </li>
+        <li>
+          裸 <code>xmind</code> 和 <code>xmind --json</code> 无子命令时都按 help
+          场景处理：向 stdout 打印顶层 help，退出码为 <code>0</code>。
+        </li>
+        <li>
+          Source Manifest 在本仓库只用于 PRD、issue、HAT artifacts 和 explicit
+          handoff documents；README、overview、product docs、command references
+          和 implementation notes 默认不加。
+        </li>
+      </ul>
+    </section>
+
+    <section class="entry">
+      <h2>Known Drift From Initial Issue Text</h2>
+      <ul>
+        <li>
+          创建 issues 时本地 checkout 落后远端，误判根目录没有
+          <code>README.md</code>。实际交付基线为 <code>origin/master</code>，
+          其中已有英文 README，但该文件仍含 Source Manifest，且缺少中文版本。
+        </li>
+        <li>
+          本轮父分支从 <code>origin/master</code> 创建，不基于落后的本地
+          <code>master</code>。
+        </li>
+      </ul>
+    </section>
+
+    <section class="entry">
+      <h2>Validation Plan</h2>
+      <ul>
+        <li>
+          CLI 行为变更优先用测试锁定，包括空 invocation 行为和 help snapshots。
+        </li>
+        <li>
+          文档变更通过人工检查、链接路径检查和现有 doc example 测试验证。
+        </li>
+        <li>
+          整体交付门禁优先运行：
+          <code>PATH=/opt/homebrew/opt/rustup/bin:$PATH ./scripts/quality-gate.sh</code>。
+        </li>
+      </ul>
+    </section>
+
+    <section class="entry">
+      <h2>Slice #26 README Entrypoints</h2>
+      <ul>
+        <li>
+          英文 <code>README.md</code> 已调整为公开入口，不再承载交接清单；
+          中文 <code>README.zh-CN.md</code> 作为等价实用入口并与英文版互链。
+        </li>
+        <li>
+          旧的 README 文档测试曾要求公开 README 包含交接清单；本 slice
+          将该检查改为锁定无交接清单、双语互链和 <code>0.1.0</code> /
+          <code>Unreleased</code> 的早期发布姿态。
+        </li>
+      </ul>
+    </section>
+
+    <section class="entry">
+      <h2>Slice #27 Overview Links</h2>
+      <ul>
+        <li>
+          <code>docs/examples/README.md</code> 被纳入本 slice，因为它是 examples
+          目录的人类入口页，且已有文档测试把它作为公开入口示例来源；清理范围仍限制在
+          README/overview 类页面。
+        </li>
+        <li>
+          可复制命令代码块中的路径保持原样，避免把 CLI 输入改成不可执行的 Markdown
+          链接；导航列表和说明文字中的有效文件/目录引用改为链接。
+        </li>
+      </ul>
+    </section>
+
+    <section class="entry">
+      <h2>Slice #29 CLI Help Examples</h2>
+      <ul>
+        <li>
+          CLI help 继续保持英文-only；顶层 help 只放 4 个代表性 examples，
+          分别覆盖 read、search、dry-run write 和 export workflow，避免把
+          reference docs 的长语义搬进终端输出。
+        </li>
+        <li>
+          每个子命令 help 补充一句 purpose、关键参数短说明和至少一个可复制
+          example；<code>set</code>、<code>patch</code>、<code>import</code>
+          保留 3 个 examples 来覆盖更复杂的使用分支。
+        </li>
+        <li>
+          <code>diff</code> 的 help 文案按当前
+          <code>docs/reference/commands/diff.md</code> 保持为 single-workbook
+          diff surface，没有描述成 restore backup diff。
+        </li>
+      </ul>
+    </section>
+
+    <section class="entry">
+      <h2>Parent Integration Fix</h2>
+      <ul>
+        <li>
+          完整质量门禁发现 README 精简后缺失 release workflow 守护测试要求的
+          平台矩阵和 Homebrew future-channel 文案。父侧补回保守 install matrix：
+          只说明 tagged release 后的计划目标和 <code>ivan-94/homebrew-tap</code>
+          预留路径，不提供可执行 <code>brew install</code> 指令。
+        </li>
+      </ul>
+    </section>
+
+    <section class="entry">
+      <h2>Cross-review Follow-up</h2>
+      <ul>
+        <li>
+          Self-review 指出 <code>docs/reference/cli-overview.md</code> 仍把
+          <code>diff</code> 描述成 compare workbooks / preview operation diffs。
+          父侧已收敛为当前 single-workbook diff surface，并补充文档守卫测试。
+        </li>
+        <li>
+          External review 建议为 <code>xmind --version</code> 增加显式测试，避免
+          help 改动只覆盖描述和 examples；父侧已补充版本输出测试。
+        </li>
+        <li>
+          Self-review 还指出部分旧 reference/product/concept docs 仍保留历史
+          Source Manifest。该清理会扩大到全 docs tree，超出本轮已确认的
+          overview/README 范围；保留为 PR/HAT notes 的残余 P2 风险。
+        </li>
+      </ul>
+    </section>
+
+    <section class="entry">
+      <h2>HAT Prepare</h2>
+      <ul>
+        <li>
+          HAT 产物已写入
+          <code>hats/20260525-prd-26-30-readme-help-polish/</code>，采用
+          <code>blank</code> 模式；本轮只验收本地文档和 CLI help 行为，不需要
+          数据库、账号或外部服务。
+        </li>
+        <li>
+          <code>prepare.sh prepare</code> 已实际执行一次，构建 CLI 并把顶层
+          help、空 <code>--json</code> help、<code>set</code>/<code>diff</code>
+          help 和版本输出写入 <code>.scratch/hat/prd-26-30-readme-help-polish/</code>。
+        </li>
+      </ul>
+    </section>
+  </body>
+</html>

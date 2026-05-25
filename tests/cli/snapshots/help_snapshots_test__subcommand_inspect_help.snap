@@ -2,18 +2,24 @@
 source: tests/cli/help_snapshots_test.rs
 expression: "help_output(&[subcommand, \"--help\"])"
 ---
+Summarize workbook metadata, sheets, and compatibility details.
+
 Usage: xmind inspect [OPTIONS] <WORKBOOK>
 
 Arguments:
-  <WORKBOOK>  
+  <WORKBOOK>  Path to the .xmind workbook
 
 Options:
-      --json                       
-      --format <FORMAT>            [default: text] [possible values: text, json, compact-json, markdown, outline, assets]
-      --fields <FIELDS>            
-      --quiet                      
-      --no-color                   
-      --sheet <SHEET>              
-      --sheet-id <SHEET_ID>        
-      --sheet-index <SHEET_INDEX>  
+      --json                       Emit a JSON command envelope
+      --format <FORMAT>            Select the human or machine-readable output format [default: text] [possible values: text, json, compact-json, markdown, outline, assets]
+      --fields <FIELDS>            Limit JSON output to comma-separated field paths
+      --quiet                      Suppress non-essential text output
+      --no-color                   Disable ANSI color in text output
+      --sheet <SHEET>              Select a sheet by title
+      --sheet-id <SHEET_ID>        Select a sheet by stable id
+      --sheet-index <SHEET_INDEX>  Select a sheet by zero-based index
   -h, --help                       Print help
+
+Examples:
+  xmind inspect roadmap.xmind
+  xmind inspect roadmap.xmind --json

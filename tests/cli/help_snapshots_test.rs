@@ -28,11 +28,72 @@ fn top_level_help_matches_snapshot() {
 }
 
 #[test]
+fn version_matches_package_version() {
+    let output = Command::cargo_bin("xmind")
+        .expect("xmind binary is built for CLI tests")
+        .arg("--version")
+        .output()
+        .expect("version command runs");
+
+    assert!(
+        output.status.success(),
+        "version command failed: {}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    assert_eq!(
+        String::from_utf8(output.stdout).expect("version output is valid UTF-8"),
+        format!("xmind {}\n", env!("CARGO_PKG_VERSION"))
+    );
+}
+
+#[test]
+fn top_level_help_has_command_descriptions_and_examples() {
+    let help = help_output(&["--help"]);
+
+    assert!(
+        help.contains("Examples:"),
+        "top-level help should include representative examples"
+    );
+    assert!(
+        help.lines()
+            .any(|line| line.trim_start().starts_with("inspect  ")
+                && line.contains("Summarize workbook metadata")),
+        "top-level help should describe the inspect command"
+    );
+}
+
+#[test]
+fn empty_invocation_prints_top_level_help() {
+    assert_eq!(help_output(&[]), help_output(&["--help"]));
+}
+
+#[test]
+fn json_without_subcommand_prints_top_level_help() {
+    assert_eq!(help_output(&["--json"]), help_output(&["--help"]));
+}
+
+#[test]
 fn subcommand_help_matches_snapshots() {
     for subcommand in SUBCOMMANDS {
         insta::assert_snapshot!(
             format!("subcommand_{subcommand}_help"),
             help_output(&[subcommand, "--help"])
+        );
+    }
+}
+
+#[test]
+fn subcommand_help_has_purpose_and_examples() {
+    for subcommand in SUBCOMMANDS {
+        let help = help_output(&[subcommand, "--help"]);
+
+        assert!(
+            help.contains("Examples:"),
+            "{subcommand} help should include at least one copyable example"
+        );
+        assert!(
+            help.lines().next().is_some_and(|line| line.ends_with('.')),
+            "{subcommand} help should start with a sentence describing its purpose"
         );
     }
 }
