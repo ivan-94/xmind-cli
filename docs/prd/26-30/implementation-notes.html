@@ -160,5 +160,25 @@
         </li>
       </ul>
     </section>
+
+    <section class="entry">
+      <h2>Cross-review Follow-up</h2>
+      <ul>
+        <li>
+          Self-review 指出 <code>docs/reference/cli-overview.md</code> 仍把
+          <code>diff</code> 描述成 compare workbooks / preview operation diffs。
+          父侧已收敛为当前 single-workbook diff surface，并补充文档守卫测试。
+        </li>
+        <li>
+          External review 建议为 <code>xmind --version</code> 增加显式测试，避免
+          help 改动只覆盖描述和 examples；父侧已补充版本输出测试。
+        </li>
+        <li>
+          Self-review 还指出部分旧 reference/product/concept docs 仍保留历史
+          Source Manifest。该清理会扩大到全 docs tree，超出本轮已确认的
+          overview/README 范围；保留为 PR/HAT notes 的残余 P2 风险。
+        </li>
+      </ul>
+    </section>
   </body>
 </html>

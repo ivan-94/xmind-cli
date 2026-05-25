@@ -28,7 +28,7 @@ xmind <command> <workbook.xmind> [options]
 ### Batch and Exchange
 
 - `patch`: apply declarative operations.
-- `diff`: compare workbooks or preview operation diffs.
+- `diff`: show the current single-workbook diff surface.
 - `validate`: validate workbook integrity.
 - `export`: export to JSON, Markdown, outline, or text.
 - `import`: create or update from external structured input.

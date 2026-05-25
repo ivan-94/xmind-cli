@@ -565,3 +565,20 @@ fn release_policy_documents_versioning_changelog_notes_and_checksums() {
         "docs README should link to the release policy"
     );
 }
+
+#[test]
+fn cli_overview_keeps_diff_scope_aligned_with_current_command_contract() {
+    let overview =
+        std::fs::read_to_string("docs/reference/cli-overview.md").expect("overview is readable");
+
+    assert!(
+        overview.contains("current single-workbook diff surface"),
+        "CLI overview should describe the implemented diff surface"
+    );
+    for stale in ["compare workbooks", "preview operation diffs"] {
+        assert!(
+            !overview.contains(stale),
+            "CLI overview should not overclaim unsupported diff behavior `{stale}`"
+        );
+    }
+}

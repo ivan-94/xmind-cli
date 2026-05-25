@@ -28,6 +28,25 @@ fn top_level_help_matches_snapshot() {
 }
 
 #[test]
+fn version_matches_package_version() {
+    let output = Command::cargo_bin("xmind")
+        .expect("xmind binary is built for CLI tests")
+        .arg("--version")
+        .output()
+        .expect("version command runs");
+
+    assert!(
+        output.status.success(),
+        "version command failed: {}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    assert_eq!(
+        String::from_utf8(output.stdout).expect("version output is valid UTF-8"),
+        format!("xmind {}\n", env!("CARGO_PKG_VERSION"))
+    );
+}
+
+#[test]
 fn top_level_help_has_command_descriptions_and_examples() {
     let help = help_output(&["--help"]);
 
