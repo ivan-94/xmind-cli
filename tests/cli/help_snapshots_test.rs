@@ -28,6 +28,22 @@ fn top_level_help_matches_snapshot() {
 }
 
 #[test]
+fn top_level_help_has_command_descriptions_and_examples() {
+    let help = help_output(&["--help"]);
+
+    assert!(
+        help.contains("Examples:"),
+        "top-level help should include representative examples"
+    );
+    assert!(
+        help.lines()
+            .any(|line| line.trim_start().starts_with("inspect  ")
+                && line.contains("Summarize workbook metadata")),
+        "top-level help should describe the inspect command"
+    );
+}
+
+#[test]
 fn empty_invocation_prints_top_level_help() {
     assert_eq!(help_output(&[]), help_output(&["--help"]));
 }
@@ -43,6 +59,22 @@ fn subcommand_help_matches_snapshots() {
         insta::assert_snapshot!(
             format!("subcommand_{subcommand}_help"),
             help_output(&[subcommand, "--help"])
+        );
+    }
+}
+
+#[test]
+fn subcommand_help_has_purpose_and_examples() {
+    for subcommand in SUBCOMMANDS {
+        let help = help_output(&[subcommand, "--help"]);
+
+        assert!(
+            help.contains("Examples:"),
+            "{subcommand} help should include at least one copyable example"
+        );
+        assert!(
+            help.lines().next().is_some_and(|line| line.ends_with('.')),
+            "{subcommand} help should start with a sentence describing its purpose"
         );
     }
 }
