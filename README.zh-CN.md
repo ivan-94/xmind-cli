@@ -56,6 +56,17 @@ cargo run -- tree tests/fixtures/xmind/minimal.xmind --depth 2
 包管理器分发渠道。当前安装、release build、checksum 和 shell 补全说明见
 [docs/installation.md](docs/installation.md)。
 
+| 渠道 | 状态 | 说明 |
+| --- | --- | --- |
+| 从 checkout 进行 Cargo 源码安装 | 当前可用 | `cargo install --path .` |
+| 从 GitHub 进行 Cargo 源码安装 | 当前可用 | `cargo install --locked --git https://github.com/ivan-94/xmind-cli` |
+| 本地 release build | 当前可用 | `cargo build --workspace --release`，然后运行 `target/release/xmind` |
+| GitHub Release binaries | 首个 tagged release 后可用 | 计划目标：macOS Apple Silicon、macOS Intel、Linux x86_64 GNU、Linux arm64 GNU、Windows x86_64 MSVC。 |
+| Install script | 面向 tagged release artifacts | 先运行 `bash scripts/install.sh --dry-run --version v0.1.0`，确认后去掉 `--dry-run`。 |
+| Homebrew tap | 计划中 | 预期路径是 `ivan-94/homebrew-tap`。Formula publication waits for a verified GitHub Release artifact and checksum. |
+
+第一版二进制 release 矩阵不代表支持：Linux musl/static builds、macOS universal binaries、32-bit Windows、Windows GNU、container images、Homebrew 或 crates.io packages。
+
 ## 快速开始
 
 检查已提交 fixture：

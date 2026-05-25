@@ -62,6 +62,17 @@ flow, but the project has not yet settled into a stable package-manager channel.
 See [docs/installation.md](docs/installation.md) for current install, release
 build, checksum, and shell completion details.
 
+| Channel | Status | Notes |
+| --- | --- | --- |
+| Cargo source install from checkout | Available today | `cargo install --path .` |
+| Cargo source install from GitHub | Available today | `cargo install --locked --git https://github.com/ivan-94/xmind-cli` |
+| Local release build | Available today | `cargo build --workspace --release`, then run `target/release/xmind` |
+| GitHub Release binaries | Available after the first tagged release | Planned targets: macOS Apple Silicon, macOS Intel, Linux x86_64 GNU, Linux arm64 GNU, and Windows x86_64 MSVC. |
+| Install script | Available for tagged release artifacts | `bash scripts/install.sh --dry-run --version v0.1.0`, then rerun without `--dry-run`. |
+| Homebrew tap | Planned | Expected path is `ivan-94/homebrew-tap`. Formula publication waits for a verified GitHub Release artifact and checksum. |
+
+The first binary release matrix does not imply support for: Linux musl/static builds, macOS universal binaries, 32-bit Windows, Windows GNU, container images, Homebrew, or crates.io packages.
+
 ## Quick Start
 
 Inspect a committed fixture:
