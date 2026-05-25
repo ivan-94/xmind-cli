@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <title>README and CLI Help Polish Implementation Notes</title>
+    <style>
+      body {
+        font-family:
+          -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        line-height: 1.5;
+        max-width: 920px;
+        margin: 32px auto;
+        padding: 0 20px;
+        color: #202124;
+      }
+
+      h1,
+      h2 {
+        line-height: 1.2;
+      }
+
+      code {
+        background: #f1f3f4;
+        border-radius: 4px;
+        padding: 1px 4px;
+      }
+
+      .entry {
+        border-top: 1px solid #dadce0;
+        padding-top: 16px;
+        margin-top: 20px;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>README and CLI Help Polish Implementation Notes</h1>
+    <p>
+      本文件记录 GitHub issues #26-#30 的交付决策、偏差、权衡和未决问题。
+      它是 deliver-prd 期间父 Agent 与 slice worker 共用的轻量实现笔记，
+      不是公开 README，也不扩展 Source Manifest 的适用范围。
+    </p>
+
+    <section class="entry">
+      <h2>Current Decisions</h2>
+      <ul>
+        <li>
+          本轮没有独立父 PRD issue；以用户请求作为临时父目标，
+          GitHub issues <code>#26</code>-<code>#30</code> 作为 confirmed slices。
+        </li>
+        <li>
+          README 层支持英文和中文：<code>README.md</code> 为英文主入口，
+          <code>README.zh-CN.md</code> 为中文入口，二者互链。
+        </li>
+        <li>
+          CLI help 只使用英文，避免终端输出过长；中文说明放在中文 README
+          和文档入口中。
+        </li>
+        <li>
+          裸 <code>xmind</code> 和 <code>xmind --json</code> 无子命令时都按 help
+          场景处理：向 stdout 打印顶层 help，退出码为 <code>0</code>。
+        </li>
+        <li>
+          Source Manifest 在本仓库只用于 PRD、issue、HAT artifacts 和 explicit
+          handoff documents；README、overview、product docs、command references
+          和 implementation notes 默认不加。
+        </li>
+      </ul>
+    </section>
+
+    <section class="entry">
+      <h2>Known Drift From Initial Issue Text</h2>
+      <ul>
+        <li>
+          创建 issues 时本地 checkout 落后远端，误判根目录没有
+          <code>README.md</code>。实际交付基线为 <code>origin/master</code>，
+          其中已有英文 README，但该文件仍含 Source Manifest，且缺少中文版本。
+        </li>
+        <li>
+          本轮父分支从 <code>origin/master</code> 创建，不基于落后的本地
+          <code>master</code>。
+        </li>
+      </ul>
+    </section>
+
+    <section class="entry">
+      <h2>Validation Plan</h2>
+      <ul>
+        <li>
+          CLI 行为变更优先用测试锁定，包括空 invocation 行为和 help snapshots。
+        </li>
+        <li>
+          文档变更通过人工检查、链接路径检查和现有 doc example 测试验证。
+        </li>
+        <li>
+          整体交付门禁优先运行：
+          <code>PATH=/opt/homebrew/opt/rustup/bin:$PATH ./scripts/quality-gate.sh</code>。
+        </li>
+      </ul>
+    </section>
+  </body>
+</html>
