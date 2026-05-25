@@ -1,11 +1,5 @@
 # CLI Overview
 
-## Source Manifest
-
-- Conversation: XMind CLI product design discussion
-- Scope: Command inventory and top-level CLI shape
-- Last updated: 2026-05-21
-
 ## Synopsis
 
 ```bash
@@ -68,4 +62,4 @@ xmind add-tree roadmap.xmind \
 
 Every command should support `--json`. Every workbook-mutating command must receive exactly one of `--dry-run` or `--apply`, and write commands should support `--backup` where in-place edits are possible. Run `xmind validate` explicitly when an acceptance flow needs a separate validation result.
 
-Detailed mutation behavior is defined in `mutation-semantics.md`. Patch operation behavior is defined in `patch-operations.md`.
+Detailed mutation behavior is defined in [mutation-semantics.md](mutation-semantics.md). Patch operation behavior is defined in [patch-operations.md](patch-operations.md).
