@@ -35,34 +35,3 @@ The issue body should include:
 ## When a skill says "fetch the relevant ticket"
 
 Read the referenced GitHub Issue or PR first. If the user gives only an issue number, resolve it in `ivan-94/xmind-cli`.
-
-## Source Manifest
-
-### Sources
-
-- User alignment on 2026-05-23: the canonical remote is `git@github.com:ivan-94/xmind-cli.git`, the repository already exists, it is public, and the formal tracker should move from local markdown to GitHub Issues.
-- Previous local markdown convention in this file.
-- `PLAN.md`: current backlog and future GitHub infrastructure slices.
-- `~/.agents/docs/agents/handoff-policy.md`: Source Manifest requirements for durable handoff artifacts.
-
-### Produced artifacts
-
-- `docs/agents/issue-tracker.md`
-- `PLAN.md`
-- `docs/technical/e2e-test-plan.md`
-- `implementation-notes.html`
-
-### Key decisions
-
-- GitHub Issues replaces `.scratch/<feature-slug>/` as the formal tracker.
-- `.scratch/` remains acceptable for temporary local drafts and agent working files.
-- Issues should preserve Source Manifest data so downstream agents can reread original sources.
-
-### Verification evidence
-
-- `git remote -v` reports `origin git@github.com:ivan-94/xmind-cli.git` for fetch and push.
-- No GitHub Issues were created by this documentation update.
-
-### Open questions / risks
-
-- Existing local `.scratch/` content, if any, may need manual migration or archival before relying entirely on GitHub Issues.

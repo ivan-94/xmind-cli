@@ -15,7 +15,7 @@ Source Manifest is required only for PRDs, issues, HAT artifacts, and explicit h
 
 ### Issue tracker
 
-Issues and PRDs are tracked as local markdown files under `.scratch/<feature-slug>/`. See `docs/agents/issue-tracker.md`.
+GitHub Issues is the formal issue and PRD tracker for this repo. Use `.scratch/` only for temporary agent workspaces, drafts, generated prompts, or local handoff notes that are not the formal tracker. See `docs/agents/issue-tracker.md`.
 
 ### Triage labels
 
