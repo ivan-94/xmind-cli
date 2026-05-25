@@ -28,6 +28,16 @@ fn top_level_help_matches_snapshot() {
 }
 
 #[test]
+fn empty_invocation_prints_top_level_help() {
+    assert_eq!(help_output(&[]), help_output(&["--help"]));
+}
+
+#[test]
+fn json_without_subcommand_prints_top_level_help() {
+    assert_eq!(help_output(&["--json"]), help_output(&["--help"]));
+}
+
+#[test]
 fn subcommand_help_matches_snapshots() {
     for subcommand in SUBCOMMANDS {
         insta::assert_snapshot!(

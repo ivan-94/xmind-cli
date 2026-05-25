@@ -70,7 +70,7 @@ pub fn run(cli: Cli) -> i32 {
     let Some(invocation) = Invocation::from_command(command, sheet_selection, quiet, format)
         .map(|invocation| invocation.with_no_color(no_color))
     else {
-        return 0;
+        return render_top_level_help();
     };
 
     if let Err(error) = validate_fields(&invocation.command, &fields) {
@@ -343,6 +343,14 @@ pub fn run(cli: Cli) -> i32 {
 fn render_completion(shell: Shell) -> i32 {
     let mut command = Cli::command();
     generate(shell, &mut command, "xmind", &mut io::stdout());
+    0
+}
+
+fn render_top_level_help() -> i32 {
+    let mut command = Cli::command();
+    command
+        .print_help()
+        .expect("top-level help renders to stdout");
     0
 }
 
