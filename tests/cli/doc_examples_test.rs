@@ -68,6 +68,32 @@ fn ordinary_bash_examples_remain_illustrative() {
     );
 }
 
+#[test]
+fn public_readmes_are_source_manifest_free_and_cross_linked() {
+    let english = std::fs::read_to_string("README.md").expect("English README is readable");
+    let chinese = std::fs::read_to_string("README.zh-CN.md").expect("Chinese README is readable");
+
+    for (path, content) in [("README.md", &english), ("README.zh-CN.md", &chinese)] {
+        assert!(
+            !content.contains("Source Manifest"),
+            "{path} is a public entrypoint and must not contain a Source Manifest section"
+        );
+        assert!(
+            content.contains("0.1.0") && content.contains("Unreleased"),
+            "{path} should describe the current early-release posture"
+        );
+    }
+
+    assert!(
+        english.contains("[中文](README.zh-CN.md)"),
+        "English README should link to the Chinese README near the top"
+    );
+    assert!(
+        chinese.contains("[English](README.md)"),
+        "Chinese README should link to the English README near the top"
+    );
+}
+
 fn bash_e2e_examples(paths: &[&str]) -> Vec<MarkdownFence> {
     let mut examples = Vec::new();
     for path in markdown_files(paths) {
@@ -469,20 +495,16 @@ fn root_readme_publishes_repository_baseline_without_overclaiming_release_channe
         "# xmind-cli",
         "unofficial",
         "AI",
-        "Source Manifest",
+        "[中文](README.zh-CN.md)",
+        "0.1.0",
+        "publish = false",
+        "Unreleased",
         "docs/reference/cli-overview.md",
-        "docs/technical/e2e-test-plan.md",
-        "PLAN.md",
+        "docs/technical/release-policy.md",
+        "CHANGELOG.md",
         "docs/installation.md",
-        "Cargo source install from GitHub",
         "cargo install --locked --git https://github.com/ivan-94/xmind-cli",
-        "GitHub Release binaries",
-        "Install script",
-        "bash scripts/install.sh --dry-run --version v0.1.0",
-        "Homebrew tap",
-        "Available today",
-        "Planned",
-        "git@github.com:ivan-94/xmind-cli.git",
+        "xmind completion <shell>",
         "xmind tree tests/fixtures/xmind/minimal.xmind --depth 2 --json",
         "MIT",
     ] {
@@ -499,7 +521,7 @@ fn root_readme_publishes_repository_baseline_without_overclaiming_release_channe
     );
 
     assert!(
-        readme.contains("xmind add-tree roadmap.xmind \\\n  --parent \"path:/Q2\" \\\n  --input docs/examples/simple-tree.yaml \\\n  --apply \\\n  --backup \\\n  --json"),
+        readme.contains("xmind add-tree /tmp/roadmap.xmind \\\n  --parent \"path:/Q2\" \\\n  --input docs/examples/simple-tree.yaml \\\n  --apply \\\n  --backup \\\n  --json"),
         "root README should present implemented `add-tree --apply --backup` safe edit workflow"
     );
     assert!(
