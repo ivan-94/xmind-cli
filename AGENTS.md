@@ -11,7 +11,7 @@
 
 ### Source Manifest
 
-Source Manifest is required only for PRDs, issues, HAT artifacts, and explicit handoff documents in this repository. Do not add Source Manifest sections to human-facing README files, overview pages, product docs, command references, or implementation notes unless one of those files is intentionally serving as a PRD, issue, HAT artifact, or explicit handoff document.
+Source Manifest is required only for PRDs, issues, HAT artifacts, and explicit handoff documents in this repository. Do not add Source Manifest sections to human-facing README files, overview pages, product docs, command references, or implementation notes unless one of those files is intentionally serving as a PRD, issue, HAT artifact, or handoff document.
 
 ### Issue tracker
 

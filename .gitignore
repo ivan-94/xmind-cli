@@ -4,3 +4,4 @@
 *.profraw
 *.profdata
 .DS_Store
+.scratch
