@@ -624,6 +624,11 @@
           <code>ivan-94/homebrew-tap</code>，并在 <code>ivan-94/xmind-cli</code>
           仓库设置 <code>HOMEBREW_TAP_TOKEN</code> secret，令 release workflow 能写入 tap。
         </li>
+        <li>
+          发布后修正：Homebrew strict audit 会从 GitHub Release URL 推断版本，
+          因此 formula 不应额外写入 <code>version "0.1.0"</code>；tap 已手动修正，
+          生成脚本也同步移除显式 version 行。
+        </li>
       </ul>
     </section>
   </body>

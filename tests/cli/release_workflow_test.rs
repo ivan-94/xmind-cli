@@ -472,7 +472,6 @@ fn homebrew_formula_update_script_writes_formula_to_tap_repo() {
 
     for expected in [
         "class XmindCli < Formula",
-        "version \"0.1.0\"",
         "url \"https://github.com/ivan-94/xmind-cli/releases/download/v0.1.0/xmind-cli-aarch64-apple-darwin.tar.gz\"",
         "sha256 \"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\"",
         "bin.install \"xmind\"",
@@ -483,4 +482,8 @@ fn homebrew_formula_update_script_writes_formula_to_tap_repo() {
             "formula should include `{expected}`"
         );
     }
+    assert!(
+        !formula.contains("version \"0.1.0\""),
+        "formula should let Homebrew infer the stable version from the release URL"
+    );
 }

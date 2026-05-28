@@ -27,8 +27,8 @@ if [ -z "$TAP_REMOTE_URL" ]; then
   TAP_REMOTE_URL="https://x-access-token:${TOKEN}@github.com/${TAP_REPO}.git"
 fi
 
-version="${TAG#v}"
 class_name="XmindCli"
+formula_version="${TAG#v}"
 
 sha_for() {
   artifact="$1"
@@ -74,7 +74,6 @@ cat > "Formula/${FORMULA_NAME}.rb" <<FORMULA
 class ${class_name} < Formula
   desc "Agent-native CLI for inspecting and editing XMind workbooks"
   homepage "https://github.com/${REPO}"
-  version "${version}"
   license "MIT"
 
   on_macos do
@@ -120,5 +119,5 @@ if git diff --cached --quiet; then
   exit 0
 fi
 
-git commit -m "${FORMULA_NAME} ${version}"
+git commit -m "${FORMULA_NAME} ${formula_version}"
 git push origin HEAD:main
