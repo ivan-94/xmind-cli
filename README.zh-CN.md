@@ -132,6 +132,31 @@ xmind validate /tmp/roadmap.xmind --json
 - [发布策略](docs/technical/release-policy.md)
 - [更新日志](CHANGELOG.md)
 
+## Agent Skills
+
+本仓库包含一个用于安全操作 XMind 工作簿的 `xmind-cli` agent skill。下面的示例遵循
+[`npx skills` 安装流程](https://github.com/vercel-labs/skills)。
+
+查看当前 checkout 提供的 skills：
+
+```bash
+npx skills add . --list
+```
+
+从当前 checkout 为 Codex 安装 `xmind-cli` skill：
+
+```bash
+npx skills add . --skill xmind-cli -a codex
+```
+
+从 GitHub 安装同一个 skill：
+
+```bash
+npx skills add ivan-94/xmind-cli --skill xmind-cli -a codex
+```
+
+如果要安装到其他 coding agent，可以把 `-a codex` 替换成对应 agent。
+
 ## 质量检查
 
 分享变更前运行本地质量门禁：

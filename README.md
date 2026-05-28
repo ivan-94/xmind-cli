@@ -140,6 +140,33 @@ See [mutation semantics](docs/reference/mutation-semantics.md),
 - [Release policy](docs/technical/release-policy.md)
 - [Changelog](CHANGELOG.md)
 
+## Agent Skills
+
+This repository includes an agent skill for using `xmind-cli` safely on XMind
+workbooks. The examples below follow the
+[`npx skills` install flow](https://github.com/vercel-labs/skills).
+
+List the skills available from this checkout:
+
+```bash
+npx skills add . --list
+```
+
+Install the `xmind-cli` skill from this checkout for Codex:
+
+```bash
+npx skills add . --skill xmind-cli -a codex
+```
+
+Install the same skill from GitHub:
+
+```bash
+npx skills add ivan-94/xmind-cli --skill xmind-cli -a codex
+```
+
+Replace `-a codex` with another supported agent when installing for a different
+coding agent.
+
 ## Quality Checks
 
 Run the local quality gate before sharing changes:

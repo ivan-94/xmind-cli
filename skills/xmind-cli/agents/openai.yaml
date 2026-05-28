@@ -1,0 +1,4 @@
+interface:
+  display_name: "xmind-cli"
+  short_description: "Use xmind-cli safely on XMind workbooks"
+  default_prompt: "Use $xmind-cli to inspect and safely edit this XMind workbook."
