@@ -131,8 +131,9 @@
         <li>
           GitHub Release workflow、install script、README 用户入口、E2E 覆盖矩阵
           和 branch protection 已按 PRD #1 slices 落地。
-          Homebrew tap path 已预留为 <code>ivan-94/homebrew-tap</code>，但用户已确认等程序稳定后再发布；
-          当前仍是 future install channel，不提供可执行 <code>brew install</code> 指令。
+          Homebrew tap path 已预留为 <code>ivan-94/homebrew-tap</code>；当前已新增
+          tagged release 后发布 formula 的工作流，用户入口为
+          <code>brew install ivan-94/tap/xmind-cli</code>。
         </li>
       </ul>
     </section>
@@ -594,6 +595,34 @@
         <li>
           对齐：<code>diff</code> help 按当前单 workbook diff surface 描述，不把它表述为
           restore backup diff。
+        </li>
+      </ul>
+    </section>
+
+    <section class="entry">
+      <h2>Homebrew Install Channel</h2>
+      <ul>
+        <li>
+          决策：不启用 cargo-dist 生成的 Homebrew publish job；当前 release workflow
+          已经手工维护 release notes、聚合 <code>SHA256SUMS</code>、smoke test 和安装脚本
+          契约，因此 Homebrew formula 也通过仓库内
+          <code>.github/scripts/update-homebrew-formula.sh</code> 生成并推送。
+        </li>
+        <li>
+          决策：用户安装命令为
+          <code>brew install ivan-94/tap/xmind-cli</code>；tap 仓库为
+          <code>ivan-94/homebrew-tap</code>，formula 文件为
+          <code>Formula/xmind-cli.rb</code>，安装的可执行文件仍是 <code>xmind</code>。
+        </li>
+        <li>
+          修复：本地 <code>dist plan</code> 证明 cargo-dist 实际 artifact 名称是
+          <code>xmind-cli-&lt;target&gt;.tar.gz</code> / Windows zip，不包含版本号；因此同步修正
+          <code>scripts/install.sh</code>、安装文档和测试，避免首次 release 后脚本找错文件。
+        </li>
+        <li>
+          运维要求：首次 tagged release 前必须创建
+          <code>ivan-94/homebrew-tap</code>，并在 <code>ivan-94/xmind-cli</code>
+          仓库设置 <code>HOMEBREW_TAP_TOKEN</code> secret，令 release workflow 能写入 tap。
         </li>
       </ul>
     </section>

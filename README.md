@@ -17,10 +17,10 @@ This project is not affiliated with, endorsed by, or sponsored by XMind.
 ## Status
 
 `xmind-cli` is an early-release project. The package version is `0.1.0`,
-`Cargo.toml` sets `publish = false`, and the current changelog is still under
-`Unreleased`. The CLI is usable from source and has integration coverage for the
-implemented command surface, but public release artifacts and package-manager
-distribution are still evolving.
+`Cargo.toml` sets `publish = false`, and the changelog tracks the current
+`v0.1.0` release. The CLI is usable from source and has integration coverage for the
+implemented command surface. Tagged releases publish GitHub Release binaries,
+the install script, and the Homebrew tap formula.
 
 Use it with real workbooks only after running a dry run, checking the JSON or
 human-readable diff, and keeping a backup of the original file.
@@ -57,8 +57,8 @@ During development, run from the checkout:
 cargo run -- tree tests/fixtures/xmind/minimal.xmind --depth 2
 ```
 
-Tagged GitHub Release archives and the install script are part of the release
-flow, but the project has not yet settled into a stable package-manager channel.
+Tagged GitHub Release archives, the install script, and the Homebrew tap are
+part of the release flow.
 See [docs/installation.md](docs/installation.md) for current install, release
 build, checksum, and shell completion details.
 
@@ -69,9 +69,11 @@ build, checksum, and shell completion details.
 | Local release build | Available today | `cargo build --workspace --release`, then run `target/release/xmind` |
 | GitHub Release binaries | Available after the first tagged release | Planned targets: macOS Apple Silicon, macOS Intel, Linux x86_64 GNU, Linux arm64 GNU, and Windows x86_64 MSVC. |
 | Install script | Available for tagged release artifacts | `bash scripts/install.sh --dry-run --version v0.1.0`, then rerun without `--dry-run`. |
-| Homebrew tap | Planned | Expected path is `ivan-94/homebrew-tap`. Formula publication waits for a verified GitHub Release artifact and checksum. |
+| Homebrew tap | Available for tagged releases | `brew install ivan-94/tap/xmind-cli` |
 
-The first binary release matrix does not imply support for: Linux musl/static builds, macOS universal binaries, 32-bit Windows, Windows GNU, container images, Homebrew, or crates.io packages.
+The Homebrew formula is published from the `ivan-94/homebrew-tap` repository.
+
+The first binary release matrix does not imply support for: Linux musl/static builds, macOS universal binaries, 32-bit Windows, Windows GNU, container images, or crates.io packages.
 
 ## Quick Start
 

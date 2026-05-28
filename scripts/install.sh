@@ -101,7 +101,7 @@ if [ "$VERSION" = "latest" ] && [ -z "$BASE_URL" ]; then
   [ -n "$VERSION" ] || fail "could not resolve the latest release tag for $REPO. Pass --version vX.Y.Z explicitly."
 fi
 
-artifact="xmind-cli-${VERSION}-${target}.${archive_ext}"
+artifact="xmind-cli-${target}.${archive_ext}"
 if [ -n "$BASE_URL" ]; then
   base="${BASE_URL%/}"
 else

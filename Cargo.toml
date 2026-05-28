@@ -5,6 +5,7 @@ edition = "2021"
 license = "MIT"
 description = "Agent-native CLI for inspecting and editing XMind workbooks"
 repository = "https://github.com/ivan-94/xmind-cli"
+homepage = "https://github.com/ivan-94/xmind-cli"
 publish = false
 
 [package.metadata.dist]
@@ -16,7 +17,8 @@ lto = "thin"
 
 [workspace.metadata.dist]
 # Source Manifest: GitHub issues #5 and #6, parent PRD #1, PLAN.md Phase 18, docs/technical/release-policy.md, docs/installation.md, CHANGELOG.md.
-# Keep release automation to GitHub Release archives/checksums plus platform smoke checks. Install script and Homebrew are separate slices.
+# Keep release automation to GitHub Release archives/checksums plus platform smoke checks.
+# Homebrew tap publication is handled by the checked-in release workflow and script.
 cargo-dist-version = "0.31.0"
 allow-dirty = ["ci"]
 ci = ["github"]

@@ -79,7 +79,7 @@ fn public_readmes_are_source_manifest_free_and_cross_linked() {
             "{path} is a public entrypoint and must not contain a Source Manifest section"
         );
         assert!(
-            content.contains("0.1.0") && content.contains("Unreleased"),
+            content.contains("0.1.0") && content.contains("v0.1.0"),
             "{path} should describe the current early-release posture"
         );
     }
@@ -498,11 +498,11 @@ fn root_readme_publishes_repository_baseline_without_overclaiming_release_channe
         "[中文](README.zh-CN.md)",
         "0.1.0",
         "publish = false",
-        "Unreleased",
         "docs/reference/cli-overview.md",
         "docs/technical/release-policy.md",
         "CHANGELOG.md",
         "docs/installation.md",
+        "v0.1.0",
         "cargo install --locked --git https://github.com/ivan-94/xmind-cli",
         "xmind completion <shell>",
         "xmind tree tests/fixtures/xmind/minimal.xmind --depth 2 --json",
@@ -514,10 +514,10 @@ fn root_readme_publishes_repository_baseline_without_overclaiming_release_channe
         );
     }
 
-    let homebrew_overclaim = "brew install ivan-94/tap/xmind-cli";
+    let homebrew_install = "brew install ivan-94/tap/xmind-cli";
     assert!(
-        !readme.contains(homebrew_overclaim),
-        "root README should not claim unreleased install channel `{homebrew_overclaim}` is available"
+        readme.contains(homebrew_install),
+        "root README should publish the Homebrew install command `{homebrew_install}`"
     );
 
     assert!(

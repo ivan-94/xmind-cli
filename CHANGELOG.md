@@ -4,6 +4,8 @@ All notable changes to this project are tracked here.
 
 ## Unreleased
 
+## v0.1.0 - 2026-05-28
+
 ### Added
 
 - CI workflow for formatting, clippy, tests, docs, security checks, and release build smoke coverage.
@@ -14,6 +16,7 @@ All notable changes to this project are tracked here.
 - Added installation documentation for source installs, release binary builds, shell completion setup, and local verification.
 - Added `scripts/install.sh` with dry-run preview, supported platform artifact selection, SHA256SUMS verification, and actionable failure messages.
 - Added release policy documentation for version tags, changelog ownership, GitHub Release notes, and SHA256 checksum verification.
+- Added Homebrew tap publication for tagged releases through `ivan-94/homebrew-tap`.
 - Restore command support for dry-run and apply from the newest matching `.xmind-backups` entry.
 
 ### Changed

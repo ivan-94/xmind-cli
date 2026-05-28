@@ -34,7 +34,7 @@ fn dry_run_previews_platform_artifact_without_writing_install_dir() {
     assert!(stdout.contains("DRY RUN"));
     assert!(stdout.contains("aarch64-apple-darwin"));
     assert!(stdout.contains("https://github.com/ivan-94/xmind-cli/releases/download/v0.1.0/"));
-    assert!(stdout.contains("xmind-cli-v0.1.0-aarch64-apple-darwin.tar.gz"));
+    assert!(stdout.contains("xmind-cli-aarch64-apple-darwin.tar.gz"));
     assert!(
         fs::read_dir(install_dir.path())
             .expect("install dir can be listed")
@@ -66,7 +66,7 @@ fn dry_run_supports_linux_arm64_release_artifact() {
 
     let stdout = String::from_utf8_lossy(&output.stdout);
     assert!(stdout.contains("aarch64-unknown-linux-gnu"));
-    assert!(stdout.contains("xmind-cli-v0.1.0-aarch64-unknown-linux-gnu.tar.gz"));
+    assert!(stdout.contains("xmind-cli-aarch64-unknown-linux-gnu.tar.gz"));
     assert!(
         fs::read_dir(install_dir.path())
             .expect("install dir can be listed")
@@ -191,14 +191,12 @@ struct LocalReleaseFixture {
     release_dir: tempfile::TempDir,
 }
 
-fn local_release_fixture(version: &str, target: &str, checksum_mode: &str) -> LocalReleaseFixture {
+fn local_release_fixture(_version: &str, target: &str, checksum_mode: &str) -> LocalReleaseFixture {
     let release_dir = tempfile::tempdir().expect("release fixture dir is created");
-    let archive_name = format!("xmind-cli-{version}-{target}.tar.gz");
+    let archive_name = format!("xmind-cli-{target}.tar.gz");
     let archive_path = release_dir.path().join(&archive_name);
     let payload_dir = tempfile::tempdir().expect("payload dir is created");
-    let bin_dir = payload_dir
-        .path()
-        .join(format!("xmind-cli-{version}-{target}"));
+    let bin_dir = payload_dir.path().join(format!("xmind-cli-{target}"));
     fs::create_dir_all(&bin_dir).expect("payload bin dir is created");
     let binary = bin_dir.join("xmind");
     fs::write(&binary, "#!/bin/sh\necho xmind fixture\n").expect("fixture binary is written");
