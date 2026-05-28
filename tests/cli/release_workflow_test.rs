@@ -20,6 +20,7 @@ fn cargo_dist_release_contract_is_checked_in() {
         r#"inherits = "release""#,
         "[workspace.metadata.dist]",
         r#"cargo-dist-version = "0.31.0""#,
+        r#"homepage = "https://github.com/ivan-94/xmind-cli""#,
         r#"allow-dirty = ["ci"]"#,
         r#"ci = ["github"]"#,
         r#"hosting = ["github"]"#,
@@ -87,6 +88,9 @@ fn cargo_dist_release_contract_is_checked_in() {
         "${{ github.ref_name }}",
         "target/release-notes.md",
         "GitHub Release",
+        "Publish Homebrew formula",
+        "HOMEBREW_TAP_TOKEN",
+        "bash .github/scripts/update-homebrew-formula.sh",
     ] {
         assert!(
             release_workflow.contains(expected),
@@ -118,8 +122,8 @@ fn cargo_dist_release_contract_is_checked_in() {
     );
 
     assert!(
-        !cargo_toml.contains(r#""homebrew""#) && !release_workflow.contains("publish-jobs"),
-        "cargo-dist config should not require Homebrew publication in issue #5"
+        !cargo_toml.contains(r#""homebrew""#) && !cargo_toml.contains("publish-jobs"),
+        "cargo-dist config should keep Homebrew publication in the checked-in release workflow script"
     );
 
     for expected in [
@@ -158,6 +162,7 @@ fn cargo_dist_release_contract_is_checked_in() {
         "bash scripts/install.sh --dry-run --version v0.1.0",
         "cargo install --locked --git https://github.com/ivan-94/xmind-cli",
         "Homebrew",
+        "brew install ivan-94/tap/xmind-cli",
         "install script",
     ] {
         assert!(
@@ -281,10 +286,12 @@ fn release_notes_extraction_fails_when_version_section_is_missing() {
 }
 
 #[test]
-fn homebrew_tap_path_is_documented_as_future_channel_without_formula_automation() {
+fn homebrew_tap_path_is_documented_as_active_channel_with_formula_automation() {
     let cargo_toml = fs::read_to_string("Cargo.toml").expect("Cargo.toml is readable");
     let release_workflow = fs::read_to_string(".github/workflows/release.yml")
         .expect("cargo-dist release workflow should be checked in");
+    let homebrew_script = fs::read_to_string(".github/scripts/update-homebrew-formula.sh")
+        .expect("Homebrew formula update script should be checked in");
     let release_policy =
         fs::read_to_string("docs/technical/release-policy.md").expect("release policy is readable");
     let installation =
@@ -293,7 +300,9 @@ fn homebrew_tap_path_is_documented_as_future_channel_without_formula_automation(
 
     for expected in [
         "ivan-94/homebrew-tap",
-        "future Homebrew",
+        "active Homebrew",
+        "brew install ivan-94/tap/xmind-cli",
+        "HOMEBREW_TAP_TOKEN",
         "Homebrew formula checksums must come from the same published GitHub Release artifact checksums",
         "brew audit --strict --online",
         "brew test",
@@ -307,41 +316,171 @@ fn homebrew_tap_path_is_documented_as_future_channel_without_formula_automation(
 
     for expected in [
         "Homebrew tap",
-        "Planned",
+        "Available for tagged releases",
         "ivan-94/homebrew-tap",
-        "Formula publication waits for a verified GitHub Release artifact",
+        "brew install ivan-94/tap/xmind-cli",
     ] {
         assert!(
             readme.contains(expected),
-            "README should describe Homebrew future channel accurately with `{expected}`"
+            "README should describe Homebrew channel accurately with `{expected}`"
         );
     }
 
     for expected in [
         "Homebrew",
-        "future install channel",
+        "brew install ivan-94/tap/xmind-cli",
         "ivan-94/homebrew-tap",
+        "HOMEBREW_TAP_TOKEN",
         "brew audit --strict --online",
         "brew test",
     ] {
         assert!(
             installation.contains(expected),
-            "installation doc should document Homebrew enablement condition `{expected}`"
+            "installation doc should document Homebrew channel condition `{expected}`"
         );
     }
 
-    for forbidden in [
-        r#""homebrew""#,
-        "publish-jobs",
-        "brew install ivan-94/tap/xmind-cli",
-        "brew install ivan-94/homebrew-tap/xmind",
+    for expected in [
+        "Formula/${FORMULA_NAME}.rb",
+        "class ${class_name} < Formula",
+        "bin.install \"xmind\"",
+        "assert_match version.to_s",
+        "git push origin HEAD:main",
+        "artifact_for()",
+        "aarch64-apple-darwin",
+        "x86_64-apple-darwin",
+        "aarch64-unknown-linux-gnu",
+        "x86_64-unknown-linux-gnu",
     ] {
         assert!(
-            !cargo_toml.contains(forbidden)
-                && !release_workflow.contains(forbidden)
-                && !readme.contains(forbidden)
-                && !installation.contains(forbidden),
-            "Homebrew should remain a future channel until formula automation is validated; found `{forbidden}`"
+            homebrew_script.contains(expected),
+            "Homebrew script should include `{expected}`"
+        );
+    }
+
+    assert!(
+        !cargo_toml.contains(r#""homebrew""#) && !cargo_toml.contains("publish-jobs"),
+        "Homebrew publishing should remain in the repository-maintained workflow, not cargo-dist generated publish jobs"
+    );
+    assert!(
+        release_workflow.contains("Publish Homebrew formula")
+            && release_workflow.contains("HOMEBREW_TAP_TOKEN"),
+        "release workflow should publish the tap formula after GitHub Release artifacts exist"
+    );
+}
+
+#[cfg(unix)]
+#[test]
+fn homebrew_formula_update_script_writes_formula_to_tap_repo() {
+    let release_dir = tempfile::tempdir().expect("release dir is created");
+    let mut checksums = String::new();
+    for (artifact, sha) in [
+        (
+            "xmind-cli-aarch64-apple-darwin.tar.gz",
+            "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        ),
+        (
+            "xmind-cli-x86_64-apple-darwin.tar.gz",
+            "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        ),
+        (
+            "xmind-cli-aarch64-unknown-linux-gnu.tar.gz",
+            "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        ),
+        (
+            "xmind-cli-x86_64-unknown-linux-gnu.tar.gz",
+            "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        ),
+    ] {
+        checksums.push_str(sha);
+        checksums.push_str("  ");
+        checksums.push_str(artifact);
+        checksums.push('\n');
+    }
+    fs::write(release_dir.path().join("SHA256SUMS"), checksums).expect("SHA256SUMS is written");
+
+    let seed = tempfile::tempdir().expect("seed tap dir is created");
+    assert!(Command::new("git")
+        .args(["init", "-b", "main"])
+        .current_dir(seed.path())
+        .status()
+        .expect("git init starts")
+        .success());
+    fs::write(seed.path().join("README.md"), "# homebrew-tap\n").expect("README is written");
+    assert!(Command::new("git")
+        .args(["add", "README.md"])
+        .current_dir(seed.path())
+        .status()
+        .expect("git add starts")
+        .success());
+    assert!(Command::new("git")
+        .args([
+            "-c",
+            "user.name=test",
+            "-c",
+            "user.email=test@example.com",
+            "commit",
+            "-m",
+            "init"
+        ])
+        .current_dir(seed.path())
+        .status()
+        .expect("git commit starts")
+        .success());
+
+    let bare = tempfile::tempdir().expect("bare tap dir is created");
+    assert!(Command::new("git")
+        .args(["clone", "--bare"])
+        .arg(seed.path())
+        .arg(bare.path())
+        .status()
+        .expect("git clone --bare starts")
+        .success());
+
+    let output = Command::new("bash")
+        .arg(".github/scripts/update-homebrew-formula.sh")
+        .env("DIST_DIR", release_dir.path())
+        .env("GITHUB_REF_NAME", "v0.1.0")
+        .env("GITHUB_REPOSITORY", "ivan-94/xmind-cli")
+        .env("HOMEBREW_TAP_TOKEN", "test-token")
+        .env(
+            "HOMEBREW_TAP_REMOTE_URL",
+            format!("file://{}", bare.path().display()),
+        )
+        .env("GITHUB_ACTOR", "test")
+        .env("GITHUB_ACTOR_ID", "1")
+        .output()
+        .expect("Homebrew formula update script starts");
+
+    assert!(
+        output.status.success(),
+        "formula update should succeed\nstdout:\n{}\nstderr:\n{}",
+        String::from_utf8_lossy(&output.stdout),
+        String::from_utf8_lossy(&output.stderr)
+    );
+
+    let checkout = tempfile::tempdir().expect("tap checkout is created");
+    assert!(Command::new("git")
+        .args(["clone"])
+        .arg(bare.path())
+        .arg(checkout.path())
+        .status()
+        .expect("git clone starts")
+        .success());
+    let formula =
+        fs::read_to_string(checkout.path().join("Formula/xmind-cli.rb")).expect("formula exists");
+
+    for expected in [
+        "class XmindCli < Formula",
+        "version \"0.1.0\"",
+        "url \"https://github.com/ivan-94/xmind-cli/releases/download/v0.1.0/xmind-cli-aarch64-apple-darwin.tar.gz\"",
+        "sha256 \"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\"",
+        "bin.install \"xmind\"",
+        "assert_match version.to_s",
+    ] {
+        assert!(
+            formula.contains(expected),
+            "formula should include `{expected}`"
         );
     }
 }

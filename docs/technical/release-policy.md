@@ -52,7 +52,7 @@
 - Full E2E matrix remains separate from release binary smoke checks.
 - cargo-dist emits per-artifact `.sha256` checksum files. The `github-release` job generates `SHA256SUMS` from the actual downloaded `target/distrib` release archives before publication, and the standalone install script consumes that aggregate checksum file.
 - issue #8 adds `scripts/install.sh` as a repository-maintained installer, separate from cargo-dist generated installers; `[workspace.metadata.dist].installers` remains empty.
-- `ivan-94/homebrew-tap` is the reserved future Homebrew tap repository. Formula automation is deferred until a published release artifact, matching checksum, and formula audit/test path are available.
+- `ivan-94/homebrew-tap` is the Homebrew tap repository. The checked-in release workflow publishes `Formula/xmind-cli.rb` after GitHub Release artifacts and `SHA256SUMS` exist.
 
 ### Verification Evidence
 
@@ -66,10 +66,10 @@
 
 ### Open Questions / Risks
 
-- The install script expects release archive names to follow `xmind-cli-vX.Y.Z-<target>.tar.gz` for macOS/Linux and `xmind-cli-vX.Y.Z-x86_64-pc-windows-msvc.zip` for Windows; if cargo-dist emits different names, release automation or the script must be reconciled before publishing.
+- The install script and Homebrew formula expect cargo-dist release archive names to follow `xmind-cli-<target>.tar.gz` for macOS/Linux and `xmind-cli-x86_64-pc-windows-msvc.zip` for Windows.
 - cargo-dist local verification requires installing `cargo-dist` 0.31.0 locally when it is not already present.
-- Homebrew formula checksum updates depend on published release artifact names.
-- Homebrew remains a future Homebrew channel until the tap formula can be tested against a real GitHub Release artifact.
+- Homebrew formula checksum updates depend on published release artifact names and the `HOMEBREW_TAP_TOKEN` secret.
+- Homebrew tap publication still depends on the separate `ivan-94/homebrew-tap` repository existing before the first tagged release.
 
 ## Versioning
 
@@ -111,7 +111,7 @@ For each GitHub Release:
 6. Add a short install section that links to `docs/installation.md`.
 7. Add checksum verification commands using `SHA256SUMS`.
 
-Release notes must not claim crates.io, Homebrew, install script, or platform support before those channels are implemented and validated. The cargo-dist GitHub Release body is generated from the matching `CHANGELOG.md` version section for the pushed tag; release publication fails if that section is missing.
+Release notes must not claim crates.io or platform support before those channels are implemented and validated. The cargo-dist GitHub Release body is generated from the matching `CHANGELOG.md` version section for the pushed tag; release publication fails if that section is missing.
 
 ## Checksums
 
@@ -152,7 +152,7 @@ The issue #5 configuration starts the GitHub Release workflow. Issue #6 expands 
   `GITHUB_PATH`; the `axodotdev/cargo-dist` repository tag is not used as a
   GitHub Action.
 - The `github-release` job additionally generates aggregate `SHA256SUMS` from `target/distrib` archives before publishing `target/distrib/*`.
-- `installers = []` avoids cargo-dist generated installers and Homebrew publication; the standalone `scripts/install.sh` remains repository-maintained.
+- `installers = []` avoids cargo-dist generated installers; the standalone `scripts/install.sh` and `.github/scripts/update-homebrew-formula.sh` remain repository-maintained.
 - `targets` contains `aarch64-apple-darwin`, `aarch64-unknown-linux-gnu`, `x86_64-apple-darwin`, `x86_64-unknown-linux-gnu`, and `x86_64-pc-windows-msvc`.
 
 ## Supported Release Platforms
@@ -171,7 +171,7 @@ The smoke suite proves the produced binary starts, reports its version, reads a 
 
 ## Unsupported Platforms
 
-Do not imply downloadable release support for platforms outside the table above. In particular, the first release does not promise Linux musl/static builds, macOS universal binaries, 32-bit Windows, Windows GNU, package managers beyond the repository install script, Homebrew, crates.io, or container images.
+Do not imply downloadable release support for platforms outside the table above. In particular, the first release does not promise Linux musl/static builds, macOS universal binaries, 32-bit Windows, Windows GNU, crates.io, or container images.
 
 Users on unsupported platforms may build from source with Rust when their target is compatible with the codebase, but those builds are not release artifacts until a later platform slice adds them to the supported matrix and smoke checks.
 
@@ -202,20 +202,31 @@ xmind validate tests/fixtures/xmind/minimal.xmind --json
 - fail on checksum mismatch before installing anything;
 - fail when an archive does not contain the expected `xmind` or `xmind.exe` binary.
 
-The script is not a cargo-dist generated installer and does not change the Homebrew or crates.io non-goals.
+The script is not a cargo-dist generated installer and does not change the crates.io non-goal.
 
-## Future Homebrew Tap
+## Homebrew Tap
 
-The planned Homebrew tap repository is `ivan-94/homebrew-tap`. The repository
+The Homebrew tap repository is `ivan-94/homebrew-tap`. The repository
 name follows Homebrew tap convention while keeping ownership under the same
 GitHub account as `ivan-94/xmind-cli`.
 
-Homebrew is not an active install channel for the first release. On 2026-05-23
-the user explicitly chose to defer creating the tap/formula until the program is
-stable. Do not add `"homebrew"` installers, tap publish jobs, or README install
-commands until a formula can be verified against a real GitHub Release artifact.
+Homebrew is an active Homebrew channel for tagged releases. Users install the
+formula with:
 
-Enable the tap only when all of these conditions are true:
+```bash
+brew install ivan-94/tap/xmind-cli
+```
+
+The repository-maintained release workflow publishes the formula after the
+GitHub Release job completes. It does not use cargo-dist generated Homebrew
+publish jobs because this repository already has custom release-note extraction,
+aggregate `SHA256SUMS`, release smoke checks, and install-script policy.
+
+Before the first tagged release, create `ivan-94/homebrew-tap` and add a
+`HOMEBREW_TAP_TOKEN` repository secret to `ivan-94/xmind-cli`. The token must
+have write access to the tap repository.
+
+The Homebrew formula must satisfy all of these conditions:
 
 1. A versioned GitHub Release artifact exists for the macOS formula URL.
 2. The formula `sha256` is copied from the same published GitHub Release
@@ -228,16 +239,14 @@ Enable the tap only when all of these conditions are true:
 
 ```bash
 brew audit --strict --online
-brew test
+brew test ivan-94/tap/xmind-cli
 ```
 
-The formula update path should set the version, URL, and checksum from the
-published release metadata in one change. If those inputs are unavailable, or if
-the program is not yet stable enough for a tagged release, leave Homebrew
-documented as planned rather than publishing a placeholder formula.
+The formula update path sets the version, URL, and checksum from the published
+release metadata in one change. If those inputs are unavailable, the Homebrew
+publish job must fail instead of publishing a placeholder formula.
 
 ## First Release Non-Goals
 
 - Do not publish to crates.io for the first release.
-- Do not promise Homebrew availability before the tap formula is merged.
 - Do not add release artifact support beyond the issue #6 platform matrix without matching smoke checks and documentation.

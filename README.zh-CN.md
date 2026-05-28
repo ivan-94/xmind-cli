@@ -14,9 +14,9 @@ XMind 工作簿。仓库名是 `xmind-cli`，安装后的可执行命令是 `xmi
 ## 当前状态
 
 `xmind-cli` 仍处于早期发布阶段。当前包版本是 `0.1.0`，`Cargo.toml` 中
-`publish = false`，`CHANGELOG.md` 仍在 `Unreleased` 段落下记录变更。当前 CLI
-可以从源码安装或构建，并且已为已实现的命令面提供集成测试，但公开 release
-产物和包管理器分发仍在演进中。
+`publish = false`，`CHANGELOG.md` 已记录当前 `v0.1.0` release。当前 CLI 可以从源码
+安装或构建，并且已为已实现的命令面提供集成测试。带 tag 的 release 会发布 GitHub
+Release binaries、安装脚本和 Homebrew tap formula。
 
 对真实工作簿使用写入命令前，请先运行 dry run，检查 JSON 或人类可读 diff，并
 保留原始文件备份。
@@ -52,8 +52,8 @@ target/release/xmind --version
 cargo run -- tree tests/fixtures/xmind/minimal.xmind --depth 2
 ```
 
-带 tag 的 GitHub Release 归档和安装脚本属于发布流程的一部分，但项目还没有稳定的
-包管理器分发渠道。当前安装、release build、checksum 和 shell 补全说明见
+带 tag 的 GitHub Release 归档、安装脚本和 Homebrew tap 都属于发布流程的一部分。
+当前安装、release build、checksum 和 shell 补全说明见
 [docs/installation.md](docs/installation.md)。
 
 | 渠道 | 状态 | 说明 |
@@ -63,9 +63,9 @@ cargo run -- tree tests/fixtures/xmind/minimal.xmind --depth 2
 | 本地 release build | 当前可用 | `cargo build --workspace --release`，然后运行 `target/release/xmind` |
 | GitHub Release binaries | 首个 tagged release 后可用 | 计划目标：macOS Apple Silicon、macOS Intel、Linux x86_64 GNU、Linux arm64 GNU、Windows x86_64 MSVC。 |
 | Install script | 面向 tagged release artifacts | 先运行 `bash scripts/install.sh --dry-run --version v0.1.0`，确认后去掉 `--dry-run`。 |
-| Homebrew tap | 计划中 | 预期路径是 `ivan-94/homebrew-tap`。Formula publication waits for a verified GitHub Release artifact and checksum. |
+| Homebrew tap | tagged release 后可用 | `brew install ivan-94/tap/xmind-cli` |
 
-第一版二进制 release 矩阵不代表支持：Linux musl/static builds、macOS universal binaries、32-bit Windows、Windows GNU、container images、Homebrew 或 crates.io packages。
+第一版二进制 release 矩阵不代表支持：Linux musl/static builds、macOS universal binaries、32-bit Windows、Windows GNU、container images 或 crates.io packages。
 
 ## 快速开始
 
