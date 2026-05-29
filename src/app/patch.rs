@@ -10,6 +10,7 @@ use crate::domain::selector::Selector;
 use crate::domain::sheet::{Sheet, SheetId};
 use crate::domain::topic::{AssetId, Topic, TopicId, TopicImageRef};
 
+use super::topic_ids::TopicIdAllocator;
 use super::{
     collect_added_paths, collect_copied_paths, collect_deleted_paths, collect_descendant_paths,
     create_mutation_backup, find_topic_by_path, insert_position_from_spec, parse_insert_position,
@@ -100,6 +101,7 @@ pub(super) fn render_patch(invocation: Invocation, json: bool, ops_path: &Path) 
     };
     let selected_sheet_id = sheet.id.0.clone();
     let mut working_sheet = clone_sheet_for_patch(sheet);
+    let mut topic_ids = TopicIdAllocator::from_root(&working_sheet.root);
 
     let mut operations = Vec::new();
     let mut diff = Vec::new();
@@ -141,7 +143,7 @@ pub(super) fn render_patch(invocation: Invocation, json: bool, ops_path: &Path) 
             match plan_patch_add(invocation.clone(), json, &working_sheet, index, op_name, op) {
                 Ok(path) => {
                     diff.push(PatchDiffEventDto::path_event("added", path));
-                    apply_patch_add_to_working_root(&mut working_sheet.root, op);
+                    apply_patch_add_to_working_root(&mut working_sheet.root, op, &mut topic_ids);
                     operations.push(PatchOperationDto {
                         index,
                         op: op_name.to_owned(),
@@ -187,7 +189,11 @@ pub(super) fn render_patch(invocation: Invocation, json: bool, ops_path: &Path) 
                             .into_iter()
                             .map(|path| PatchDiffEventDto::path_event("added", path)),
                     );
-                    apply_patch_replace_tree_to_working_root(&mut working_sheet.root, op);
+                    apply_patch_replace_tree_to_working_root(
+                        &mut working_sheet.root,
+                        op,
+                        &mut topic_ids,
+                    );
                     operations.push(PatchOperationDto {
                         index,
                         op: op_name.to_owned(),
@@ -223,7 +229,11 @@ pub(super) fn render_patch(invocation: Invocation, json: bool, ops_path: &Path) 
                             .into_iter()
                             .map(|path| PatchDiffEventDto::path_event("deleted", path)),
                     );
-                    apply_patch_merge_tree_to_working_root(&mut working_sheet.root, op);
+                    apply_patch_merge_tree_to_working_root(
+                        &mut working_sheet.root,
+                        op,
+                        &mut topic_ids,
+                    );
                     operations.push(PatchOperationDto {
                         index,
                         op: op_name.to_owned(),
@@ -279,7 +289,7 @@ pub(super) fn render_patch(invocation: Invocation, json: bool, ops_path: &Path) 
                             .into_iter()
                             .map(|path| PatchDiffEventDto::path_event("added", path)),
                     );
-                    apply_patch_copy_to_working_root(&mut working_sheet.root, op);
+                    apply_patch_copy_to_working_root(&mut working_sheet.root, op, &mut topic_ids);
                     operations.push(PatchOperationDto {
                         index,
                         op: op_name.to_owned(),
@@ -304,7 +314,11 @@ pub(super) fn render_patch(invocation: Invocation, json: bool, ops_path: &Path) 
                             .into_iter()
                             .map(|path| PatchDiffEventDto::path_event("added", path)),
                     );
-                    apply_patch_ensure_path_to_working_root(&mut working_sheet.root, op);
+                    apply_patch_ensure_path_to_working_root(
+                        &mut working_sheet.root,
+                        op,
+                        &mut topic_ids,
+                    );
                     operations.push(PatchOperationDto {
                         index,
                         op: op_name.to_owned(),
@@ -438,7 +452,7 @@ pub(super) fn render_patch(invocation: Invocation, json: bool, ops_path: &Path) 
                 .into_iter()
                 .map(|path| PatchDiffEventDto::path_event("added", path)),
         );
-        apply_patch_add_tree_to_working_root(&mut working_sheet.root, op);
+        apply_patch_add_tree_to_working_root(&mut working_sheet.root, op, &mut topic_ids);
         operations.push(PatchOperationDto {
             index,
             op: "add_tree".to_owned(),
@@ -651,7 +665,11 @@ fn clone_topic_for_patch(topic: &Topic) -> Topic {
     }
 }
 
-fn apply_patch_add_to_working_root(root: &mut Topic, op: &PatchOpDto) {
+fn apply_patch_add_to_working_root(
+    root: &mut Topic,
+    op: &PatchOpDto,
+    topic_ids: &mut TopicIdAllocator,
+) {
     let (Some(parent), Some(title)) = (op.parent.as_deref(), op.title.as_deref()) else {
         return;
     };
@@ -659,11 +677,17 @@ fn apply_patch_add_to_working_root(root: &mut Topic, op: &PatchOpDto) {
         return;
     };
     if let Some(parent_topic) = find_topic_by_path_mut(root, &parent_path) {
-        parent_topic.children.push(new_working_topic(title));
+        parent_topic
+            .children
+            .push(new_working_topic(title, topic_ids));
     }
 }
 
-fn apply_patch_add_tree_to_working_root(root: &mut Topic, op: &PatchOpDto) {
+fn apply_patch_add_tree_to_working_root(
+    root: &mut Topic,
+    op: &PatchOpDto,
+    topic_ids: &mut TopicIdAllocator,
+) {
     let (Some(parent), Some(tree)) = (op.parent.as_deref(), op.tree.as_ref()) else {
         return;
     };
@@ -671,11 +695,17 @@ fn apply_patch_add_tree_to_working_root(root: &mut Topic, op: &PatchOpDto) {
         return;
     };
     if let Some(parent_topic) = find_topic_by_path_mut(root, &parent_path) {
-        parent_topic.children.push(topic_from_tree_input(tree));
+        parent_topic
+            .children
+            .push(topic_from_tree_input(tree, topic_ids));
     }
 }
 
-fn apply_patch_ensure_path_to_working_root(root: &mut Topic, op: &PatchOpDto) {
+fn apply_patch_ensure_path_to_working_root(
+    root: &mut Topic,
+    op: &PatchOpDto,
+    topic_ids: &mut TopicIdAllocator,
+) {
     let Some(path) = op.path.as_deref() else {
         return;
     };
@@ -689,7 +719,7 @@ fn apply_patch_ensure_path_to_working_root(root: &mut Topic, op: &PatchOpDto) {
             .iter()
             .position(|child| child.title == *segment)
             .unwrap_or_else(|| {
-                current.children.push(new_working_topic(segment));
+                current.children.push(new_working_topic(segment, topic_ids));
                 current.children.len() - 1
             });
         current = &mut current.children[child_index];
@@ -700,7 +730,7 @@ fn apply_patch_set_to_working_root(root: &mut Topic, op: &PatchOpDto) {
     let (Some(node), Some(fields)) = (op.node.as_deref(), op.fields.as_ref()) else {
         return;
     };
-    let Ok(Selector::Path(path)) = Selector::parse(node) else {
+    let Some(path) = resolve_working_selector_path(root, node) else {
         return;
     };
     let Some(topic) = find_topic_by_path_mut(root, &path) else {
@@ -749,29 +779,37 @@ fn apply_patch_set_to_working_root(root: &mut Topic, op: &PatchOpDto) {
     }
 }
 
-fn apply_patch_replace_tree_to_working_root(root: &mut Topic, op: &PatchOpDto) {
+fn apply_patch_replace_tree_to_working_root(
+    root: &mut Topic,
+    op: &PatchOpDto,
+    topic_ids: &mut TopicIdAllocator,
+) {
     let (Some(node), Some(tree)) = (op.node.as_deref(), op.tree.as_ref()) else {
         return;
     };
-    let Ok(Selector::Path(path)) = Selector::parse(node) else {
+    let Some(path) = resolve_working_selector_path(root, node) else {
         return;
     };
     if let Some(topic) = find_topic_by_path_mut(root, &path) {
-        *topic = topic_from_tree_input(tree);
+        *topic = topic_from_tree_input(tree, topic_ids);
     }
 }
 
-fn apply_patch_merge_tree_to_working_root(root: &mut Topic, op: &PatchOpDto) {
+fn apply_patch_merge_tree_to_working_root(
+    root: &mut Topic,
+    op: &PatchOpDto,
+    topic_ids: &mut TopicIdAllocator,
+) {
     let (Some(target), Some(tree)) = (op.target.as_deref(), op.tree.as_ref()) else {
         return;
     };
-    let Ok(Selector::Path(path)) = Selector::parse(target) else {
+    let Some(path) = resolve_working_selector_path(root, target) else {
         return;
     };
     let match_by = op.match_by.as_deref().unwrap_or("title_path");
     let prune = op.prune.unwrap_or(false);
     if let Some(topic) = find_topic_by_path_mut(root, &path) {
-        apply_merge_tree_to_topic(topic, &path, tree, match_by, prune);
+        apply_merge_tree_to_topic(topic, &path, tree, match_by, prune, topic_ids);
     }
 }
 
@@ -779,7 +817,7 @@ fn apply_patch_delete_to_working_root(root: &mut Topic, op: &PatchOpDto) {
     let Some(node) = op.node.as_deref() else {
         return;
     };
-    let Ok(Selector::Path(path)) = Selector::parse(node) else {
+    let Some(path) = resolve_working_selector_path(root, node) else {
         return;
     };
     if op.children_only.unwrap_or(false) {
@@ -797,9 +835,10 @@ fn apply_patch_move_to_working_root(root: &mut Topic, op: &PatchOpDto) {
     let (Some(node), Some(destination)) = (op.node.as_deref(), op.to.as_deref()) else {
         return;
     };
-    let (Ok(Selector::Path(source_path)), Ok(Selector::Path(destination_path))) =
-        (Selector::parse(node), Selector::parse(destination))
-    else {
+    let Some(source_path) = resolve_working_selector_path(root, node) else {
+        return;
+    };
+    let Some(destination_path) = resolve_working_selector_path(root, destination) else {
         return;
     };
     let Some(topic) = remove_topic_by_path(root, &source_path) else {
@@ -810,16 +849,21 @@ fn apply_patch_move_to_working_root(root: &mut Topic, op: &PatchOpDto) {
     }
 }
 
-fn apply_patch_copy_to_working_root(root: &mut Topic, op: &PatchOpDto) {
+fn apply_patch_copy_to_working_root(
+    root: &mut Topic,
+    op: &PatchOpDto,
+    topic_ids: &mut TopicIdAllocator,
+) {
     let (Some(node), Some(destination)) = (op.node.as_deref(), op.to.as_deref()) else {
         return;
     };
-    let (Ok(Selector::Path(source_path)), Ok(Selector::Path(destination_path))) =
-        (Selector::parse(node), Selector::parse(destination))
-    else {
+    let Some(source_path) = resolve_working_selector_path(root, node) else {
         return;
     };
-    let Some(source) = find_topic_by_path_mut(root, &source_path).map(|topic| {
+    let Some(destination_path) = resolve_working_selector_path(root, destination) else {
+        return;
+    };
+    let Some(mut source) = find_topic_by_path_mut(root, &source_path).map(|topic| {
         let mut topic = clone_topic_for_patch(topic);
         if let Some(title) = &op.title {
             topic.title = title.clone();
@@ -828,6 +872,7 @@ fn apply_patch_copy_to_working_root(root: &mut Topic, op: &PatchOpDto) {
     }) else {
         return;
     };
+    rewrite_copied_topic_ids(&mut source, topic_ids);
     if let Some(destination) = find_topic_by_path_mut(root, &destination_path) {
         destination.children.push(source);
     }
@@ -837,7 +882,7 @@ fn apply_patch_sort_children_to_working_root(root: &mut Topic, op: &PatchOpDto) 
     let Some(node) = op.node.as_deref() else {
         return;
     };
-    let Ok(Selector::Path(path)) = Selector::parse(node) else {
+    let Some(path) = resolve_working_selector_path(root, node) else {
         return;
     };
     let order = op.order.as_deref().unwrap_or("asc");
@@ -855,12 +900,19 @@ fn apply_patch_set_tree_metadata_to_working_root(root: &mut Topic, op: &PatchOpD
     let (Some(node), Some(add_labels)) = (op.node.as_deref(), op.add_labels.as_ref()) else {
         return;
     };
-    let Ok(Selector::Path(path)) = Selector::parse(node) else {
+    let Some(path) = resolve_working_selector_path(root, node) else {
         return;
     };
     let recursive = op.recursive.unwrap_or(false);
     if let Some(topic) = find_topic_by_path_mut(root, &path) {
         add_labels_to_topic(topic, add_labels, recursive);
+    }
+}
+
+fn rewrite_copied_topic_ids(topic: &mut Topic, topic_ids: &mut TopicIdAllocator) {
+    topic.id = TopicId(topic_ids.allocate(&topic.title));
+    for child in &mut topic.children {
+        rewrite_copied_topic_ids(child, topic_ids);
     }
 }
 
@@ -870,6 +922,7 @@ fn apply_merge_tree_to_topic(
     tree: &TopicTreeInputDto,
     match_by: &str,
     prune: bool,
+    topic_ids: &mut TopicIdAllocator,
 ) {
     topic.title = tree.title.clone();
     if let Some(note) = &tree.note {
@@ -903,9 +956,12 @@ fn apply_merge_tree_to_topic(
                 child_tree,
                 match_by,
                 prune,
+                topic_ids,
             );
         } else {
-            topic.children.push(topic_from_tree_input(child_tree));
+            topic
+                .children
+                .push(topic_from_tree_input(child_tree, topic_ids));
         }
     }
 
@@ -1002,6 +1058,14 @@ fn find_topic_by_path_mut<'a>(topic: &'a mut Topic, path: &TopicPath) -> Option<
     find_topic_by_segments_mut(child, rest)
 }
 
+fn resolve_working_selector_path(root: &Topic, selector_value: &str) -> Option<TopicPath> {
+    let selector = Selector::parse(selector_value).ok()?;
+    match resolve_topic(root, &selector) {
+        ResolveOne::Found(resolved) => Some(resolved.path),
+        ResolveOne::NotFound | ResolveOne::Ambiguous(_) => None,
+    }
+}
+
 fn find_topic_by_segments_mut<'a>(
     topic: &'a mut Topic,
     segments: &[String],
@@ -1016,13 +1080,9 @@ fn find_topic_by_segments_mut<'a>(
     find_topic_by_segments_mut(child, rest)
 }
 
-fn topic_from_tree_input(tree: &TopicTreeInputDto) -> Topic {
+fn topic_from_tree_input(tree: &TopicTreeInputDto, topic_ids: &mut TopicIdAllocator) -> Topic {
     Topic {
-        id: TopicId(
-            tree.id
-                .clone()
-                .unwrap_or_else(|| working_topic_id(&tree.title)),
-        ),
+        id: TopicId(topic_ids.allocate_for_tree(tree)),
         title: tree.title.clone(),
         note: tree.note.clone(),
         labels: tree.labels.clone(),
@@ -1037,13 +1097,17 @@ fn topic_from_tree_input(tree: &TopicTreeInputDto) -> Topic {
                 )
             })
         }),
-        children: tree.children.iter().map(topic_from_tree_input).collect(),
+        children: tree
+            .children
+            .iter()
+            .map(|child| topic_from_tree_input(child, topic_ids))
+            .collect(),
     }
 }
 
-fn new_working_topic(title: &str) -> Topic {
+fn new_working_topic(title: &str, topic_ids: &mut TopicIdAllocator) -> Topic {
     Topic {
-        id: TopicId(working_topic_id(title)),
+        id: TopicId(topic_ids.allocate(title)),
         title: title.to_owned(),
         note: None,
         labels: Vec::new(),
@@ -1051,20 +1115,6 @@ fn new_working_topic(title: &str) -> Topic {
         hyperlink: None,
         image: None,
         children: Vec::new(),
-    }
-}
-
-fn working_topic_id(title: &str) -> String {
-    let slug = title
-        .chars()
-        .filter(|character| character.is_ascii_alphanumeric())
-        .flat_map(char::to_lowercase)
-        .collect::<String>();
-
-    if slug.is_empty() {
-        "topic-patch".to_owned()
-    } else {
-        format!("topic-{slug}")
     }
 }
 

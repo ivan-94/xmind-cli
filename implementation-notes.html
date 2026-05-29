@@ -139,6 +139,41 @@
     </section>
 
     <section class="entry">
+      <h2>Issue #34: Patch Apply and Safe Writes</h2>
+      <ul>
+        <li>
+          Source Manifest: GitHub issue <code>#34</code>, the Obsidian real-workbook
+          editing failure, the minimal repro snippets recorded in issue <code>#34</code>,
+          <code>src/app/patch.rs</code>, <code>src/app/mod.rs</code>,
+          <code>src/app/validate.rs</code>, <code>src/infra/xmind/encode.rs</code>,
+          <code>docs/reference/mutation-semantics.md</code>,
+          <code>docs/reference/commands/patch.md</code>, and
+          <code>docs/reference/patch-operations.md</code>.
+        </li>
+        <li>
+          修复：<code>patch --apply</code> 的 selector 解析不再与 dry-run 漂移；
+          已被 planner 接受的 <code>id:</code> / <code>path:</code>
+          selector 必须在 apply 阶段作用到同一 working copy 目标，不能静默
+          no-op 后仍返回 <code>applied: true</code>。
+        </li>
+        <li>
+          决策：topic id 生成抽成共享 allocator，先收集 workbook
+          已有 id，再为新增 topic 分配唯一 id。非 ASCII 标题会使用稳定 fallback
+          并追加后缀，避免中文标题批量生成时重复为 <code>topic-patch</code>。
+        </li>
+        <li>
+          修复：写入层候选文件校验改为复用 <code>xmind validate</code>
+          的结构校验。候选 workbook 即使可 decode，只要存在 duplicate topic id
+          等结构错误，也会返回 <code>validation_failed</code> 并保留原文件。
+        </li>
+        <li>
+          权衡：本轮不修改外部 <code>xmind-cli</code> skill，也不新增用户命令；
+          只让既有 patch/write 契约变为真实可靠。
+        </li>
+      </ul>
+    </section>
+
+    <section class="entry">
       <h2>Cross-review Release Install Fix</h2>
       <ul>
         <li>

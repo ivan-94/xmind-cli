@@ -72,6 +72,11 @@ Accepted aliases: `delete_tree`, `move_tree`, and `clone_tree`. Agents should ge
 `patch --apply` plans every operation against an in-memory working copy before
 any file write. If a later operation fails, the original workbook is left
 untouched and the JSON error includes the failing `operation_index` when known.
+Selectors accepted during dry-run must resolve the same way during apply; an
+operation cannot report `applied: true` while silently ignoring a selector that
+the planner accepted. After planning succeeds, the changed workbook is written
+through the transactional writer and must pass structural candidate validation
+before replacing the original file.
 
 ## Errors
 

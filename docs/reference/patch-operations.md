@@ -26,6 +26,14 @@
 | `preserve_ids` | no | Preserve copied ids; diagnostic workflows only |
 | `prune` | no | Remove unmatched existing topics during `merge_tree` |
 
+Selectors accepted by a patch operation during dry-run are part of that
+operation's apply contract. `node` and `target` selectors support the same
+selector forms as the corresponding single-topic commands, including `id:` and
+`path:` where documented by the operation. `parent` and `to` fields are parent
+selectors for insertion or destination behavior; if an operation accepts a
+selector during dry-run, apply must either mutate the resolved topic or fail
+before writing rather than no-op silently.
+
 ## Operation Names
 
 Patch operation names use snake_case. Canonical operation names mirror CLI command intent:

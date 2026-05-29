@@ -3,3 +3,4 @@ pub mod decode;
 pub mod encode;
 pub mod package;
 pub mod preserve;
+pub mod validate;

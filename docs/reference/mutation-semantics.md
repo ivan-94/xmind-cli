@@ -54,7 +54,7 @@ Applied workbook writes must use a write-then-validate-then-atomic-replace flow:
 
 1. Load the original workbook.
 2. Build the changed workbook in memory or a temporary file.
-3. Validate the changed workbook when the command writes through the transactional writer.
+3. Validate the changed workbook when the command writes through the transactional writer. This validation includes structural checks such as duplicate topic ids, missing required topic fields, malformed child collections, and broken asset references; a package that merely decodes is not sufficient.
 4. If validation fails, leave the original workbook path untouched.
 5. If validation passes, replace the original workbook atomically where the platform supports atomic rename.
 

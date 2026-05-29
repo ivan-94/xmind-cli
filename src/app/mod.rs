@@ -1,10 +1,10 @@
 mod patch;
 mod set;
 mod set_image;
+mod topic_ids;
 mod tree_input;
 mod validate;
 
-use std::collections::BTreeSet;
 use std::fs;
 use std::io;
 use std::path::{Path, PathBuf};
@@ -38,6 +38,7 @@ use self::set::{
     render_set_remove_label, render_set_remove_marker, render_set_title,
 };
 use self::set_image::render_set_image;
+use self::topic_ids::TopicIdAllocator;
 use self::tree_input::{
     read_tree_input, validate_topic_tree_input, TopicTreeImageInputDto, TopicTreeInputDto,
 };
@@ -1586,11 +1587,12 @@ fn render_import_output(
         })
         .collect();
     let root_title = tree.title.clone();
+    let mut topic_ids = TopicIdAllocator::new();
     let workbook = Workbook {
         sheets: vec![Sheet {
             id: SheetId("sheet-1".to_owned()),
             title: root_title,
-            root: topic_tree_input_to_topic(tree),
+            root: topic_tree_input_to_topic(tree, &mut topic_ids),
         }],
         resources: ResourceIndex::default(),
         preservation: PreservationBag::default(),
@@ -1778,7 +1780,8 @@ fn render_import_into(
             Ok(backup_path) => backup_path,
             Err(error) => return render_backup_error(invocation, json, error),
         };
-        let topic = topic_tree_input_to_topic(tree);
+        let mut topic_ids = TopicIdAllocator::from_workbook(&workbook);
+        let topic = topic_tree_input_to_topic(tree, &mut topic_ids);
         if let Err(error) = crate::infra::xmind::encode::append_topic_tree(
             &invocation.workbook,
             &parent.topic.id.0,
@@ -1843,24 +1846,8 @@ fn collect_created_workbook_paths(tree: &TopicTreeInputDto, path: &TopicPath) ->
     paths
 }
 
-fn topic_tree_input_to_topic(tree: TopicTreeInputDto) -> Topic {
-    let mut used_ids = BTreeSet::new();
-    collect_explicit_topic_tree_ids(&tree, &mut used_ids);
-    topic_tree_input_to_topic_with_ids(tree, &mut used_ids)
-}
-
-fn topic_tree_input_to_topic_with_ids(
-    tree: TopicTreeInputDto,
-    used_ids: &mut BTreeSet<String>,
-) -> Topic {
-    let id = match tree.id {
-        Some(id) => {
-            used_ids.insert(id.clone());
-            id
-        }
-        None => unique_generated_topic_id(&tree.title, used_ids),
-    };
-
+fn topic_tree_input_to_topic(tree: TopicTreeInputDto, topic_ids: &mut TopicIdAllocator) -> Topic {
+    let id = topic_ids.allocate_for_tree(&tree);
     Topic {
         id: TopicId(id),
         title: tree.title,
@@ -1872,34 +1859,9 @@ fn topic_tree_input_to_topic_with_ids(
         children: tree
             .children
             .into_iter()
-            .map(|child| topic_tree_input_to_topic_with_ids(child, used_ids))
+            .map(|child| topic_tree_input_to_topic(child, topic_ids))
             .collect(),
     }
-}
-
-fn collect_explicit_topic_tree_ids(tree: &TopicTreeInputDto, ids: &mut BTreeSet<String>) {
-    if let Some(id) = &tree.id {
-        ids.insert(id.clone());
-    }
-    for child in &tree.children {
-        collect_explicit_topic_tree_ids(child, ids);
-    }
-}
-
-fn unique_generated_topic_id(title: &str, used_ids: &mut BTreeSet<String>) -> String {
-    let base = generated_topic_id(title);
-    if used_ids.insert(base.clone()) {
-        return base;
-    }
-
-    for suffix in 2.. {
-        let candidate = format!("{base}-{suffix}");
-        if used_ids.insert(candidate.clone()) {
-            return candidate;
-        }
-    }
-
-    unreachable!("unbounded suffix search should always find a unique generated topic id")
 }
 
 fn topic_tree_image_input_to_ref(image: TopicTreeImageInputDto) -> Option<TopicImageRef> {
@@ -2498,7 +2460,8 @@ fn render_add(
         Err(error) => return render_error(invocation, json, error),
     };
 
-    let new_topic_id = generated_topic_id(title);
+    let mut topic_ids = TopicIdAllocator::from_root(&sheet.root);
+    let new_topic_id = topic_ids.allocate(title);
     let plan = MutationPlanner::plan_add_topic(AddTopicRequest {
         parent: parent.topic,
         parent_path: &parent.path,
@@ -2594,11 +2557,12 @@ fn render_add_create_missing_path(
         Err(error) => return render_error(invocation, json, error),
     };
 
+    let mut topic_ids = TopicIdAllocator::from_root(&sheet.root);
     let mut chain = missing_segments
         .iter()
-        .map(|segment| (segment.clone(), generated_topic_id(segment)))
+        .map(|segment| (segment.clone(), topic_ids.allocate(segment)))
         .collect::<Vec<_>>();
-    chain.push((title.to_owned(), generated_topic_id(title)));
+    chain.push((title.to_owned(), topic_ids.allocate(title)));
 
     let mut created_paths = Vec::new();
     let mut current_path = existing_parent_path.clone();
@@ -2825,7 +2789,8 @@ fn render_add_tree(
 
     if !invocation.dry_run {
         let parent_id = parent.topic.id.0.clone();
-        let topic = topic_tree_input_to_topic(tree);
+        let mut topic_ids = TopicIdAllocator::from_workbook(&workbook);
+        let topic = topic_tree_input_to_topic(tree, &mut topic_ids);
         result.backup_path = match create_mutation_backup(&invocation) {
             Ok(backup_path) => backup_path,
             Err(error) => return render_backup_error(invocation, json, error),
@@ -2862,20 +2827,6 @@ fn render_add_tree(
     }
 
     0
-}
-
-fn generated_topic_id(title: &str) -> String {
-    let slug = title
-        .chars()
-        .filter(|character| character.is_ascii_alphanumeric())
-        .flat_map(char::to_lowercase)
-        .collect::<String>();
-
-    if slug.is_empty() {
-        "topic-new".to_owned()
-    } else {
-        format!("topic-{slug}")
-    }
 }
 
 fn parse_csv_values(input: &str) -> Vec<String> {
