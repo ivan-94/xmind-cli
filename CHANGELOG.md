@@ -4,6 +4,10 @@ All notable changes to this project are tracked here.
 
 ## Unreleased
 
+### Fixed
+
+- Markdown export now preserves topic hyperlinks as heading links with angle-bracket destinations.
+
 ## v0.1.0 - 2026-05-28
 
 ### Added

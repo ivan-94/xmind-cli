@@ -30,6 +30,18 @@ If `--output` exists, export fails with `write_failed` unless `--overwrite` is p
 
 With `--json`, exported content is wrapped in the standard envelope. For text payloads, `result.content` contains the payload string. For `--output`, `result.output` contains the written path and `content` is omitted.
 
+Markdown export renders the selected sheet as heading outline. Topic hyperlinks are preserved as Markdown links with angle-bracket destinations:
+
+```md
+# Roadmap
+
+## Q2
+
+### [Payment](<https://example.com/payments>)
+```
+
+Export remains scoped to one selected sheet. Use `--sheet`, `--sheet-id`, or `--sheet-index` to choose a non-default sheet in a multi-sheet workbook.
+
 ## Errors
 
 - `not_found`
@@ -39,4 +51,4 @@ With `--json`, exported content is wrapped in the standard envelope. For text pa
 
 ## Notes for Agents
 
-Use Markdown export for human review and JSON export for later automated patch generation. Use `--format assets --output <dir>` to export workbook image resources.
+Use Markdown export for human review and JSON export for later automated patch generation. Use `--format assets --output <dir>` to export workbook image resources. Whole-workbook Markdown export is deferred to a future `--all-sheets` option.

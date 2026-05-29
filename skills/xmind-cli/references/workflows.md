@@ -196,6 +196,10 @@ Export for human review:
 xmind export plan.xmind --format markdown --json
 ```
 
+Markdown export is scoped to the selected sheet and preserves topic hyperlinks
+as Markdown links. Use `--sheet`, `--sheet-id`, or `--sheet-index` when the
+workbook has multiple sheets.
+
 Export for structured processing:
 
 ```bash

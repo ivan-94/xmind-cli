@@ -87,7 +87,6 @@ See `markdown-outline.md` for deterministic list mapping rules.
 - `note`
 - `labels`
 - `markers`
-- `hyperlink`
 - `image`
 - `children`
 

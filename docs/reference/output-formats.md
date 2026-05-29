@@ -77,7 +77,7 @@ returns:
   "applied": false,
   "result": {
     "format": "markdown",
-    "content": "# Roadmap\n\n## Q2\n"
+    "content": "# Roadmap\n\n## Q2\n\n### [Payment](<https://example.com/payments>)\n"
   }
 }
 ```
@@ -93,8 +93,10 @@ Markdown output is used by `export` and outline workflows:
 
 ## Q2
 
-### Payment
+### [Payment](<https://example.com/payments>)
 ```
+
+Topics without hyperlinks are rendered as plain heading text.
 
 ## Diff
 

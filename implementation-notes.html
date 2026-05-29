@@ -151,6 +151,28 @@
     </section>
 
     <section class="entry">
+      <h2>Markdown Export Hyperlinks</h2>
+      <ul>
+        <li>
+          决策：<code>export --format markdown</code> 现在将 topic hyperlink
+          渲染为 heading title 上的 Markdown link，例如
+          <code>### [Payment](&lt;https://example.com/payments&gt;)</code>。
+          这是 export/read 语义修复，不改变 Markdown import 的解析范围。
+        </li>
+        <li>
+          兼容性：默认 export 仍然只导出当前选中的单个 sheet；多 sheet workbook
+          继续通过 <code>--sheet</code>, <code>--sheet-id</code> 或
+          <code>--sheet-index</code> 选择导出范围。
+        </li>
+        <li>
+          未决设计：全 workbook Markdown 导出推迟到单独 slice，建议新增
+          <code>--all-sheets</code>，并与现有 <code>--sheet*</code>
+          selector 互斥。
+        </li>
+      </ul>
+    </section>
+
+    <section class="entry">
       <h2>Titleless Image Topics</h2>
       <ul>
         <li>

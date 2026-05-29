@@ -1374,10 +1374,32 @@ fn render_export_markdown(root: &Topic) -> String {
 
 fn collect_export_markdown_headings(topic: &Topic, level: usize, headings: &mut Vec<String>) {
     let level = level.min(6);
-    headings.push(format!("{} {}", "#".repeat(level), topic.title));
+    headings.push(format!(
+        "{} {}",
+        "#".repeat(level),
+        render_markdown_topic_title(topic)
+    ));
     for child in &topic.children {
         collect_export_markdown_headings(child, level + 1, headings);
     }
+}
+
+fn render_markdown_topic_title(topic: &Topic) -> String {
+    let title = escape_markdown_link_text(&topic.title);
+    match topic.hyperlink.as_deref() {
+        Some(href) => format!("[{}](<{}>)", title, escape_markdown_link_destination(href)),
+        None => title,
+    }
+}
+
+fn escape_markdown_link_text(text: &str) -> String {
+    text.replace('\\', r"\\")
+        .replace('[', r"\[")
+        .replace(']', r"\]")
+}
+
+fn escape_markdown_link_destination(destination: &str) -> String {
+    destination.replace('>', r"\>")
 }
 
 fn render_export_outline(root: &Topic) -> String {

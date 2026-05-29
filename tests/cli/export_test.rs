@@ -1,5 +1,6 @@
 use assert_cmd::Command;
 use serde_json::Value;
+use std::fs;
 
 #[test]
 fn export_output_writes_payload_to_file_without_stdout() {
@@ -193,6 +194,96 @@ fn export_format_markdown_writes_heading_outline_to_stdout() {
         String::from_utf8(output.stdout).expect("stdout is UTF-8"),
         "# Roadmap\n\n## Q2\n\n### Payment\n"
     );
+}
+
+#[test]
+fn export_format_markdown_preserves_topic_hyperlinks() {
+    let output = Command::cargo_bin("xmind")
+        .expect("xmind binary is built for CLI tests")
+        .args([
+            "export",
+            "tests/fixtures/xmind/metadata.xmind",
+            "--format",
+            "markdown",
+        ])
+        .output()
+        .expect("export command runs");
+
+    assert_eq!(output.status.code(), Some(0));
+    assert!(
+        output.stderr.is_empty(),
+        "export should not emit stderr diagnostics: {}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+
+    let markdown = String::from_utf8(output.stdout).expect("stdout is UTF-8");
+    assert!(markdown.contains("[Payment](<https://example.com/payments>)"));
+}
+
+#[test]
+fn export_format_markdown_escapes_topic_hyperlink_syntax() {
+    let temp_dir = tempfile::tempdir().expect("temp dir is created");
+    let workbook = temp_dir.path().join("markdown-link-escaping.xmind");
+    fs::copy("tests/fixtures/xmind/metadata.xmind", &workbook).expect("fixture is copied");
+    let workbook_arg = workbook.to_string_lossy().into_owned();
+
+    let title_output = Command::cargo_bin("xmind")
+        .expect("xmind binary is built for CLI tests")
+        .args([
+            "set",
+            &workbook_arg,
+            "--node",
+            "id:topic-payment",
+            "--title",
+            r"Pay [Beta]\Core]",
+            "--apply",
+            "--json",
+        ])
+        .output()
+        .expect("set title command runs");
+    assert_eq!(title_output.status.code(), Some(0));
+    assert!(
+        title_output.stderr.is_empty(),
+        "json set output should not emit stderr diagnostics: {}",
+        String::from_utf8_lossy(&title_output.stderr)
+    );
+
+    let hyperlink_output = Command::cargo_bin("xmind")
+        .expect("xmind binary is built for CLI tests")
+        .args([
+            "set",
+            &workbook_arg,
+            "--node",
+            "id:topic-payment",
+            "--hyperlink",
+            "https://example.com/payments?a>b",
+            "--apply",
+            "--json",
+        ])
+        .output()
+        .expect("set hyperlink command runs");
+    assert_eq!(hyperlink_output.status.code(), Some(0));
+    assert!(
+        hyperlink_output.stderr.is_empty(),
+        "json set output should not emit stderr diagnostics: {}",
+        String::from_utf8_lossy(&hyperlink_output.stderr)
+    );
+
+    let output = Command::cargo_bin("xmind")
+        .expect("xmind binary is built for CLI tests")
+        .args(["export", &workbook_arg, "--format", "markdown"])
+        .output()
+        .expect("export command runs");
+
+    assert_eq!(output.status.code(), Some(0));
+    assert!(
+        output.stderr.is_empty(),
+        "export should not emit stderr diagnostics: {}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+
+    let markdown = String::from_utf8(output.stdout).expect("stdout is UTF-8");
+    assert!(markdown.contains(r"### [Pay \[Beta\]\\Core\]](<https://example.com/payments?a\>b>)"));
 }
 
 #[test]

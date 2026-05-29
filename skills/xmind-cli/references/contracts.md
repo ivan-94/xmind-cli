@@ -143,7 +143,6 @@ Tree input supports:
 - `note`
 - `labels`
 - `markers`
-- `hyperlink`
 - `image`
 - `children`
 
