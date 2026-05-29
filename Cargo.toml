@@ -190,6 +190,10 @@ path = "tests/e2e/full_matrix_test.rs"
 name = "e2e_red_contract_gaps"
 path = "tests/e2e/red_contract_gaps_test.rs"
 
+[[test]]
+name = "e2e_patch_regression"
+path = "tests/e2e/patch_regression_test.rs"
+
 [dependencies]
 clap = { version = "=4.5.4", features = ["derive"] }
 clap_complete = "=4.5.2"

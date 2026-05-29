@@ -1325,9 +1325,19 @@ fn temp_workbook_path(workbook_path: &Path) -> PathBuf {
 }
 
 fn validate_candidate_package(candidate_path: &Path) -> Result<(), XMindWriteError> {
-    crate::infra::xmind::decode::read_workbook(candidate_path)
-        .map(|_| ())
-        .map_err(|error| XMindWriteError::CandidateValidationFailed(error.to_string()))
+    let result = crate::infra::xmind::validate::validate_workbook_package(candidate_path, false)
+        .map_err(|error| XMindWriteError::CandidateValidationFailed(error.to_string()))?;
+    if result.valid {
+        Ok(())
+    } else {
+        let diagnostics = result
+            .errors
+            .iter()
+            .map(|error| error.message.as_str())
+            .collect::<Vec<_>>()
+            .join("; ");
+        Err(XMindWriteError::CandidateValidationFailed(diagnostics))
+    }
 }
 
 fn replace_with_validated_candidate<F>(
