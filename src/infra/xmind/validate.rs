@@ -206,7 +206,7 @@ impl StructuralValidator {
             }
         }
 
-        self.validate_required_string(topic.get("title"), &format!("{path}.title"), "topic title");
+        self.validate_optional_topic_title(topic.get("title"), &format!("{path}.title"));
         self.validate_topic_image(topic, path);
 
         if let Some(children) = topic.get("children").and_then(Value::as_object) {
@@ -315,6 +315,18 @@ impl StructuralValidator {
                 ));
                 None
             }
+        }
+    }
+
+    fn validate_optional_topic_title(&mut self, value: Option<&Value>, path: &str) {
+        match value {
+            Some(Value::String(_)) | None => {}
+            Some(_) => self.errors.push(ValidationDiagnosticDto::error(
+                "missing_required_field",
+                "Topic title must be a string when present.",
+                path,
+                "Open and re-save the workbook, or restore the topic title as text.",
+            )),
         }
     }
 

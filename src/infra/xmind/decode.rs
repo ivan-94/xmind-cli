@@ -103,7 +103,8 @@ impl From<StorageSheet> for Sheet {
 #[derive(Debug, Deserialize)]
 struct StorageTopic {
     id: String,
-    title: String,
+    #[serde(default)]
+    title: Option<String>,
     notes: Option<StorageNotes>,
     href: Option<String>,
     image: Option<StorageImage>,
@@ -173,7 +174,7 @@ impl From<StorageTopic> for Topic {
     fn from(value: StorageTopic) -> Self {
         Self {
             id: TopicId(value.id),
-            title: value.title,
+            title: value.title.unwrap_or_default(),
             note: value
                 .notes
                 .and_then(|notes| notes.plain.map(|plain| plain.content)),
