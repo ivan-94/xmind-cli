@@ -28,6 +28,7 @@ use crate::domain::sheet::{Sheet, SheetId};
 use crate::domain::topic::{AssetId, Topic, TopicId, TopicImageRef};
 use crate::domain::workbook::{PreservationBag, ResourceIndex, Workbook};
 use crate::infra::fs::backup::{create_backup, create_backup_in_dir, BackupError};
+use crate::infra::fs::cloud::{CloudFileError, CloudFileResolver};
 use crate::infra::xmind::encode::{InsertPosition, XMindWriteError};
 use crate::render::diff::render_human_outline;
 
@@ -68,7 +69,7 @@ pub fn run(cli: Cli) -> i32 {
         return render_completion(command.shell);
     }
 
-    let Some(invocation) = Invocation::from_command(command, sheet_selection, quiet, format)
+    let Some(mut invocation) = Invocation::from_command(command, sheet_selection, quiet, format)
         .map(|invocation| invocation.with_no_color(no_color))
     else {
         return render_top_level_help();
@@ -76,6 +77,13 @@ pub fn run(cli: Cli) -> i32 {
 
     if let Err(error) = validate_fields(&invocation.command, &fields) {
         return render_error(invocation, json, error);
+    }
+
+    if invocation.action.requires_existing_workbook() {
+        match CloudFileResolver::default().resolve_workbook_path(&invocation.workbook) {
+            Ok(workbook) => invocation.workbook = workbook,
+            Err(error) => return render_cloud_download_error(invocation, json, error),
+        }
     }
 
     if invocation.action.requires_existing_workbook() && !invocation.workbook.exists() {
@@ -353,6 +361,40 @@ fn render_top_level_help() -> i32 {
         .print_help()
         .expect("top-level help renders to stdout");
     0
+}
+
+fn render_cloud_download_error(invocation: Invocation, json: bool, error: CloudFileError) -> i32 {
+    let attempts = error
+        .attempts
+        .iter()
+        .map(|attempt| {
+            serde_json::json!({
+                "tool": attempt.tool,
+                "subcommand": attempt.subcommand,
+                "status": attempt.status,
+                "stderr": attempt.stderr,
+                "error": attempt.error,
+            })
+        })
+        .collect::<Vec<_>>();
+    let original_path = error.original_path.display().to_string();
+    let diagnostic = CliErrorBody::new(
+        ErrorCode::CloudDownloadFailed,
+        format!(
+            "Cloud workbook could not be downloaded: {}",
+            error.logical_path.display()
+        ),
+        true,
+        "Check iCloud/File Provider sync status, network connectivity, and account login, then retry.",
+    )
+    .with_path(original_path)
+    .with_details(serde_json::json!({
+        "logical_path": error.logical_path.display().to_string(),
+        "placeholder_path": error.placeholder_path.display().to_string(),
+        "attempts": attempts,
+    }));
+
+    render_error(invocation, json, diagnostic)
 }
 
 #[derive(Clone)]

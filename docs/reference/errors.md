@@ -51,7 +51,8 @@
 | `write_failed` | Output file could not be written |
 | `unsupported_asset_type` | Asset type is not supported for the requested operation |
 | `root_operation_not_allowed` | Requested operation cannot be applied to the selected sheet root |
+| `cloud_download_failed` | Cloud-hosted workbook could not be materialized before access |
 
 ## Error Design
 
-Errors should tell the caller what to do next. For selectors, include candidates. For schema failures, include field paths. For patch failures, include `operation_index`. For validation failures, include affected sheet and topic paths when possible. The full agent contract is documented in `agent-error-contract.md`.
+Errors should tell the caller what to do next. For selectors, include candidates. For schema failures, include field paths. For patch failures, include `operation_index`. For validation failures, include affected sheet and topic paths when possible. Cloud download failures include the original `path`, the normalized logical workbook path, placeholder path, and attempted macOS materialization commands in `details`. The full agent contract is documented in `agent-error-contract.md`.
