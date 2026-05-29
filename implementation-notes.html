@@ -151,6 +151,28 @@
     </section>
 
     <section class="entry">
+      <h2>Titleless Image Topics</h2>
+      <ul>
+        <li>
+          决策：XMind App 可能生成只有图片、子节点和空
+          <code>attributedTitle</code>，但没有 <code>title</code>
+          字段的 topic。CLI 将这类 topic 视为合法 topic，并在 domain model
+          中把标题归一化为 empty string。
+        </li>
+        <li>
+          校验语义：topic 缺失 <code>title</code> 不再触发
+          <code>missing_required_field</code>；<code>validate --strict</code>
+          也接受该结构。若 <code>title</code> 字段存在但不是 string，仍然是结构错误。
+        </li>
+        <li>
+          写回权衡：mutation 后重新编码会写出 <code>"title": ""</code>，
+          不额外保留原始缺失字段形态。sheet title、rootTopic 和 topic id
+          的必填规则不放宽。
+        </li>
+      </ul>
+    </section>
+
+    <section class="entry">
       <h2>Issue #34: Patch Apply and Safe Writes</h2>
       <ul>
         <li>
