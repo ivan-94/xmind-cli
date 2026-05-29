@@ -202,6 +202,110 @@ fn read_e2e_tree_covers_depth_fields_assets_sheet_selection_and_human_output() {
 }
 
 #[test]
+fn titleless_image_topic_tree_reads_empty_title_and_children() {
+    let temp_dir = tempfile::tempdir().expect("temp dir is created for titleless image fixture");
+    let workbook = temp_dir.path().join("titleless-image-topic.xmind");
+    write_titleless_image_topic_workbook(&workbook);
+    let workbook_arg = workbook.to_string_lossy().into_owned();
+
+    let tree = run_json(&[
+        "tree",
+        &workbook_arg,
+        "--include-assets",
+        "--depth",
+        "3",
+        "--json",
+    ]);
+
+    assert_success_envelope(&tree, "tree", Some(&workbook_arg));
+    let titleless = &tree["result"]["root"]["children"][0];
+    assert_eq!(titleless["id"], "topic-titleless-image");
+    assert_eq!(titleless["title"], "");
+    assert_eq!(titleless["image"]["asset_id"], "xap:resources/diagram.png");
+    assert_eq!(titleless["children"][0]["title"], "Child");
+}
+
+#[test]
+fn titleless_image_topic_inspect_reports_supported_workbook() {
+    let temp_dir = tempfile::tempdir().expect("temp dir is created for titleless image fixture");
+    let workbook = temp_dir.path().join("titleless-image-topic.xmind");
+    write_titleless_image_topic_workbook(&workbook);
+    let workbook_arg = workbook.to_string_lossy().into_owned();
+
+    let inspect = run_json(&["inspect", &workbook_arg, "--json"]);
+
+    assert_success_envelope(&inspect, "inspect", Some(&workbook_arg));
+    assert_eq!(inspect["result"]["format"], "xmind-zen");
+    assert_eq!(inspect["result"]["resources_count"], 1);
+    assert_eq!(inspect["result"]["capabilities"]["can_read_topics"], true);
+}
+
+#[test]
+fn titleless_image_topic_validate_accepts_default_and_strict_modes() {
+    let temp_dir = tempfile::tempdir().expect("temp dir is created for titleless image fixture");
+    let workbook = temp_dir.path().join("titleless-image-topic.xmind");
+    write_titleless_image_topic_workbook(&workbook);
+    let workbook_arg = workbook.to_string_lossy().into_owned();
+
+    let validation = run_json(&["validate", &workbook_arg, "--json"]);
+    assert_success_envelope(&validation, "validate", Some(&workbook_arg));
+    assert_eq!(validation["result"]["valid"], true);
+    assert_eq!(validation["result"]["warnings"], Value::Array(vec![]));
+    assert_eq!(validation["result"]["errors"], Value::Array(vec![]));
+
+    let strict = run_json(&["validate", &workbook_arg, "--strict", "--json"]);
+    assert_success_envelope(&strict, "validate", Some(&workbook_arg));
+    assert_eq!(strict["result"]["valid"], true);
+    assert_eq!(strict["result"]["warnings"], Value::Array(vec![]));
+    assert_eq!(strict["result"]["errors"], Value::Array(vec![]));
+}
+
+fn write_titleless_image_topic_workbook(path: &std::path::Path) {
+    write_xmind_package(
+        path,
+        &[
+            (
+                "content.json",
+                br#"[
+  {
+    "id": "sheet-roadmap",
+    "title": "Roadmap",
+    "rootTopic": {
+      "id": "topic-root",
+      "title": "Roadmap",
+      "children": {
+        "attached": [
+          {
+            "id": "topic-titleless-image",
+            "attributedTitle": [
+              {
+                "text": ""
+              }
+            ],
+            "image": {
+              "src": "xap:resources/diagram.png"
+            },
+            "children": {
+              "attached": [
+                {
+                  "id": "topic-child",
+                  "title": "Child"
+                }
+              ]
+            }
+          }
+        ]
+      }
+    }
+  }
+]"#,
+            ),
+            ("resources/diagram.png", b"\x89PNG\r\n\x1a\nimage-bytes"),
+        ],
+    );
+}
+
+#[test]
 fn read_e2e_get_covers_selectors_depth_assets_and_selector_errors() {
     let by_id = run_json(&[
         "get",
