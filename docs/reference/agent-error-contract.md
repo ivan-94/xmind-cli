@@ -67,6 +67,7 @@ Errors should include these fields when applicable:
 | `unsupported_asset_type` | Convert or remove the asset |
 | `root_operation_not_allowed` | Target a child topic or use an allowed root field edit |
 | `write_failed` | Check filesystem path and permissions |
+| `cloud_download_failed` | Check iCloud/File Provider sync, network, and account login, then retry |
 
 ## Stream Rule
 

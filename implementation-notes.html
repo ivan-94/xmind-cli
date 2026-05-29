@@ -118,6 +118,18 @@
       <h2>Active Deviations</h2>
       <ul>
         <li>
+          iCloud 未下载 workbook 的 v1 支持在命令入口统一完成：
+          <code>.foo.xmind.icloud</code> 会规范化为 <code>foo.xmind</code>，
+          macOS 先尝试 <code>fileproviderctl materialize</code>，再尝试
+          <code>brctl download</code>。成功后继续走原有 read/write/backup
+          流程；失败返回 <code>cloud_download_failed</code>。
+        </li>
+        <li>
+          决策：materialize 后保留本地副本，不自动 evict 回云端占位。这样写命令完成后
+          用户能立即用 XMind 或后续 CLI 命令检查结果，避免刚替换过的文件再次异步变为
+          不可读状态。
+        </li>
+        <li>
           <code>validate</code> 已具备第一层结构诊断和
           <code>--strict</code> warning failure，但仍未扩展到 XMind App 私有视觉、
           布局或所有未知 relationship 变体的完整语义验证。

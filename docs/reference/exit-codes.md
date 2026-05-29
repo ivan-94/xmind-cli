@@ -22,6 +22,7 @@
 | 9 | Workbook validation failure |
 | 10 | Write failure |
 | 11 | Unsupported feature or asset type |
+| 12 | Cloud file materialization failure |
 
 ## Error Code Mapping
 
@@ -42,6 +43,7 @@
 | `write_failed` | 10 |
 | `unsupported_format` | 11 |
 | `unsupported_asset_type` | 11 |
+| `cloud_download_failed` | 12 |
 
 ## JSON Errors
 

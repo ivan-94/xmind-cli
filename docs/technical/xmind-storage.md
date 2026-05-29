@@ -98,7 +98,12 @@ atomic rename
 
 Writing the temporary file in the same directory improves atomic rename behavior across filesystems.
 
+## Cloud File Materialization
+
+Before commands that require an existing workbook check `file_not_found`, the CLI attempts to resolve macOS iCloud placeholders. A hidden placeholder named `.roadmap.xmind.icloud` next to `roadmap.xmind`, or a direct `.roadmap.xmind.icloud` argument, is normalized to the logical `roadmap.xmind` path. On macOS the resolver tries `fileproviderctl materialize` first and `brctl download` second; on other platforms it does not call platform tools and the normal missing-file behavior applies.
+
+Materialized workbooks remain local after the command. Write commands still use the regular backup, temporary package, validation, and replace flow against the logical `.xmind` path.
+
 ## Validation
 
 Validation should run against the temporary output package, not the original package. If validation fails, the destination file remains untouched.
-

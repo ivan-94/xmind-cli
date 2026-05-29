@@ -71,6 +71,10 @@ name = "runtime_errors_test"
 path = "tests/cli/runtime_errors_test.rs"
 
 [[test]]
+name = "cloud_file_test"
+path = "tests/cli/cloud_file_test.rs"
+
+[[test]]
 name = "tree_test"
 path = "tests/cli/tree_test.rs"
 

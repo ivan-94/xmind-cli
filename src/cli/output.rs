@@ -205,6 +205,7 @@ pub enum ErrorCode {
     WriteFailed,
     UnsupportedAssetType,
     RootOperationNotAllowed,
+    CloudDownloadFailed,
 }
 
 impl ErrorCode {
@@ -221,6 +222,7 @@ impl ErrorCode {
             Self::ValidationFailed => 9,
             Self::WriteFailed => 10,
             Self::UnsupportedAssetType => 11,
+            Self::CloudDownloadFailed => 12,
         }
     }
 }
@@ -294,6 +296,7 @@ mod tests {
             (ErrorCode::WriteFailed, 10),
             (ErrorCode::UnsupportedFormat, 11),
             (ErrorCode::UnsupportedAssetType, 11),
+            (ErrorCode::CloudDownloadFailed, 12),
         ];
 
         for (code, expected_exit_code) in mappings {

@@ -54,4 +54,4 @@
 
 ## Agent Notes
 
-Agents should use `code` and `retryable` to decide recovery behavior. `suggested_fix`, `candidates`, `field_path`, and `operation_index` should be specific enough to retry safely.
+Agents should use `code` and `retryable` to decide recovery behavior. `suggested_fix`, `candidates`, `field_path`, and `operation_index` should be specific enough to retry safely. For `cloud_download_failed`, `details` includes the normalized logical workbook path, the `.icloud` placeholder path, and the attempted materialization commands.

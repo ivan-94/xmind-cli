@@ -56,6 +56,10 @@ xmind validate plan.xmind --json
 Write paths still use a write-then-validate-then-replace implementation internally where
 needed, but the public CLI no longer exposes a validation flag on write commands.
 
+### Cloud Workbooks Are Materialized First
+
+On macOS, commands that need an existing workbook automatically try to materialize an iCloud/File Provider placeholder before reading, backing up, or writing the workbook. If materialization fails, the command returns `cloud_download_failed` and leaves the placeholder unchanged. After a successful materialization, the local workbook copy is kept; the CLI does not evict it back to a cloud-only placeholder.
+
 ## Recommended Write Flow
 
 ```bash
