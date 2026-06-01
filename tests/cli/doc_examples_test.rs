@@ -79,7 +79,7 @@ fn public_readmes_are_source_manifest_free_and_cross_linked() {
             "{path} is a public entrypoint and must not contain a Source Manifest section"
         );
         assert!(
-            content.contains("0.1.0") && content.contains("v0.1.0"),
+            content.contains("0.1.1") && content.contains("v0.1.1"),
             "{path} should describe the current early-release posture"
         );
     }
@@ -457,7 +457,7 @@ fn installation_docs_cover_supported_install_paths() {
         "cargo install --path .",
         "cargo build --workspace --release",
         "target/release/xmind",
-        "bash scripts/install.sh --dry-run --version v0.1.0",
+        "bash scripts/install.sh --dry-run --version v0.1.1",
         "SHA256SUMS",
         "xmind completion bash",
         "xmind --version",
@@ -496,13 +496,13 @@ fn root_readme_publishes_repository_baseline_without_overclaiming_release_channe
         "unofficial",
         "AI",
         "[中文](README.zh-CN.md)",
-        "0.1.0",
+        "0.1.1",
         "publish = false",
         "docs/reference/cli-overview.md",
         "docs/technical/release-policy.md",
         "CHANGELOG.md",
         "docs/installation.md",
-        "v0.1.0",
+        "v0.1.1",
         "cargo install --locked --git https://github.com/ivan-94/xmind-cli",
         "xmind completion <shell>",
         "xmind tree tests/fixtures/xmind/minimal.xmind --depth 2 --json",

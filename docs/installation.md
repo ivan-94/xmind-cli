@@ -150,19 +150,19 @@ exist, so the formula URL and SHA256 values come from the same release.
 Preview the selected platform artifact and install path without writing files:
 
 ```bash
-bash scripts/install.sh --dry-run --version v0.1.0
+bash scripts/install.sh --dry-run --version v0.1.1
 ```
 
 Install into `~/.local/bin` after checksum verification:
 
 ```bash
-bash scripts/install.sh --version v0.1.0
+bash scripts/install.sh --version v0.1.1
 ```
 
 Install into a custom directory:
 
 ```bash
-bash scripts/install.sh --version v0.1.0 --install-dir "$HOME/bin"
+bash scripts/install.sh --version v0.1.1 --install-dir "$HOME/bin"
 ```
 
 The script maps the current OS and CPU to the supported release target, downloads `SHA256SUMS`, verifies the exact artifact entry, extracts the archive, and copies the binary to the install directory. It refuses unsupported platforms, missing checksum entries, checksum mismatches, and archives that do not contain the expected binary. Dry-run mode does not download, extract, or write user files.

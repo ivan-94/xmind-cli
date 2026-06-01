@@ -1,6 +1,6 @@
 [package]
 name = "xmind-cli"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2021"
 license = "MIT"
 description = "Agent-native CLI for inspecting and editing XMind workbooks"

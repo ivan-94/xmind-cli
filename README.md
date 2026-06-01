@@ -16,9 +16,9 @@ This project is not affiliated with, endorsed by, or sponsored by XMind.
 
 ## Status
 
-`xmind-cli` is an early-release project. The package version is `0.1.0`,
+`xmind-cli` is an early-release project. The package version is `0.1.1`,
 `Cargo.toml` sets `publish = false`, and the changelog tracks the current
-`v0.1.0` release. The CLI is usable from source and has integration coverage for the
+`v0.1.1` release. The CLI is usable from source and has integration coverage for the
 implemented command surface. Tagged releases publish GitHub Release binaries,
 the install script, and the Homebrew tap formula.
 
@@ -67,8 +67,8 @@ build, checksum, and shell completion details.
 | Cargo source install from checkout | Available today | `cargo install --path .` |
 | Cargo source install from GitHub | Available today | `cargo install --locked --git https://github.com/ivan-94/xmind-cli` |
 | Local release build | Available today | `cargo build --workspace --release`, then run `target/release/xmind` |
-| GitHub Release binaries | Available after the first tagged release | Planned targets: macOS Apple Silicon, macOS Intel, Linux x86_64 GNU, Linux arm64 GNU, and Windows x86_64 MSVC. |
-| Install script | Available for tagged release artifacts | `bash scripts/install.sh --dry-run --version v0.1.0`, then rerun without `--dry-run`. |
+| GitHub Release binaries | Available for tagged releases | Targets: macOS Apple Silicon, macOS Intel, Linux x86_64 GNU, Linux arm64 GNU, and Windows x86_64 MSVC. |
+| Install script | Available for tagged release artifacts | `bash scripts/install.sh --dry-run --version v0.1.1`, then rerun without `--dry-run`. |
 | Homebrew tap | Available for tagged releases | `brew install ivan-94/tap/xmind-cli` |
 
 The Homebrew formula is published from the `ivan-94/homebrew-tap` repository.

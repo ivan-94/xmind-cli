@@ -13,8 +13,8 @@ XMind 工作簿。仓库名是 `xmind-cli`，安装后的可执行命令是 `xmi
 
 ## 当前状态
 
-`xmind-cli` 仍处于早期发布阶段。当前包版本是 `0.1.0`，`Cargo.toml` 中
-`publish = false`，`CHANGELOG.md` 已记录当前 `v0.1.0` release。当前 CLI 可以从源码
+`xmind-cli` 仍处于早期发布阶段。当前包版本是 `0.1.1`，`Cargo.toml` 中
+`publish = false`，`CHANGELOG.md` 已记录当前 `v0.1.1` release。当前 CLI 可以从源码
 安装或构建，并且已为已实现的命令面提供集成测试。带 tag 的 release 会发布 GitHub
 Release binaries、安装脚本和 Homebrew tap formula。
 
@@ -61,8 +61,8 @@ cargo run -- tree tests/fixtures/xmind/minimal.xmind --depth 2
 | 从 checkout 进行 Cargo 源码安装 | 当前可用 | `cargo install --path .` |
 | 从 GitHub 进行 Cargo 源码安装 | 当前可用 | `cargo install --locked --git https://github.com/ivan-94/xmind-cli` |
 | 本地 release build | 当前可用 | `cargo build --workspace --release`，然后运行 `target/release/xmind` |
-| GitHub Release binaries | 首个 tagged release 后可用 | 计划目标：macOS Apple Silicon、macOS Intel、Linux x86_64 GNU、Linux arm64 GNU、Windows x86_64 MSVC。 |
-| Install script | 面向 tagged release artifacts | 先运行 `bash scripts/install.sh --dry-run --version v0.1.0`，确认后去掉 `--dry-run`。 |
+| GitHub Release binaries | tagged releases 可用 | 目标：macOS Apple Silicon、macOS Intel、Linux x86_64 GNU、Linux arm64 GNU、Windows x86_64 MSVC。 |
+| Install script | 面向 tagged release artifacts | 先运行 `bash scripts/install.sh --dry-run --version v0.1.1`，确认后去掉 `--dry-run`。 |
 | Homebrew tap | tagged release 后可用 | `brew install ivan-94/tap/xmind-cli` |
 
 第一版二进制 release 矩阵不代表支持：Linux musl/static builds、macOS universal binaries、32-bit Windows、Windows GNU、container images 或 crates.io packages。

@@ -4,6 +4,8 @@ All notable changes to this project are tracked here.
 
 ## Unreleased
 
+## v0.1.1 - 2026-06-01
+
 ### Fixed
 
 - Markdown export now writes topic notes as body text below each topic heading.
