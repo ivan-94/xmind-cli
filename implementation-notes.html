@@ -151,13 +151,24 @@
     </section>
 
     <section class="entry">
-      <h2>Markdown Export Hyperlinks</h2>
+      <h2>Markdown Export Hyperlinks and Notes</h2>
       <ul>
         <li>
           决策：<code>export --format markdown</code> 现在将 topic hyperlink
           渲染为 heading title 上的 Markdown link，例如
           <code>### [Payment](&lt;https://example.com/payments&gt;)</code>。
           这是 export/read 语义修复，不改变 Markdown import 的解析范围。
+        </li>
+        <li>
+          决策：Markdown export 现在默认将非空 topic note 输出为 heading
+          下方的普通 Markdown 正文，并放在 child topic heading 之前；note
+          正文不做额外转义，内部换行和空行按原内容保留。whitespace-only note
+          不输出。
+        </li>
+        <li>
+          权衡：该行为匹配现有 Markdown import 中“heading/list 下方正文成为
+          note”的规则，支持常规 note round-trip；但如果 note 行本身看起来像
+          heading 或 list item，重新 import 时仍会被解析为结构，而不是无损正文。
         </li>
         <li>
           兼容性：默认 export 仍然只导出当前选中的单个 sheet；多 sheet workbook

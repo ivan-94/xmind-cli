@@ -221,6 +221,79 @@ fn export_format_markdown_preserves_topic_hyperlinks() {
 }
 
 #[test]
+fn export_format_markdown_writes_topic_notes_as_body_text() {
+    let output = Command::cargo_bin("xmind")
+        .expect("xmind binary is built for CLI tests")
+        .args([
+            "export",
+            "tests/fixtures/xmind/metadata.xmind",
+            "--format",
+            "markdown",
+        ])
+        .output()
+        .expect("export command runs");
+
+    assert_eq!(output.status.code(), Some(0));
+    assert!(
+        output.stderr.is_empty(),
+        "export should not emit stderr diagnostics: {}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+
+    let markdown = String::from_utf8(output.stdout).expect("stdout is UTF-8");
+    assert!(markdown.contains(
+        "### [Payment](<https://example.com/payments>)\n\nSupports card payments and refund workflows."
+    ));
+}
+
+#[test]
+fn export_format_markdown_writes_parent_notes_before_child_topics() {
+    let temp_dir = tempfile::tempdir().expect("temp dir is created");
+    let workbook = temp_dir.path().join("parent-note.xmind");
+    fs::copy("tests/fixtures/xmind/minimal.xmind", &workbook).expect("fixture is copied");
+    let workbook_arg = workbook.to_string_lossy().into_owned();
+
+    let set_note_output = Command::cargo_bin("xmind")
+        .expect("xmind binary is built for CLI tests")
+        .args([
+            "set",
+            &workbook_arg,
+            "--node",
+            "path:/Q2",
+            "--note",
+            "Q2 first paragraph.\n\nQ2 second paragraph.",
+            "--apply",
+            "--json",
+        ])
+        .output()
+        .expect("set note command runs");
+    assert_eq!(set_note_output.status.code(), Some(0));
+    assert!(
+        set_note_output.stderr.is_empty(),
+        "set note should not emit stderr diagnostics: {}",
+        String::from_utf8_lossy(&set_note_output.stderr)
+    );
+
+    let output = Command::cargo_bin("xmind")
+        .expect("xmind binary is built for CLI tests")
+        .args(["export", &workbook_arg, "--format", "markdown"])
+        .output()
+        .expect("export command runs");
+
+    assert_eq!(output.status.code(), Some(0));
+    assert!(
+        output.stderr.is_empty(),
+        "export should not emit stderr diagnostics: {}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+
+    assert_eq!(
+        String::from_utf8(output.stdout).expect("stdout is UTF-8"),
+        "# Roadmap\n\n## Q2\n\nQ2 first paragraph.\n\nQ2 second paragraph.\n\n### Payment\n"
+    );
+}
+
+#[test]
 fn export_format_markdown_escapes_topic_hyperlink_syntax() {
     let temp_dir = tempfile::tempdir().expect("temp dir is created");
     let workbook = temp_dir.path().join("markdown-link-escaping.xmind");

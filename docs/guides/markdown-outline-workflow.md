@@ -41,6 +41,7 @@ xmind add-tree roadmap.xmind --parent "path:/Q2" --from-markdown payment.md --dr
 
 - Headings, lists, ordered lists, task lists, and heading/list hybrids define hierarchy.
 - Markdown export preserves topic hyperlinks as heading links with angle-bracket destinations.
+- Markdown export writes topic notes as body text immediately after each topic heading and before child topic headings.
 - Markdown import currently treats heading text as titles and does not round-trip hyperlinks.
 - Body text under a heading or list item becomes notes.
 - Frontmatter can carry metadata.

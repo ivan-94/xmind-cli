@@ -1374,11 +1374,18 @@ fn render_export_markdown(root: &Topic) -> String {
 
 fn collect_export_markdown_headings(topic: &Topic, level: usize, headings: &mut Vec<String>) {
     let level = level.min(6);
-    headings.push(format!(
+    let mut block = format!(
         "{} {}",
         "#".repeat(level),
         render_markdown_topic_title(topic)
-    ));
+    );
+    if let Some(note) = &topic.note {
+        if !note.trim().is_empty() {
+            block.push_str("\n\n");
+            block.push_str(note);
+        }
+    }
+    headings.push(block);
     for child in &topic.children {
         collect_export_markdown_headings(child, level + 1, headings);
     }

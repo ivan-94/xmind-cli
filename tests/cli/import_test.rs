@@ -432,16 +432,42 @@ fn import_output_dry_run_reports_creation_diff_from_empty_workbook() {
 #[test]
 fn export_markdown_then_import_output_round_trips_topic_outline() {
     let temp_dir = tempfile::tempdir().expect("temp dir is created");
+    let source_workbook_path = temp_dir.path().join("source.xmind");
     let markdown_path = temp_dir.path().join("roadmap.md");
     let workbook_path = temp_dir.path().join("roundtrip.xmind");
+    fs::copy("tests/fixtures/xmind/minimal.xmind", &source_workbook_path)
+        .expect("source workbook is copied");
+    let source_workbook_arg = source_workbook_path.to_string_lossy().into_owned();
     let markdown_arg = markdown_path.to_string_lossy().into_owned();
     let workbook_arg = workbook_path.to_string_lossy().into_owned();
+
+    let set_note_output = Command::cargo_bin("xmind")
+        .expect("xmind binary is built for CLI tests")
+        .args([
+            "set",
+            &source_workbook_arg,
+            "--node",
+            "path:/Q2/Payment",
+            "--note",
+            "Supports card payments and refund workflows.",
+            "--apply",
+            "--json",
+        ])
+        .output()
+        .expect("set note command runs");
+
+    assert_eq!(set_note_output.status.code(), Some(0));
+    assert!(
+        set_note_output.stderr.is_empty(),
+        "set note should not emit stderr diagnostics: {}",
+        String::from_utf8_lossy(&set_note_output.stderr)
+    );
 
     let export_output = Command::cargo_bin("xmind")
         .expect("xmind binary is built for CLI tests")
         .args([
             "export",
-            "tests/fixtures/xmind/minimal.xmind",
+            &source_workbook_arg,
             "--format",
             "markdown",
             "--output",
@@ -491,5 +517,9 @@ fn export_markdown_then_import_output_round_trips_topic_outline() {
     assert_eq!(
         tree["result"]["root"]["children"][0]["children"][0]["title"],
         "Payment"
+    );
+    assert_eq!(
+        tree["result"]["root"]["children"][0]["children"][0]["note"],
+        "Supports card payments and refund workflows."
     );
 }

@@ -6,6 +6,7 @@ All notable changes to this project are tracked here.
 
 ### Fixed
 
+- Markdown export now writes topic notes as body text below each topic heading.
 - Markdown export now preserves topic hyperlinks as heading links with angle-bracket destinations.
 
 ## v0.1.0 - 2026-05-28
